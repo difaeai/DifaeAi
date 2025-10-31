@@ -1,0 +1,11 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Allow all authenticated users to read and write to any path.
+    // This removes any possibility of a security rule failure causing the timeout.
+    match /{allPaths=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}

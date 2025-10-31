@@ -1,0 +1,105 @@
+
+/**
+ * @file Firestore Security Rules
+ * @description This ruleset enforces a strict user-ownership model for user profiles and their associated data, grants comprehensive admin privileges, and manages public content access.
+ *
+ * @dataStructure
+ * - /users/{userId}: Private user data, only accessible by the owner or an admin.
+ * - /users/{userId}/cameras/{cameraId}: Camera data, only accessible by the owner or an admin.
+ * - /users/{userId}/cameras/{cameraId}/learned_behaviors/{behaviorId}: Learned behaviors, only accessible by the owner or an admin.
+ * - /content/{pageName}: Publicly readable website content.
+ * - /products/{productId}: Publicly readable product catalog.
+ * - /orders/{orderId}: Customer orders. Creatable by anyone (for guest pre-booking), but only manageable by an admin.
+ *
+ * @keySecurityDecisions
+ * - A robust `isAdmin()` function based on a specific, non-guessable UID grants full override access.
+ * - All user data is private by default and requires ownership or admin privileges to access.
+ * - Order management (read, update, delete) is strictly limited to administrators to ensure data integrity and prevent unauthorized access to customer information.
+ * - Public content and products are read-only for clients to prevent vandalism.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * @description Checks if the request is made by an authenticated user.
+     * @return {bool} True if the user is signed in, false otherwise.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    /**
+     * @description Checks if the authenticated user is the admin by their unique ID (UID).
+     * @return {bool} True if the user is the admin, false otherwise.
+     */
+    function isAdmin() {
+      // This UID corresponds to the admin account. This is the most secure way to identify an admin.
+      return isSignedIn() && request.auth.uid == 'gHZ9n7s2b9X8fJ2kP3s5t8YxVOE2';
+    }
+
+    /**
+     * @description Checks if the authenticated user's UID matches the provided userId.
+     * @param {string} userId - The user ID to compare against.
+     * @return {bool} True if the user is the owner, false otherwise.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /**
+     * @description User profiles are only accessible by the user who owns them or an admin.
+     * @path /users/{userId}
+     */
+    match /users/{userId} {
+      allow read, write: if isOwner(userId) || isAdmin();
+    }
+
+    /**
+     * @description Camera data is only accessible by the user who owns it or an admin.
+     * @path /users/{userId}/cameras/{cameraId}
+     */
+    match /users/{userId}/cameras/{cameraId} {
+        allow read, write: if isOwner(userId) || isAdmin();
+    }
+
+    /**
+     * @description Learned behaviors are only accessible by the user who owns them or an admin.
+     * @path /users/{userId}/cameras/{cameraId}/learned_behaviors/{behaviorId}
+     */
+    match /users/{userId}/cameras/{cameraId}/learned_behaviors/{behaviorId} {
+        allow read, write: if isOwner(userId) || isAdmin();
+    }
+
+    /**
+     * @description Website content is publicly readable but only writable by admins.
+     * @path /content/{pageName}
+     */
+    match /content/{pageName} {
+      allow get, list: if true;
+      allow write: if isAdmin();
+    }
+
+    /**
+     * @description Product catalog is publicly readable but only writable by admins.
+     * @path /products/{productId}
+     */
+    match /products/{productId} {
+      allow get, list: if true;
+      allow write: if isAdmin();
+    }
+
+    /**
+     * @description Orders can be created by anyone (for guest pre-booking).
+     *  However, only administrators can read, update, or delete orders.
+     * @path /orders/{orderId}
+     */
+    match /orders/{orderId} {
+      // Allow anyone to create an order, which is necessary for guest pre-bookings.
+      allow create: if true;
+      
+      // ONLY admins can read, update, or delete orders. This is the key fix.
+      allow read, update, delete: if isAdmin();
+    }
+  }
+}

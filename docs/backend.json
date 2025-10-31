@@ -1,0 +1,261 @@
+
+{
+  "entities": {
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "Represents a user's profile information.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "The user's unique ID."
+        },
+        "name": {
+          "type": "string",
+          "description": "The user's full name."
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "The user's email address."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The date and time the user account was created."
+        },
+        "plan": {
+          "type": "string",
+          "description": "The user's current subscription plan."
+        },
+        "cameras": {
+          "type": "number",
+          "description": "The number of cameras the user has."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["Active", "Inactive"],
+          "description": "The user's account status."
+        },
+        "avatar": {
+          "type": "string",
+          "format": "uri",
+          "description": "A URL to the user's avatar image."
+        },
+        "isAdmin": {
+          "type": "boolean",
+          "description": "Indicates if the user has administrative privileges."
+        }
+      },
+      "required": ["uid", "name", "email", "createdAt", "status"]
+    },
+    "Camera": {
+      "title": "Camera",
+      "description": "Represents a user's connected camera.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "location": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "uniqueId": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["Online", "Offline"]
+        },
+        "facialRecognition": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "prohibitedObjects": {
+            "type": "array",
+            "items": { "type": "string" }
+        }
+      },
+      "required": ["userId", "name", "status", "uniqueId"]
+    },
+    "LearnedBehavior": {
+        "title": "Learned Behavior",
+        "description": "A custom behavior prompt taught to the AI by a user for a specific camera.",
+        "type": "object",
+        "properties": {
+            "userId": { "type": "string" },
+            "cameraId": { "type": "string" },
+            "prompt": { "type": "string" },
+            "createdAt": { "type": "string", "format": "date-time" },
+            "successfulDetections": { "type": "number" },
+            "lastDetectedAt": { "type": "string", "format": "date-time" }
+        },
+        "required": ["userId", "cameraId", "prompt", "createdAt"]
+    },
+    "PageContent": {
+      "title": "Page Content",
+      "description": "Represents the editable content for a specific website page.",
+      "type": "object",
+      "properties": {
+        "hero": {
+          "type": "object",
+          "properties": {
+            "headline": { "type": "string" },
+            "subHeadline": { "type": "string" },
+            "description": { "type": "string" },
+            "preHeadline": { "type": "string" }
+          }
+        },
+        "features": {
+          "type": "object",
+          "properties": {
+            "headline": { "type": "string" },
+            "description": { "type": "string" }
+          }
+        },
+        "howItWorks": {
+          "type": "object",
+          "properties": {
+            "headline": { "type": "string" },
+            "description": { "type": "string" }
+          }
+        },
+        "useCases": {
+            "type": "object",
+            "properties": {
+              "headline": { "type": "string" },
+              "description": { "type": "string" }
+            }
+        },
+        "cta": {
+            "type": "object",
+            "properties": {
+              "headline": { "type": "string" },
+              "description": { "type": "string" }
+            }
+        },
+        "keyFeatures": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "title": { "type": "string" },
+                    "description": { "type": "string" }
+                }
+            }
+        },
+        "whyChoose": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "name": { "type": "string" }
+                }
+            }
+        },
+        "vision2": {
+            "type": "object",
+            "properties": {
+                "headline": { "type": "string" },
+                "description": { "type": "string" },
+                "availability": { "type": "string" }
+            }
+        }
+      }
+    },
+    "Product": {
+      "title": "Product",
+      "description": "Represents a product or subscription plan offered for sale.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "title": { "type": "string" },
+        "price": { "type": "number" },
+        "priceDescription": { "type": "string" },
+        "description": { "type": "string" },
+        "longDescription": { "type": "string" },
+        "features": { "type": "array", "items": { "type": "string" } },
+        "idealFor": { "type": "string" },
+        "images": { "type": "array", "items": { "type": "string", "format": "uri" } },
+        "hints": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["name", "title", "price", "description"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Represents a customer's order for products or subscriptions.",
+      "type": "object",
+      "properties": {
+        "userId": {
+            "type": "string"
+        },
+        "customerName": { "type": "string" },
+        "customerEmail": { "type": "string" },
+        "customerPhone": { "type": "string" },
+        "items": { "type": "string" },
+        "total": { "type": "number" },
+        "status": { "type": "string", "enum": ["Pending", "Approved", "Rejected"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "uniqueId": { "type": "string" },
+        "paymentProofUrl": { "type": "string", "format": "uri" },
+        "activationDate": { "type": "string", "format": "date" },
+        "type": {
+          "type": "string",
+          "enum": ["Order", "Pre-Booking"],
+          "description": "The type of order, to distinguish pre-bookings from regular purchases."
+        }
+      },
+      "required": ["customerName", "customerEmail", "customerPhone", "items", "total", "status", "createdAt"]
+    }
+  },
+  "auth": {
+    "providers": ["password"]
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": {
+        "$ref": "#/backend/entities/UserProfile"
+      },
+      "description": "Stores public profiles for all users."
+    },
+    "/users/{userId}/cameras/{cameraId}": {
+      "schema": {
+        "$ref": "#/backend/entities/Camera"
+      },
+      "description": "Sub-collection for a user's cameras. Also contains camera-specific settings."
+    },
+    "/users/{userId}/cameras/{cameraId}/learned_behaviors/{behaviorId}": {
+        "schema": {
+            "$ref": "#/backend/entities/LearnedBehavior"
+        },
+        "description": "Stores custom behaviors taught to the AI by a user for a specific camera."
+    },
+    "/content/{pageName}": {
+      "schema": {
+        "$ref": "#/backend/entities/PageContent"
+      },
+      "description": "Stores editable content for website pages like 'homepage', 'aboutpage', etc."
+    },
+    "/products/{productId}": {
+        "schema": {
+            "$ref": "#/backend/entities/Product"
+        },
+        "description": "Stores the product catalog information for the website."
+    },
+    "/orders/{orderId}": {
+      "schema": {
+        "$ref": "#/backend/entities/Order"
+      },
+      "description": "Stores all customer orders and their statuses."
+    }
+  }
+}

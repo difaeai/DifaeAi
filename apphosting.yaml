@@ -1,0 +1,20 @@
+# Settings to manage and configure a Firebase App Hosting backend.
+# https://firebase.google.com/docs/app-hosting/configure
+#
+# This file is used to configure the behavior of the App Hosting backend.
+# It is used to specify the run command, the environment variables, and other
+# settings.
+
+# The command to run to start the server
+run: npm run start
+
+# The commands to run to build the app
+build:
+  - run: npm install
+  - run: npm run build
+
+# The runtime configuration for the backend
+runConfig:
+  cpu: 1
+  memoryMiB: 512
+  maxInstances: 2
