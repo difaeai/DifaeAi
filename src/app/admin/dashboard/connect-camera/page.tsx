@@ -31,6 +31,7 @@ import { collection, addDoc } from "firebase/firestore";
 import type { Camera } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import JsmpegPlayer from "@/components/jsmpeg-player";
+import MjpegPreview from '@/components/mjpeg-preview';
 
 import { CameraType, testCameraConnection } from '@/lib/camera-connect';
 
@@ -57,6 +58,7 @@ export default function ConnectCameraPage() {
   const [previewRtspUrl, setPreviewRtspUrl] = useState<string>('');
   const [previewCandidates, setPreviewCandidates] = useState<string[]>([]);
   const [candidateIndex, setCandidateIndex] = useState<number>(0);
+  const [showMjpegFallback, setShowMjpegFallback] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
@@ -112,9 +114,19 @@ export default function ConnectCameraPage() {
 
     const handleTestConnection = async () => {
     if (!formRef.current || !cameraType) return;
+    // If a guessed preview URL is already set (from scanner), skip the server probe and let the player attempt to connect
+    if (previewRtspUrl) {
+      setIsTesting(true);
+      setIsConnectionTested(false);
+      toast({ title: 'Attempting live preview...', description: 'Trying the detected stream URL in the player.' });
+      return;
+    }
     setIsTesting(true);
     setIsConnectionTested(false);
     setPreviewRtspUrl('');
+    setShowProbeResults(false);
+    setProbeInProgress(false);
+    setProbeResults([]);
     
     let toastDescription = "This may take a moment.";
     if (cameraType === 'cloud') {
@@ -129,9 +141,11 @@ export default function ConnectCameraPage() {
 
       if (result.success) {
         if (result.candidates && result.candidates.length > 0) {
-          setProbeResults([]); // Clear previous results
-          setProbeInProgress(true);
-          setShowProbeResults(true);
+          setPreviewCandidates(result.candidates);
+          setCandidateIndex(0);
+          if (result.candidates[0]) {
+            setPreviewRtspUrl(result.candidates[0]);
+          }
 
           try {
             // include optional credentials from the form so server can retry with auth if needed
@@ -150,13 +164,11 @@ export default function ConnectCameraPage() {
 
             const probeJson = await probeRes.json();
             setProbeResults(probeJson.results || []);
-            setProbeInProgress(false);
 
             // If any result indicates auth is required, prompt the user to enter credentials
             const anyAuth = (probeJson.results || []).some((r: any) => !!r.requiresAuth);
             if (anyAuth) {
               toast({ variant: 'destructive', title: 'Authentication Required', description: 'This camera requires a username and password. Enter credentials and re-run Test Connection.' });
-              setShowProbeResults(true);
               setIsTesting(false);
               return;
             }
@@ -164,6 +176,7 @@ export default function ConnectCameraPage() {
             if (probeJson.success && probeJson.url) {
               setPreviewCandidates([]);
               setPreviewRtspUrl(probeJson.url);
+              setIsConnectionTested(true);
               toast({
                 title: 'Stream Found',
                 description: `Found working stream (${probeJson.latencyMs}ms)`,
@@ -172,10 +185,6 @@ export default function ConnectCameraPage() {
                 toast({ variant: 'destructive', title: 'Server missing ffmpeg', description: 'Server does not have ffmpeg installed. Live preview requires ffmpeg on the server; the detected URL will still be saved.' });
               }
             } else {
-              // Try client-side
-              setPreviewCandidates(result.candidates);
-              setCandidateIndex(0);
-              setPreviewRtspUrl(result.candidates[0]);
               toast({
                 variant: 'destructive',
                 title: 'Server Probe Failed',
@@ -183,12 +192,6 @@ export default function ConnectCameraPage() {
               });
             }
           } catch (e) {
-            setProbeResults([]);
-            setProbeInProgress(false);
-            // Fall back to client-side iteration
-            setPreviewCandidates(result.candidates);
-            setCandidateIndex(0);
-            setPreviewRtspUrl(result.candidates[0]);
             toast({
               variant: 'destructive',
               title: 'Probe Error',
@@ -220,7 +223,9 @@ export default function ConnectCameraPage() {
     }
 
     setIsTesting(false);
-  };  const handleAddCamera = async (e: React.FormEvent) => {
+  };
+
+  const handleAddCamera = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isConnectionTested) {
         toast({
@@ -516,14 +521,19 @@ export default function ConnectCameraPage() {
        <JsmpegPlayer 
         rtspUrl={previewRtspUrl} 
         onPlay={() => {
+          setIsTesting(false);
           setIsConnectionTested(true);
           // clear candidates on success
           setPreviewCandidates([]);
           setCandidateIndex(0);
+          toast({ title: 'Connection Verified!', description: 'Live stream is playing successfully.' });
         }}
         onError={() => {
+          setIsTesting(false);
           // try next guessed candidate if available
           tryNextCandidate();
+          // also enable MJPEG fallback probe
+          setShowMjpegFallback(true);
         }}
       />
     );
@@ -569,19 +579,20 @@ export default function ConnectCameraPage() {
         if (el) el.value = ip;
         setScannerOpen(false);
         if (streamUrl) {
+          setPreviewCandidates([]);
+          setCandidateIndex(0);
           setPreviewRtspUrl(streamUrl);
           if (verified) {
             setIsConnectionTested(true);
             toast({ title: 'Stream Found', description: 'Automatically detected a working stream.' });
           } else {
+            // Unverified: let the player try the guessed URL when user presses Test Connection
             setIsConnectionTested(false);
-            setTimeout(() => void handleTestConnection(), 50);
           }
-          return;
+        } else {
+          // No guessed stream: just fill the IP; user can press Test Connection to run probing
+          // (we intentionally do not auto-trigger the probe to keep UX simple)
         }
-        setTimeout(() => {
-          void handleTestConnection();
-        }, 50);
       }} />
       <div>
         <Button variant="ghost" onClick={() => router.back()} className="mb-4">
@@ -692,24 +703,26 @@ export default function ConnectCameraPage() {
                     <Button type="button" onClick={handleTestConnection} disabled={isTesting}>
                     {isTesting ? (
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                        <Video className="mr-2 h-4 w-4" />
-                    )}
-                    Test Connection
-                    </Button>
-                </CardFooter>
-            )}
-             {(cameraType === 'cloud') && (
-                <CardFooter className="flex-col items-start gap-4 border-t pt-6">
-                     <h3 className="font-semibold">Step 5: Authorize Connection</h3>
-                    <p className="text-sm text-muted-foreground -mt-2">
-                        Click below to go to your provider's website and grant access to BERRETO.
-                    </p>
-                    <Button type="button" onClick={handleTestConnection} disabled={isTesting}>
-                    {isTesting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Lock className="mr-2 h-4 w-4" /> }
-                        Authorize & Test Connection
-                    </Button>
-                </CardFooter>
+                    return (
+                       <JsmpegPlayer 
+                        rtspUrl={previewRtspUrl} 
+                        onPlay={() => {
+                          setIsTesting(false);
+                          setIsConnectionTested(true);
+                          // clear candidates on success
+                          setPreviewCandidates([]);
+                          setCandidateIndex(0);
+                          toast({ title: 'Connection Verified!', description: 'Live stream is playing successfully.' });
+                        }}
+                        onError={() => {
+                          setIsTesting(false);
+                          // try next guessed candidate if available
+                          tryNextCandidate();
+                          // also enable MJPEG fallback probe
+                          setShowMjpegFallback(true);
+                        }}
+                      />
+                    );
              )}
           </Card>
         )}
@@ -727,5 +740,3 @@ export default function ConnectCameraPage() {
     </div>
   );
 }
-
-    

@@ -33,6 +33,7 @@ import { collection, addDoc } from "firebase/firestore";
 import type { Camera } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import JsmpegPlayer from "@/components/jsmpeg-player";
+import MjpegPreview from '@/components/mjpeg-preview';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -73,6 +74,7 @@ export default function ConnectCameraPage() {
   const [showProbeResults, setShowProbeResults] = useState(false);
   const [probeInProgress, setProbeInProgress] = useState(false);
   const [scannerOpen, setScannerOpen] = useState(false);
+  const [showMjpegFallback, setShowMjpegFallback] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
@@ -124,6 +126,15 @@ export default function ConnectCameraPage() {
 
   const handleTestConnection = async () => {
     if (!formRef.current || !cameraType) return;
+    // If we already have a guessed stream URL (from scanner), skip the server probe
+    // and let the player attempt to connect directly.
+    if (previewRtspUrl) {
+      setIsTesting(true);
+      setIsConnectionTested(false);
+      toast({ title: 'Attempting live preview...', description: 'Trying the detected stream URL in the player.' });
+      return;
+    }
+
     setIsTesting(true);
     setIsConnectionTested(false);
     setPreviewRtspUrl('');
@@ -139,7 +150,7 @@ export default function ConnectCameraPage() {
     
     const result = await testCameraConnection(cameraType, formData);
 
-    if (result.success) {
+  if (result.success) {
       // If the helper returned guessed candidates (IP-only flow)
       if (result.candidates && result.candidates.length > 0) {
         setProbeResults([]);
@@ -173,16 +184,16 @@ export default function ConnectCameraPage() {
             return;
           }
 
-          if (probeJson.success && probeJson.url) {
-            setPreviewRtspUrl(probeJson.url);
-            toast({ title: 'Stream Found', description: `Found working stream (${probeJson.latencyMs}ms)` });
-            if (!probeJson.ffmpegAvailable) {
-              toast({ variant: 'destructive', title: 'Server missing ffmpeg', description: 'Server does not have ffmpeg installed. Live preview requires ffmpeg on the server; the detected URL will still be saved.' });
-            }
-          } else {
+            if (probeJson.success && probeJson.url) {
+              setPreviewRtspUrl(probeJson.url);
+              toast({ title: 'Stream Found', description: `Found working stream (${probeJson.latencyMs}ms)` });
+              if (!probeJson.ffmpegAvailable) {
+                toast({ variant: 'destructive', title: 'Server missing ffmpeg', description: 'Server does not have ffmpeg installed. Live preview requires ffmpeg on the server; the detected URL will still be saved.' });
+              }
+            } else {
             // fallback to client-side candidate iteration
-            setPreviewRtspUrl(result.candidates[0]);
-            toast({ variant: 'destructive', title: 'Probe Failed', description: 'Server could not locate a stream; trying in the player.' });
+              setPreviewRtspUrl(result.candidates[0]);
+              toast({ variant: 'destructive', title: 'Probe Failed', description: 'Server could not locate a stream; trying in the player.' });
           }
         } catch (e) {
           setProbeResults([]);
@@ -495,13 +506,17 @@ export default function ConnectCameraPage() {
            <JsmpegPlayer 
                 rtspUrl={previewRtspUrl} 
                 onPlay={() => {
-                  setIsConnectionTested(true);
-                  toast({ title: "Connection Verified!", description: "Live stream is playing successfully." });
+          setIsTesting(false);
+          setIsConnectionTested(true);
+          toast({ title: "Connection Verified!", description: "Live stream is playing successfully." });
                 }} 
-                onError={() => {
-                  setIsConnectionTested(false);
-                  toast({ variant: 'destructive', title: 'Stream Failed', description: 'Could not connect to the camera stream. Check details and network.' });
-                }}
+                        onError={() => {
+                            setIsTesting(false);
+                            setIsConnectionTested(false);
+                            // Try MJPEG fallback
+                            setShowMjpegFallback(true);
+                            toast({ variant: 'destructive', title: 'Stream Failed', description: 'Could not connect to the camera stream. Trying HTTP MJPEG fallback.' });
+                          }}
             />
         );
     }
@@ -520,10 +535,14 @@ export default function ConnectCameraPage() {
 
     return (
         <div className="aspect-video bg-muted rounded-lg flex items-center justify-center text-muted-foreground">
-            <div className="text-center">
+            {showMjpegFallback ? (
+              <MjpegPreview ip={(document.getElementById('stream-url') as HTMLInputElement | null)?.value || ''} username={(document.getElementById('stream-user') as HTMLInputElement | null)?.value || ''} password={(document.getElementById('stream-pass') as HTMLInputElement | null)?.value || ''} onFound={(u) => { setPreviewRtspUrl(u); setShowMjpegFallback(false); }} />
+            ) : (
+              <div className="text-center">
                 <Video className="mx-auto h-12 w-12"/>
                 <p>Preview will appear here after a successful test.</p>
-            </div>
+              </div>
+            )}
         </div>
     );
   };
@@ -549,9 +568,8 @@ export default function ConnectCameraPage() {
             setIsConnectionTested(true);
             toast({ title: 'Stream Found', description: 'Automatically detected a working stream.' });
           } else {
-            // Not verified by ffmpeg — still attempt to play and let the player report status
+            // Not verified by ffmpeg — set preview and let the player attempt to connect; player will mark success or failure
             setIsConnectionTested(false);
-            setTimeout(() => void handleTestConnection(), 50);
           }
           return;
         }
