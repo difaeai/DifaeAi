@@ -47,43 +47,7 @@ import {
 
 type CameraType = "" | "ip" | "dvr" | "mobile" | "usb" | "cloud";
 
-async function testCameraConnection(cameraType: string, formData: FormData) {
-    const data = Object.fromEntries(formData.entries());
-    console.log(`Testing connection for ${cameraType}`, data);
-    
-    await new Promise(resolve => setTimeout(resolve, 500)); 
-
-    let streamUrl: string | null = null;
-
-    switch(cameraType) {
-        case 'mobile':
-            if (data['mobile-ip'] && data['mobile-port']) {
-                streamUrl = `http://${data['mobile-ip']}:${data['mobile-port']}/video`;
-                return { success: true, message: 'Attempting to connect to mobile camera.', streamUrl };
-            }
-            return { success: false, message: 'Missing IP Address or Port for mobile camera.' };
-        case 'dvr':
-             if (data['dvr-ip'] && data['dvr-port'] && data['dvr-user']) {
-                streamUrl = `rtsp://${data['dvr-user']}:${data['dvr-pass']}@${data['dvr-ip']}:${data['dvr-port']}/`;
-                return { success: true, message: 'Attempting to connect to DVR/NVR system.', streamUrl };
-             }
-            return { success: false, message: 'Missing IP, Port, or Username for DVR/NVR.' };
-        case 'ip':
-            streamUrl = data['stream-url'] as string | null;
-            if (streamUrl && (streamUrl.startsWith('rtsp://') || streamUrl.startsWith('http://'))) {
-                return { success: true, message: 'Attempting to connect to IP camera stream.', streamUrl };
-            }
-            return { success: false, message: 'Invalid or missing stream URL for IP camera.' };
-        case 'usb':
-             // The permission itself is the test for USB webcams.
-             return { success: true, message: 'Webcam permission granted.' };
-        case 'cloud':
-             // For cloud, we simulate an auth redirect. The "test" is just initiating it.
-             return { success: true, message: 'Redirecting for authentication...' };
-        default:
-            return { success: false, message: 'Invalid camera type provided.' };
-    }
-}
+import { testCameraConnection } from '@/lib/camera-connect';
 
 async function addCameraToFirestore(cameraData: Omit<Camera, 'id' | 'createdAt'>): Promise<string> {
     const camerasCollection = collection(db, 'users', cameraData.userId, 'cameras');
@@ -105,6 +69,10 @@ export default function ConnectCameraPage() {
   const [isConnectionTested, setIsConnectionTested] = useState(false);
   const [hasWebcamPermission, setHasWebcamPermission] = useState<boolean | null>(null);
   const [previewRtspUrl, setPreviewRtspUrl] = useState<string>('');
+  const [probeResults, setProbeResults] = useState<any[]>([]);
+  const [showProbeResults, setShowProbeResults] = useState(false);
+  const [probeInProgress, setProbeInProgress] = useState(false);
+  const [scannerOpen, setScannerOpen] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
@@ -172,20 +140,66 @@ export default function ConnectCameraPage() {
     const result = await testCameraConnection(cameraType, formData);
 
     if (result.success) {
-      if (result.streamUrl) {
+      // If the helper returned guessed candidates (IP-only flow)
+      if (result.candidates && result.candidates.length > 0) {
+        setProbeResults([]);
+        setProbeInProgress(true);
+        setShowProbeResults(true);
+
+        try {
+          // include optional credentials from the form so server can retry with auth if needed
+          const fd = new FormData(formRef.current!);
+          const probeBody: any = { candidates: result.candidates, timeoutMs: 7000, concurrentLimit: 3 };
+          const user = fd.get('stream-user');
+          const pass = fd.get('stream-pass');
+          if (user) probeBody.username = String(user);
+          if (pass) probeBody.password = String(pass);
+
+          const probeRes = await fetch('/api/probe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(probeBody)
+          });
+          const probeJson = await probeRes.json();
+          setProbeResults(probeJson.results || []);
+          setProbeInProgress(false);
+
+          // If any result indicates auth is required, prompt the user to enter credentials
+          const anyAuth = (probeJson.results || []).some((r: any) => !!r.requiresAuth);
+          if (anyAuth) {
+            toast({ variant: 'destructive', title: 'Authentication Required', description: 'This camera requires a username and password. Enter credentials and re-run Test Connection.' });
+            setShowProbeResults(true);
+            setIsTesting(false);
+            return;
+          }
+
+          if (probeJson.success && probeJson.url) {
+            setPreviewRtspUrl(probeJson.url);
+            toast({ title: 'Stream Found', description: `Found working stream (${probeJson.latencyMs}ms)` });
+            if (!probeJson.ffmpegAvailable) {
+              toast({ variant: 'destructive', title: 'Server missing ffmpeg', description: 'Server does not have ffmpeg installed. Live preview requires ffmpeg on the server; the detected URL will still be saved.' });
+            }
+          } else {
+            // fallback to client-side candidate iteration
+            setPreviewRtspUrl(result.candidates[0]);
+            toast({ variant: 'destructive', title: 'Probe Failed', description: 'Server could not locate a stream; trying in the player.' });
+          }
+        } catch (e) {
+          setProbeResults([]);
+          setProbeInProgress(false);
+          setPreviewRtspUrl(result.candidates[0]);
+          toast({ variant: 'destructive', title: 'Probe Error', description: 'Could not probe streams on the server; trying in the player.' });
+        }
+      } else if (result.streamUrl) {
         setPreviewRtspUrl(result.streamUrl);
         // For streaming types, success is determined by the player, not here.
       } else if (cameraType === 'cloud' || cameraType === 'usb') {
         setIsConnectionTested(true);
-         toast({ title: "Connection Verified!", description: result.message });
+        toast({ title: "Connection Verified!", description: result.message });
       }
     } else {
       setIsConnectionTested(false);
-      toast({
-        variant: "destructive",
-        title: "Connection Failed",
-        description: result.message,
-      });
+      toast({ variant: "destructive", title: "Connection Failed", description: result.message });
     }
     setIsTesting(false);
   };
@@ -210,10 +224,10 @@ export default function ConnectCameraPage() {
     const formData = new FormData(formRef.current);
     const data = Object.fromEntries(formData.entries());
 
-    let uniqueId = previewRtspUrl;
-    if (cameraType === 'usb') uniqueId = `webcam_${user.uid}_${Date.now()}`;
-    else if (cameraType === 'cloud') uniqueId = data.activationId as string;
-    else if (cameraType === 'ip') uniqueId = data['stream-url'] as string;
+  let uniqueId = previewRtspUrl;
+  if (cameraType === 'usb') uniqueId = `webcam_${user.uid}_${Date.now()}`;
+  else if (cameraType === 'cloud') uniqueId = data.activationId as string;
+  else if (cameraType === 'ip') uniqueId = previewRtspUrl || (data['stream-url'] as string);
 
 
     if (!uniqueId) {
@@ -266,57 +280,61 @@ export default function ConnectCameraPage() {
       case "ip":
         return (
           <div className="space-y-4 animate-in fade-in">
-            <Alert>
-                <Info className="h-4 w-4" />
-                <AlertTitle>Direct IP Camera (RTSP/HTTP)</AlertTitle>
-                <AlertDescription>
-                    Use this for cameras that support direct streaming. You will need to know the camera's full stream URL.
-                </AlertDescription>
-            </Alert>
+      <Alert>
+        <Info className="h-4 w-4" />
+        <AlertTitle>IP Camera Setup</AlertTitle>
+        <AlertDescription>
+          Enter only your camera's local IP address (e.g., 192.168.1.100). We'll try common stream paths automatically and start a live preview when we find one.
+        </AlertDescription>
+      </Alert>
             <div className="space-y-2">
-                <Label htmlFor="stream-url">Full Stream URL</Label>
+                <Label htmlFor="stream-url">Camera IP Address</Label>
                 <div className="flex gap-2">
-                  <Input name="stream-url" id="stream-url" placeholder="rtsp://user:pass@192.168.1.100:554/stream1" required />
+                  <Input name="stream-url" id="stream-url" placeholder="e.g., 192.168.1.100" />
+                  <Button type="button" variant="outline" onClick={() => setScannerOpen(true)}>Scan Network</Button>
                    <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button variant="outline" size="icon" type="button"><HelpCircle className="h-4 w-4" /></Button>
                       </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>How to Find Your Camera's Stream URL</AlertDialogTitle>
-                          <AlertDialogDescription className="space-y-4 pt-4 text-foreground">
-                            <p>The RTSP URL is a special link that points directly to your camera's video feed. The format can vary by manufacturer.</p>
-                            <div>
-                                <h4 className="font-semibold">Method 1: Check Your Router's Admin Page</h4>
-                                <ol className="list-decimal list-inside text-sm text-muted-foreground space-y-1 mt-1">
-                                    <li>Find your router's IP address (often on a sticker on the router, e.g., `192.168.1.1`).</li>
-                                    <li>Log into your router's settings in a web browser.</li>
-                                    <li>Look for a "Connected Devices" or "Client List" section.</li>
-                                    <li>Find your camera in the list to get its local IP address.</li>
-                                </ol>
-                            </div>
-                            <div>
-                                <h4 className="font-semibold">Method 2: Use an Online Resource</h4>
-                                 <ol className="list-decimal list-inside text-sm text-muted-foreground space-y-1 mt-1">
-                                     <li>Visit a website like <a href="https://www.ispyconnect.com/cameras" target="_blank" rel="noopener noreferrer" className="text-primary underline">iSpyConnect's Camera Database</a>.</li>
-                                    <li>Search for your camera's manufacturer and model.</li>
-                                    <li>The website will provide the most common URL formats.</li>
-                                    <li>Replace `[IPADDRESS]`, `[USERNAME]`, and `[PASSWORD]` with your camera's details.</li>
-                                </ol>
-                            </div>
-                            <div>
-                              <h4 className="font-semibold">Common URL Formats</h4>
-                              <p className="text-sm text-muted-foreground mt-1">The format is usually `rtsp://[USERNAME]:[PASSWORD]@[IPADDRESS]:[PORT]/[STREAM_PATH]`.</p>
-                              <p className="text-xs text-muted-foreground mt-1">Example for a Hikvision camera: `rtsp://admin:password123@192.168.1.64:554/Streaming/Channels/101/`</p>
-                            </div>
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogAction>Got it</AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
+                       <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>How to Find Your Camera's IP Address</AlertDialogTitle>
+                              <AlertDialogDescription className="space-y-4 pt-4 text-foreground">
+                                <p>If you don't know your camera's IP address, use one of these methods to find it.</p>
+                                <div>
+                                    <h4 className="font-semibold">Method 1: Camera Mobile App</h4>
+                                    <p className="text-muted-foreground">Open the manufacturer's app and check Device Info or Network settings — many apps display the local IP.</p>
+                                </div>
+                                <div>
+                                    <h4 className="font-semibold">Method 2: Router's Connected Devices</h4>
+                                     <ol className="list-decimal list-inside text-sm text-muted-foreground space-y-1 mt-1">
+                                         <li>Log into your router (often at 192.168.1.1).</li>
+                                        <li>Find "Connected Devices" or "DHCP Client List".</li>
+                                        <li>Locate your camera to see its IP (e.g., 192.168.1.100).</li>
+                                    </ol>
+                                </div>
+                                <div>
+                                  <h4 className="font-semibold">Method 3: Manufacturer Tools</h4>
+                                  <p className="text-muted-foreground">Many camera makers ship a discovery utility or provide a web-based device list. Use that to detect the camera on your LAN.</p>
+                                </div>
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogAction>Got it</AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
                     </AlertDialog>
                 </div>
+            </div>
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="stream-user">Username (optional)</Label>
+                <Input id="stream-user" name="stream-user" placeholder="e.g., admin" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="stream-pass">Password (optional)</Label>
+                <Input id="stream-pass" name="stream-pass" type="password" />
+              </div>
             </div>
           </div>
         );
@@ -510,8 +528,39 @@ export default function ConnectCameraPage() {
     );
   };
 
+  // lazy require to avoid SSR issues
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const { ProbeResultsDialog } = require('@/components/ui/probe-results-dialog');
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const { default: NetworkScannerDialog } = require('@/components/ui/network-scanner-dialog');
+
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
+      <ProbeResultsDialog open={showProbeResults} onClose={() => setShowProbeResults(false)} results={probeResults} inProgress={probeInProgress} />
+      <NetworkScannerDialog open={scannerOpen} onClose={() => setScannerOpen(false)} onSelect={async (ip: string, streamUrl?: string, verified?: boolean) => {
+        // fill IP into the input
+        const el = document.getElementById('stream-url') as HTMLInputElement | null;
+        if (el) { el.value = ip; }
+        setScannerOpen(false);
+        // If the scanner returned a best-guess stream URL, set it immediately and try to preview
+        if (streamUrl) {
+          setPreviewRtspUrl(streamUrl);
+          if (verified) {
+            setIsConnectionTested(true);
+            toast({ title: 'Stream Found', description: 'Automatically detected a working stream.' });
+          } else {
+            // Not verified by ffmpeg — still attempt to play and let the player report status
+            setIsConnectionTested(false);
+            setTimeout(() => void handleTestConnection(), 50);
+          }
+          return;
+        }
+
+        // otherwise trigger the normal Test Connection flow which will run the probe
+        setTimeout(() => {
+          void handleTestConnection();
+        }, 50);
+      }} />
       <div>
         <Button variant="ghost" onClick={() => router.back()} className="mb-4">
           <ArrowLeft className="mr-2 h-4 w-4" /> Back to Cameras
@@ -525,14 +574,14 @@ export default function ConnectCameraPage() {
         <Card>
             <CardHeader>
                 <CardTitle>Step 1: Subscription and Camera Details</CardTitle>
-                <CardDescription>
-                    Enter your Unique Activation ID and give your camera a name. For cameras without a subscription (like a direct IP camera), you can use the RTSP URL as the ID.
-                </CardDescription>
+        <CardDescription>
+          Enter your Unique Activation ID and give your camera a name. For direct IP cameras you can use the Activation ID field; the system will also store the detected stream URL when available.
+        </CardDescription>
             </CardHeader>
             <CardContent className="grid sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                    <Label htmlFor="activation-id">Activation ID / Stream URL</Label>
-                    <Input id="activation-id" name="activationId" placeholder="e.g., DSGPRO-G4H7J2K9L" required />
+                    <Label htmlFor="activation-id">Activation ID</Label>
+                    <Input id="activation-id" name="activationId" placeholder="e.g., DSGPRO-G4H7J2K9L (optional)" />
                     <p className="text-xs text-muted-foreground">
                         Find this on your <Link href="/dashboard/my-orders" className="underline">My Subscriptions</Link> page.
                     </p>

@@ -49,6 +49,18 @@ app.prepare().then(() => {
       '-'
     ]);
 
+    ffmpeg.on('error', (err: any) => {
+      // Helpful message if ffmpeg isn't installed or cannot be executed
+      console.error('Failed to start ffmpeg. Make sure ffmpeg is installed and available on your PATH.');
+      console.error(err && err.message ? err.message : err);
+      try {
+        ws.close(1011, 'FFMPEG start error');
+      } catch (e) {
+        // ignore
+      }
+      return;
+    });
+
     ffmpeg.stdout.on('data', (data) => {
       ws.send(data);
     });

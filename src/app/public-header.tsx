@@ -13,7 +13,7 @@ import { useCart } from "@/context/cart-context";
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/use-auth";
-import { UserNav } from "./user-nav";
+import { UserNav } from "@/components/user-nav";
 import { useRouter } from "next/navigation";
 
 export default function PublicHeader() {

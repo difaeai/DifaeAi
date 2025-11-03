@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Opening App...</title>
+    <!-- Redirect to Next.js dev server which serves the actual homepage -->
+    <meta http-equiv="refresh" content="0; url=http://localhost:3000/" />
+    <script>
+      // Fallback in case meta refresh is blocked
+      (function () {
+        var target = 'http://localhost:3000/';
+        try {
+          // try to open in same window
+          window.location.replace(target);
+        } catch (e) {
+          var a = document.createElement('a');
+          a.href = target;
+          a.textContent = 'Open the app homepage';
+          document.body.appendChild(a);
+        }
+      })();
+    </script>
+    <style>
+      body { font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; display:flex; align-items:center; justify-content:center; height:100vh; margin:0; color:#333 }
+      .card { text-align:center }
+      a { color:#0366d6 }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h1>Opening app homepage…</h1>
+      <p>If you are not redirected automatically, <a href="http://localhost:3000/">click here to open the app</a>.</p>
+      <p>Make sure the Next dev server is running (`npm run dev`).</p>
+    </div>
+  </body>
+</html>

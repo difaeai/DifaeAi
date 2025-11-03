@@ -157,7 +157,7 @@ export default function OrdersPage() {
     if (!orderToReject) return;
     
     startTransition(async () => {
-      const updateData = { status: "Rejected" };
+      const updateData: any = { status: "Rejected" };
       try {
         const result = await updateOrder(orderId, updateData);
         if (result.success) {
