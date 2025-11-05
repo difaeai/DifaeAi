@@ -1,0 +1,305 @@
+openapi: 3.0.3
+info:
+  title: Universal Camera Bridge API
+  version: 0.1.0
+servers:
+  - url: http://localhost:8088
+paths:
+  /devices:
+    post:
+      summary: Create device registration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, type]
+              properties:
+                name:
+                  type: string
+                type:
+                  type: string
+                  enum: [rtsp, onvif, p2p]
+                ip:
+                  type: string
+                rtspUrl:
+                  type: string
+                username:
+                  type: string
+                password:
+                  type: string
+                vendor:
+                  type: string
+                model:
+                  type: string
+                siteId:
+                  type: string
+                notes:
+                  type: string
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+    get:
+      summary: List devices
+      responses:
+        "200":
+          description: Devices
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Device"
+  /discover/onvif:
+    post:
+      summary: Discover ONVIF devices on the local network
+      responses:
+        "200":
+          description: Discovery results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  devices:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        name: { type: string }
+                        ip: { type: string }
+                        mac: { type: string }
+                        vendor: { type: string }
+                        model: { type: string }
+  /devices/{id}/test-rtsp:
+    post:
+      summary: Probe RTSP stream for codec/fps information
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Probe results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  fps: { type: number }
+                  videoCodec: { type: string }
+                  audioCodec: { type: string }
+                  resolution: { type: string }
+  /devices/{id}/start:
+    post:
+      summary: Start ingest session for device
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                profile:
+                  type: string
+                  enum: [main, sub]
+                targets:
+                  type: array
+                  items:
+                    type: string
+                    enum: [webrtc, hls]
+      responses:
+        "200":
+          description: Started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+  /devices/{id}/stop:
+    post:
+      summary: Stop ingest session for device
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Stopped
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+  /devices/{id}/status:
+    get:
+      summary: Device ingest status snapshot
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Status payload
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ingestState: { type: string }
+                  fps: { type: number }
+                  bitrateKbps: { type: number }
+                  lastKeyframeTs: { type: string, format: date-time }
+                  lastError: { type: string }
+                  targets:
+                    type: array
+                    items:
+                      type: string
+                      enum: [webrtc, hls]
+                  lastHeartbeat: { type: string, format: date-time }
+  /devices/{id}:
+    get:
+      summary: Fetch device details
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Device
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Device"
+  /devices/{id}/metrics:
+    post:
+      summary: Update ingest metrics (ingest worker)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                fps: { type: number }
+                bitrateKbps: { type: number }
+                lastKeyframeTs: { type: string, format: date-time }
+                ingestState: { type: string, enum: [idle, starting, running, stopping, error] }
+                targets:
+                  type: array
+                  items: { type: string, enum: [webrtc, hls] }
+                lastHeartbeat: { type: string, format: date-time }
+                lastError: { type: string }
+      responses:
+        "200":
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+  /streams/{id}/token:
+    post:
+      summary: Issue short-lived playback token for a stream
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                scope:
+                  type: array
+                  items:
+                    type: string
+                    enum: [webrtc, hls]
+      responses:
+        "200":
+          description: Token payload
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token: { type: string }
+                  expiresIn: { type: integer }
+                  playback:
+                    type: object
+                    properties:
+                      webrtc: { type: string }
+                      hls: { type: string }
+                  cameraId: { type: string }
+                  mountpoint: { type: string }
+  /health:
+    get:
+      summary: Service health readout
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string }
+                  timestamp: { type: string, format: date-time }
+components:
+  schemas:
+    Device:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        type: { type: string, enum: [rtsp, onvif, p2p] }
+        vendor: { type: string }
+        model: { type: string }
+        siteId: { type: string }
+        ip: { type: string }
+        notes: { type: string }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        status:
+          type: object
+          properties:
+            ingestState: { type: string, enum: [idle, starting, running, stopping, error] }
+            fps: { type: number }
+            bitrateKbps: { type: number }
+            lastKeyframeTs: { type: string, format: date-time }
+            lastError: { type: string }
+            targets:
+              type: array
+              items: { type: string, enum: [webrtc, hls] }
+            lastHeartbeat: { type: string, format: date-time }
+        credentials:
+          type: object
+          properties:
+            username: { type: string }
+            rtspUrl: { type: string }

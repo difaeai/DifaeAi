@@ -1,0 +1,16 @@
+general: {
+    admins: no
+    admin_key: "changeme"
+}
+
+streams: (
+    {
+        type = "rtp"
+        id = 1
+        description = "Placeholder camera mount"
+        is_private = false
+        do_record = false
+        audio = false
+        video = true
+    }
+)

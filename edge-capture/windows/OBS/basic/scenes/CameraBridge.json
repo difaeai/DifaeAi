@@ -1,0 +1,31 @@
+{
+  "sources": [
+    {
+      "name": "VendorAppCapture",
+      "type": "window_capture",
+      "settings": {
+        "window": "V380 Client:V380.exe",
+        "capture_mode": "exclusive"
+      }
+    }
+  ],
+  "scene_order": [
+    {
+      "name": "MainScene"
+    }
+  ],
+  "scene_items": [
+    {
+      "scene_name": "MainScene",
+      "item_name": "VendorAppCapture",
+      "scale": {
+        "x": 1.0,
+        "y": 1.0
+      },
+      "position": {
+        "x": 0.0,
+        "y": 0.0
+      }
+    }
+  ]
+}
