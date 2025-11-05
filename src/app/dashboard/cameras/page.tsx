@@ -394,7 +394,7 @@ export default function CamerasPage() {
         <CardHeader>
           <CardTitle className="font-headline flex items-center gap-2">
             <BrainCircuit />
-            Train Cameras
+            Train Your Cameras
           </CardTitle>
           <CardDescription>
             Improve recognition accuracy by providing new training data. Select a camera to begin training.
@@ -417,7 +417,7 @@ export default function CamerasPage() {
                                 <Button asChild variant="outline">
                                     <Link href={`/dashboard/train-agent?cameraId=${camera.id}`}>
                                         <BrainCircuit className="mr-2 h-4 w-4"/>
-                                        Train Camera
+                                        Train Your Cameras
                                     </Link>
                                 </Button>
                             </div>

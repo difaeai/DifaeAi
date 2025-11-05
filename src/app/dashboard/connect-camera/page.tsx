@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
@@ -33,7 +33,7 @@ import { collection, addDoc } from "firebase/firestore";
 import type { Camera } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import JsmpegPlayer from "@/components/jsmpeg-player";
-import MjpegPreview from '@/components/mjpeg-preview';
+import MjpegPreview from "@/components/mjpeg-preview";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -49,6 +49,13 @@ import {
 type CameraType = "" | "ip" | "dvr" | "mobile" | "usb" | "cloud";
 
 import { testCameraConnection } from '@/lib/camera-connect';
+
+type ConnectionTestOptions = {
+  preservePreview?: boolean;
+  suppressProbeDialog?: boolean;
+  skipToast?: boolean;
+  allowFallbackPreview?: boolean;
+};
 
 async function addCameraToFirestore(cameraData: Omit<Camera, 'id' | 'createdAt'>): Promise<string> {
     const camerasCollection = collection(db, 'users', cameraData.userId, 'cameras');
@@ -75,9 +82,49 @@ export default function ConnectCameraPage() {
   const [probeInProgress, setProbeInProgress] = useState(false);
   const [scannerOpen, setScannerOpen] = useState(false);
   const [showMjpegFallback, setShowMjpegFallback] = useState(false);
+  const [ffmpegMissing, setFfmpegMissing] = useState(false);
+  const [authHint, setAuthHint] = useState(false);
+  const [detectedStreamUrl, setDetectedStreamUrl] = useState<string>('');
+  const [selectedIp, setSelectedIp] = useState<string>('');
+  const [manualIp, setManualIp] = useState<string>('');
+  const [selectedHostname, setSelectedHostname] = useState<string>('');
+  const [showManualEntry, setShowManualEntry] = useState(false);
+  const [showCredentialFields, setShowCredentialFields] = useState(false);
+  const [streamUser, setStreamUser] = useState('');
+  const [streamPass, setStreamPass] = useState('');
+  const [awaitingCredentials, setAwaitingCredentials] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
+
+  const resetIpSelection = useCallback(() => {
+    setSelectedIp('');
+    setManualIp('');
+    setSelectedHostname('');
+    setShowManualEntry(false);
+    setShowCredentialFields(false);
+    setPreviewRtspUrl('');
+    setDetectedStreamUrl('');
+    setIsConnectionTested(false);
+    setIsTesting(false);
+    setProbeResults([]);
+    setProbeInProgress(false);
+    setShowProbeResults(false);
+    setShowMjpegFallback(false);
+    setAuthHint(false);
+    setFfmpegMissing(false);
+    setStreamUser('');
+    setStreamPass('');
+    setAwaitingCredentials(false);
+
+    if (typeof document !== 'undefined') {
+      const el = document.getElementById('stream-url') as HTMLInputElement | null;
+      if (el) {
+        el.value = '';
+        el.dispatchEvent?.(new Event('input', { bubbles: true }));
+      }
+    }
+  }, []);
 
   const cameraTypeOptions = [
     { type: 'ip' as CameraType, icon: <Wifi className="h-8 w-8" />, title: 'IP Camera', description: 'A standalone Wi-Fi or Ethernet camera.' },
@@ -86,6 +133,12 @@ export default function ConnectCameraPage() {
     { type: 'mobile' as CameraType, icon: <Smartphone className="h-8 w-8" />, title: 'Mobile Camera', description: 'Using an app to turn your phone into a camera.' },
     { type: 'cloud' as CameraType, icon: <Cloud className="h-8 w-8" />, title: 'Cloud Camera', description: 'A camera from a cloud service like Ring or Nest.' },
   ];
+
+  useEffect(() => {
+    if (cameraType !== 'ip') {
+      resetIpSelection();
+    }
+  }, [cameraType, resetIpSelection]);
 
   useEffect(() => {
     const cleanupStream = () => {
@@ -122,99 +175,214 @@ export default function ConnectCameraPage() {
 
     return cleanupStream;
   }, [cameraType, toast]);
-  
 
-  const handleTestConnection = async () => {
-    if (!formRef.current || !cameraType) return;
-    // If we already have a guessed stream URL (from scanner), skip the server probe
-    // and let the player attempt to connect directly.
-    if (previewRtspUrl) {
-      setIsTesting(true);
-      setIsConnectionTested(false);
-      toast({ title: 'Attempting live preview...', description: 'Trying the detected stream URL in the player.' });
-      return;
+  useEffect(() => {
+    if (authHint) {
+      setShowCredentialFields(true);
+      setAwaitingCredentials(true);
     }
+  }, [authHint]);
+
+
+  const runConnectionTest = useCallback(async (options: ConnectionTestOptions = {}) => {
+    if (!formRef.current || !cameraType) return;
+
+    const { preservePreview = false, suppressProbeDialog = false, skipToast = false, allowFallbackPreview = false } = options;
+    const hadPreview = !!previewRtspUrl;
 
     setIsTesting(true);
     setIsConnectionTested(false);
+    setFfmpegMissing(false);
+    setAuthHint(false);
+    setDetectedStreamUrl('');
+
+    if (!preservePreview) {
     setPreviewRtspUrl('');
-    
+  }
+  setShowMjpegFallback(false);
+  if (suppressProbeDialog) {
+    setShowProbeResults(false);
+  }
+
+  if (!skipToast) {
     let toastDescription = "This may take a moment.";
-    if (cameraType === 'cloud') {
-        toastDescription = "Redirecting you for authentication..."
+      if (cameraType === 'cloud') {
+        toastDescription = "Redirecting you for authentication...";
+      }
+      toast({ title: "Testing connection...", description: toastDescription });
     }
 
-    toast({ title: "Testing connection...", description: toastDescription });
-
     const formData = new FormData(formRef.current);
-    
-    const result = await testCameraConnection(cameraType, formData);
 
-  if (result.success) {
-      // If the helper returned guessed candidates (IP-only flow)
-      if (result.candidates && result.candidates.length > 0) {
-        setProbeResults([]);
-        setProbeInProgress(true);
-        setShowProbeResults(true);
+    try {
+      const result = await testCameraConnection(cameraType, formData);
 
-        try {
-          // include optional credentials from the form so server can retry with auth if needed
-          const fd = new FormData(formRef.current!);
-          const probeBody: any = { candidates: result.candidates, timeoutMs: 7000, concurrentLimit: 3 };
-          const user = fd.get('stream-user');
-          const pass = fd.get('stream-pass');
-          if (user) probeBody.username = String(user);
-          if (pass) probeBody.password = String(pass);
-
-          const probeRes = await fetch('/api/probe', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(probeBody)
-          });
-          const probeJson = await probeRes.json();
-          setProbeResults(probeJson.results || []);
-          setProbeInProgress(false);
-
-          // If any result indicates auth is required, prompt the user to enter credentials
-          const anyAuth = (probeJson.results || []).some((r: any) => !!r.requiresAuth);
-          if (anyAuth) {
-            toast({ variant: 'destructive', title: 'Authentication Required', description: 'This camera requires a username and password. Enter credentials and re-run Test Connection.' });
+      if (result.success) {
+        if (result.candidates && result.candidates.length > 0) {
+          setProbeResults([]);
+          setProbeInProgress(true);
+          if (!suppressProbeDialog) {
             setShowProbeResults(true);
-            setIsTesting(false);
-            return;
           }
+
+          try {
+            const fd = new FormData(formRef.current!);
+            const probeBody: any = { candidates: result.candidates, timeoutMs: 7000, concurrentLimit: 3 };
+            const user = fd.get('stream-user');
+            const pass = fd.get('stream-pass');
+            if (user) probeBody.username = String(user);
+            if (pass) probeBody.password = String(pass);
+
+            const probeRes = await fetch('/api/probe', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(probeBody)
+            });
+            const probeJson = await probeRes.json();
+            setProbeResults(probeJson.results || []);
+            setProbeInProgress(false);
+            setDetectedStreamUrl(probeJson.url || '');
+            if (probeJson.ffmpegAvailable === false) {
+              setFfmpegMissing(true);
+            }
+
+            const anyAuth = (probeJson.results || []).some((r: any) => !!r.requiresAuth);
+            if (anyAuth) {
+              setAuthHint(true);
+              setAwaitingCredentials(true);
+              if (!skipToast) {
+                toast({ variant: 'destructive', title: 'Authentication Required', description: 'This camera requires a username and password. Enter credentials and re-run Test Connection.' });
+              }
+              if (!suppressProbeDialog) {
+                setShowProbeResults(true);
+              }
+              return;
+            }
 
             if (probeJson.success && probeJson.url) {
               setPreviewRtspUrl(probeJson.url);
-              toast({ title: 'Stream Found', description: `Found working stream (${probeJson.latencyMs}ms)` });
+              setDetectedStreamUrl(probeJson.url);
+              setAwaitingCredentials(false);
+              setIsConnectionTested(true);
               if (!probeJson.ffmpegAvailable) {
-                toast({ variant: 'destructive', title: 'Server missing ffmpeg', description: 'Server does not have ffmpeg installed. Live preview requires ffmpeg on the server; the detected URL will still be saved.' });
+                setFfmpegMissing(true);
+              }
+              if (!skipToast) {
+                toast({ title: 'Stream Found', description: `Found working stream (${probeJson.latencyMs}ms)` });
+                if (!probeJson.ffmpegAvailable) {
+                  toast({ variant: 'destructive', title: 'Server missing ffmpeg', description: 'Server does not have ffmpeg installed. Live preview requires ffmpeg on the server; the detected URL will still be saved.' });
+                }
               }
             } else {
-            // fallback to client-side candidate iteration
-              setPreviewRtspUrl(result.candidates[0]);
-              toast({ variant: 'destructive', title: 'Probe Failed', description: 'Server could not locate a stream; trying in the player.' });
+              const fallback = result.candidates[0];
+              if (fallback) setDetectedStreamUrl(fallback);
+              if (allowFallbackPreview && fallback) {
+                setPreviewRtspUrl(fallback);
+              }
+              setAwaitingCredentials(false);
+              setIsConnectionTested(false);
+              if (!skipToast) {
+                toast({ variant: 'destructive', title: 'Probe Failed', description: 'Server could not locate a stream; trying in the player.' });
+              }
+            }
+          } catch (e) {
+            setProbeResults([]);
+            setProbeInProgress(false);
+            const fallback = result.candidates?.[0];
+            if (fallback) setDetectedStreamUrl(fallback);
+            if (allowFallbackPreview && fallback) {
+              setPreviewRtspUrl(fallback);
+            }
+            setAwaitingCredentials(false);
+            setIsConnectionTested(false);
+            if (!skipToast) {
+              toast({ variant: 'destructive', title: 'Probe Error', description: 'Could not probe streams on the server; trying in the player.' });
+            }
           }
-        } catch (e) {
-          setProbeResults([]);
-          setProbeInProgress(false);
-          setPreviewRtspUrl(result.candidates[0]);
-          toast({ variant: 'destructive', title: 'Probe Error', description: 'Could not probe streams on the server; trying in the player.' });
+        } else if (result.streamUrl) {
+          setPreviewRtspUrl(result.streamUrl);
+          setDetectedStreamUrl(result.streamUrl);
+          setAwaitingCredentials(false);
+          setIsConnectionTested(true);
+        } else if (cameraType === 'cloud' || cameraType === 'usb') {
+          setIsConnectionTested(true);
+          if (!skipToast) {
+            toast({ title: "Connection Verified!", description: result.message });
+          }
         }
-      } else if (result.streamUrl) {
-        setPreviewRtspUrl(result.streamUrl);
-        // For streaming types, success is determined by the player, not here.
-      } else if (cameraType === 'cloud' || cameraType === 'usb') {
-        setIsConnectionTested(true);
-        toast({ title: "Connection Verified!", description: result.message });
+      } else {
+        setIsConnectionTested(false);
+        setAwaitingCredentials(false);
+        if (!skipToast) {
+          toast({ variant: "destructive", title: "Connection Failed", description: result.message });
+        }
       }
-    } else {
-      setIsConnectionTested(false);
-      toast({ variant: "destructive", title: "Connection Failed", description: result.message });
+    } finally {
+      setIsTesting(false);
     }
-    setIsTesting(false);
-  };
-  
+  }, [cameraType, formRef, previewRtspUrl, toast]);
+
+  const handleTestConnection = useCallback(() => {
+    void runConnectionTest({ suppressProbeDialog: true, allowFallbackPreview: true });
+  }, [runConnectionTest]);
+
+  const applyIpSelection = useCallback((ip: string, options: { streamUrl?: string; verified?: boolean; hostname?: string; preserveCredentials?: boolean } = {}) => {
+    const trimmed = ip.trim();
+    if (!trimmed) return;
+
+    if (typeof document !== 'undefined') {
+      const el = document.getElementById('stream-url') as HTMLInputElement | null;
+      if (el) {
+        el.value = trimmed;
+        el.dispatchEvent?.(new Event('input', { bubbles: true }));
+      }
+    }
+
+    const preserveCredentials = options.preserveCredentials ?? (selectedIp === trimmed);
+    const hostnameToUse = options.hostname ? options.hostname.trim() : (preserveCredentials ? selectedHostname : '');
+
+    setSelectedIp(trimmed);
+    setManualIp('');
+    setSelectedHostname(hostnameToUse);
+    setShowManualEntry(false);
+    if (!preserveCredentials) {
+      setShowCredentialFields(options.verified ? false : true);
+      setStreamUser('');
+      setStreamPass('');
+    } else if (typeof options.verified === 'boolean') {
+      setShowCredentialFields(!options.verified);
+    }
+    setAwaitingCredentials(false);
+    setProbeResults([]);
+    setProbeInProgress(false);
+    setShowProbeResults(false);
+    setShowMjpegFallback(false);
+    setFfmpegMissing(false);
+    setAuthHint(false);
+
+    if (typeof options.streamUrl !== 'undefined') {
+      setPreviewRtspUrl(options.streamUrl);
+      setDetectedStreamUrl(options.streamUrl);
+    } else if (!preserveCredentials) {
+      setPreviewRtspUrl('');
+      setDetectedStreamUrl('');
+    }
+
+    if (options.verified) {
+      setIsTesting(false);
+      setIsConnectionTested(true);
+      toast({ title: 'Stream Found', description: 'Automatically detected a working stream.' });
+      return;
+    }
+
+    setIsConnectionTested(false);
+  }, [selectedIp, selectedHostname, toast]);
+
+  const handleManualIpUse = useCallback(() => {
+    if (!manualIp.trim()) return;
+    applyIpSelection(manualIp);
+  }, [manualIp, applyIpSelection]);
+
   const handleAddCamera = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isConnectionTested) {
@@ -238,7 +406,7 @@ export default function ConnectCameraPage() {
   let uniqueId = previewRtspUrl;
   if (cameraType === 'usb') uniqueId = `webcam_${user.uid}_${Date.now()}`;
   else if (cameraType === 'cloud') uniqueId = data.activationId as string;
-  else if (cameraType === 'ip') uniqueId = previewRtspUrl || (data['stream-url'] as string);
+  else if (cameraType === 'ip') uniqueId = previewRtspUrl || detectedStreamUrl || (data['stream-url'] as string);
 
 
     if (!uniqueId) {
@@ -276,77 +444,214 @@ export default function ConnectCameraPage() {
   };
   
   const handleCameraTypeSelect = (type: CameraType) => {
-      setCameraType(type);
+    setCameraType(type);
+    setPreviewRtspUrl('');
+    setShowMjpegFallback(false);
+    setFfmpegMissing(false);
+    setAuthHint(false);
+    setDetectedStreamUrl('');
+    if (type !== 'usb') {
       setIsConnectionTested(false);
-      setPreviewRtspUrl('');
-      if (type === 'usb') {
-        // webcam permission will trigger test
-      } else {
-        setIsConnectionTested(false);
-      }
+    }
   };
 
   const renderFormFields = () => {
     switch (cameraType) {
       case "ip":
         return (
-          <div className="space-y-4 animate-in fade-in">
-      <Alert>
-        <Info className="h-4 w-4" />
-        <AlertTitle>IP Camera Setup</AlertTitle>
-        <AlertDescription>
-          Enter only your camera's local IP address (e.g., 192.168.1.100). We'll try common stream paths automatically and start a live preview when we find one.
-        </AlertDescription>
-      </Alert>
-            <div className="space-y-2">
-                <Label htmlFor="stream-url">Camera IP Address</Label>
-                <div className="flex gap-2">
-                  <Input name="stream-url" id="stream-url" placeholder="e.g., 192.168.1.100" />
-                  <Button type="button" variant="outline" onClick={() => setScannerOpen(true)}>Scan Network</Button>
-                   <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="outline" size="icon" type="button"><HelpCircle className="h-4 w-4" /></Button>
-                      </AlertDialogTrigger>
-                       <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>How to Find Your Camera's IP Address</AlertDialogTitle>
-                              <AlertDialogDescription className="space-y-4 pt-4 text-foreground">
-                                <p>If you don't know your camera's IP address, use one of these methods to find it.</p>
-                                <div>
-                                    <h4 className="font-semibold">Method 1: Camera Mobile App</h4>
-                                    <p className="text-muted-foreground">Open the manufacturer's app and check Device Info or Network settings — many apps display the local IP.</p>
-                                </div>
-                                <div>
-                                    <h4 className="font-semibold">Method 2: Router's Connected Devices</h4>
-                                     <ol className="list-decimal list-inside text-sm text-muted-foreground space-y-1 mt-1">
-                                         <li>Log into your router (often at 192.168.1.1).</li>
-                                        <li>Find "Connected Devices" or "DHCP Client List".</li>
-                                        <li>Locate your camera to see its IP (e.g., 192.168.1.100).</li>
-                                    </ol>
-                                </div>
-                                <div>
-                                  <h4 className="font-semibold">Method 3: Manufacturer Tools</h4>
-                                  <p className="text-muted-foreground">Many camera makers ship a discovery utility or provide a web-based device list. Use that to detect the camera on your LAN.</p>
-                                </div>
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogAction>Got it</AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                    </AlertDialog>
+          <div className="space-y-6 animate-in fade-in">
+            <input type="hidden" name="stream-url" id="stream-url" />
+            <Alert>
+              <Info className="h-4 w-4" />
+              <AlertTitle>IP Camera Setup</AlertTitle>
+              <AlertDescription>
+                Scan your local network, pick the camera, and we'll probe it automatically. We'll only ask for credentials if the camera requires them.
+              </AlertDescription>
+            </Alert>
+
+            <div className="space-y-4 rounded-lg border bg-card px-4 py-5">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Step 1</h3>
+                  <h2 className="text-lg font-semibold">Find Your Camera</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Scan the local network for compatible devices or enter an IP manually if you already know it.
+                  </p>
                 </div>
-            </div>
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="stream-user">Username (optional)</Label>
-                <Input id="stream-user" name="stream-user" placeholder="e.g., admin" />
+                <div className="flex gap-2">
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="outline" size="icon" type="button">
+                        <HelpCircle className="h-4 w-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>How to Find Your Camera's IP Address</AlertDialogTitle>
+                        <AlertDialogDescription className="space-y-4 pt-4 text-foreground">
+                          <p>If you don't know your camera's IP address, use one of these methods to find it.</p>
+                          <div>
+                            <h4 className="font-semibold">Method 1: Camera Mobile App</h4>
+                            <p className="text-muted-foreground">
+                              Open the manufacturer's app and check Device Info or Network settings - many apps display the local IP.
+                            </p>
+                          </div>
+                          <div>
+                            <h4 className="font-semibold">Method 2: Router's Connected Devices</h4>
+                            <ol className="mt-1 list-inside list-decimal space-y-1 text-sm text-muted-foreground">
+                              <li>Log into your router (often at 192.168.1.1).</li>
+                              <li>Find "Connected Devices" or "DHCP Client List".</li>
+                              <li>Locate your camera to see its IP (e.g., 192.168.1.100).</li>
+                            </ol>
+                          </div>
+                          <div>
+                            <h4 className="font-semibold">Method 3: Manufacturer Tools</h4>
+                            <p className="text-muted-foreground">
+                              Many camera makers ship a discovery utility or provide a web-based device list. Use that to detect the camera on your LAN.
+                            </p>
+                          </div>
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogAction>Got it</AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                  <Button type="button" onClick={() => setScannerOpen(true)}>
+                    <Wifi className="mr-2 h-4 w-4" />
+                    Scan Network
+                  </Button>
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="stream-pass">Password (optional)</Label>
-                <Input id="stream-pass" name="stream-pass" type="password" />
+
+              {selectedIp ? (
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border bg-muted/40 px-3 py-3">
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Selected Device</p>
+                  {selectedHostname ? (
+                    <>
+                      <p className="text-sm font-semibold">{selectedHostname}</p>
+                      <p className="font-mono text-xs text-muted-foreground">{selectedIp}</p>
+                    </>
+                  ) : (
+                    <p className="font-mono text-sm">{selectedIp}</p>
+                  )}
+                  {isConnectionTested && previewRtspUrl ? (
+                    <p className="mt-2 text-xs text-emerald-600">Stream detected. Live preview should appear above.</p>
+                  ) : (
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      Enter credentials below if needed, then click <span className="font-medium">Test Connection</span>.
+                    </p>
+                  )}
+                  {!isConnectionTested && detectedStreamUrl && (
+                    <p className="mt-1 break-all text-xs text-muted-foreground">
+                      Last detected candidate: {detectedStreamUrl}
+                    </p>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  <Button type="button" variant="outline" onClick={resetIpSelection}>
+                    Choose Another
+                  </Button>
+                </div>
               </div>
+              ) : (
+                <div className="space-y-3 rounded-md border border-dashed px-4 py-4 text-sm text-muted-foreground">
+                  <p>No camera selected yet. Start a scan or enter an IP manually.</p>
+                  <Button
+                    type="button"
+                    variant="link"
+                    className="px-0"
+                    onClick={() => setShowManualEntry((prev) => !prev)}
+                  >
+                    {showManualEntry ? "Hide manual entry" : "Enter IP manually"}
+                  </Button>
+                  {showManualEntry && (
+                    <div className="flex flex-wrap gap-2">
+                      <Input
+                        value={manualIp}
+                        onChange={(e) => setManualIp(e.target.value)}
+                        placeholder="e.g., 192.168.1.100"
+                        className="max-w-xs"
+                      />
+                      <Button type="button" onClick={handleManualIpUse} disabled={!manualIp.trim()}>
+                        Use this IP
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
+
+            {selectedIp && (
+              <div className="space-y-4 rounded-lg border bg-card px-4 py-5">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Step 2</h3>
+                    <h2 className="text-lg font-semibold">Provide Credentials (if required)</h2>
+                    <p className="text-sm text-muted-foreground">
+                      We probe the camera without credentials first. If it challenges us, we'll prompt you automatically.
+                    </p>
+                    {selectedHostname && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Device name: <span className="font-semibold text-foreground">{selectedHostname}</span>
+                      </p>
+                    )}
+                  </div>
+                  {!showCredentialFields && (
+                    <Button type="button" variant="outline" onClick={() => setShowCredentialFields(true)}>
+                      Add Login
+                    </Button>
+                  )}
+                </div>
+
+                {awaitingCredentials && (
+                  <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700">
+                    This camera is asking for login details. Enter the credentials you use for its web interface, then test the connection again.
+                  </div>
+                )}
+
+                {showCredentialFields && (
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="stream-user">Username</Label>
+                      <Input
+                        id="stream-user"
+                        name="stream-user"
+                        placeholder="e.g., admin"
+                        autoComplete="username"
+                        value={streamUser}
+                        onChange={(e) => setStreamUser(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="stream-pass">Password</Label>
+                      <Input
+                        id="stream-pass"
+                        name="stream-pass"
+                        type="password"
+                        placeholder="********"
+                        autoComplete="current-password"
+                        value={streamPass}
+                        onChange={(e) => setStreamPass(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {showCredentialFields && (
+                  <p className="text-sm text-muted-foreground">
+                    Leave these fields blank if the camera does not require a username or password.
+                  </p>
+                )}
+
+                {!showCredentialFields && !awaitingCredentials && (
+                  <p className="text-sm text-muted-foreground">
+                    No login required so far. We'll show the live preview automatically as soon as the connection succeeds.
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         );
       case "dvr":
@@ -501,6 +806,36 @@ export default function ConnectCameraPage() {
       );
     }
     
+    if (showMjpegFallback && selectedIp) {
+      return (
+        <MjpegPreview
+          ip={selectedIp}
+          username={streamUser}
+          password={streamPass}
+          onFound={(u) => {
+            setPreviewRtspUrl(u);
+            setDetectedStreamUrl(u);
+            setIsConnectionTested(true);
+            setShowMjpegFallback(false);
+          }}
+        />
+      );
+    }
+
+    if (previewRtspUrl && ffmpegMissing) {
+        return (
+          <div className="aspect-video bg-muted rounded-lg flex items-center justify-center text-center p-6">
+            <div>
+              <p className="font-semibold text-destructive">Live preview requires ffmpeg on the server.</p>
+              <p className="text-sm text-muted-foreground mt-2">
+                We detected a stream at <span className="font-mono break-all">{previewRtspUrl}</span>, but ffmpeg is not installed on the backend.
+                Install ffmpeg and rerun the test to enable the in-browser preview. You can still save the camera with the detected URL.
+              </p>
+            </div>
+          </div>
+        );
+    }
+
     if (previewRtspUrl) {
         return (
            <JsmpegPlayer 
@@ -534,15 +869,21 @@ export default function ConnectCameraPage() {
     }
 
     return (
-        <div className="aspect-video bg-muted rounded-lg flex items-center justify-center text-muted-foreground">
-            {showMjpegFallback ? (
-              <MjpegPreview ip={(document.getElementById('stream-url') as HTMLInputElement | null)?.value || ''} username={(document.getElementById('stream-user') as HTMLInputElement | null)?.value || ''} password={(document.getElementById('stream-pass') as HTMLInputElement | null)?.value || ''} onFound={(u) => { setPreviewRtspUrl(u); setShowMjpegFallback(false); }} />
-            ) : (
-              <div className="text-center">
-                <Video className="mx-auto h-12 w-12"/>
-                <p>Preview will appear here after a successful test.</p>
-              </div>
-            )}
+        <div className="aspect-video bg-muted rounded-lg flex flex-col items-center justify-center text-muted-foreground gap-3 text-center p-4">
+          <div>
+            <Video className="mx-auto h-12 w-12"/>
+            <p>Preview will appear here after a successful test.</p>
+          </div>
+          {selectedHostname && (
+            <div className="text-xs text-muted-foreground">
+              Device: <span className="font-semibold text-foreground">{selectedHostname}</span>
+            </div>
+          )}
+          {detectedStreamUrl && (
+            <div className="text-xs text-muted-foreground">
+              Detected candidate: <span className="font-mono break-all">{detectedStreamUrl}</span>
+            </div>
+          )}
         </div>
     );
   };
@@ -556,29 +897,14 @@ export default function ConnectCameraPage() {
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
       <ProbeResultsDialog open={showProbeResults} onClose={() => setShowProbeResults(false)} results={probeResults} inProgress={probeInProgress} />
-      <NetworkScannerDialog open={scannerOpen} onClose={() => setScannerOpen(false)} onSelect={async (ip: string, streamUrl?: string, verified?: boolean) => {
-        // fill IP into the input
-        const el = document.getElementById('stream-url') as HTMLInputElement | null;
-        if (el) { el.value = ip; }
-        setScannerOpen(false);
-        // If the scanner returned a best-guess stream URL, set it immediately and try to preview
-        if (streamUrl) {
-          setPreviewRtspUrl(streamUrl);
-          if (verified) {
-            setIsConnectionTested(true);
-            toast({ title: 'Stream Found', description: 'Automatically detected a working stream.' });
-          } else {
-            // Not verified by ffmpeg — set preview and let the player attempt to connect; player will mark success or failure
-            setIsConnectionTested(false);
-          }
-          return;
-        }
-
-        // otherwise trigger the normal Test Connection flow which will run the probe
-        setTimeout(() => {
-          void handleTestConnection();
-        }, 50);
-      }} />
+      <NetworkScannerDialog
+        open={scannerOpen}
+        onClose={() => setScannerOpen(false)}
+        onSelect={(ip: string, streamUrl?: string, verified?: boolean, hostname?: string) => {
+          setScannerOpen(false);
+          applyIpSelection(ip, { streamUrl, verified, hostname });
+        }}
+      />
       <div>
         <Button variant="ghost" onClick={() => router.back()} className="mb-4">
           <ArrowLeft className="mr-2 h-4 w-4" /> Back to Cameras
@@ -666,9 +992,15 @@ export default function ConnectCameraPage() {
                 <CardFooter className="flex-col items-start gap-4 border-t pt-6">
                     <h3 className="font-semibold">Step 4: Test Connection</h3>
                     <p className="text-sm text-muted-foreground -mt-2">
-                        Verify that BERRETO can connect to your camera before adding it. A live preview must appear to proceed.
+                        {ffmpegMissing
+                          ? "A stream was detected, but live preview requires ffmpeg on the server. Install ffmpeg to see it here or continue once you're satisfied with the credentials."
+                          : "Verify that BERRETO can connect to your camera before adding it. A live preview must appear to proceed."}
                     </p>
-                    <Button type="button" onClick={handleTestConnection} disabled={isTesting}>
+                    <Button
+                      type="button"
+                      onClick={handleTestConnection}
+                      disabled={isTesting || (cameraType === 'ip' && !selectedIp)}
+                    >
                     {isTesting ? (
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     ) : (
@@ -676,6 +1008,11 @@ export default function ConnectCameraPage() {
                     )}
                     Test Connection
                     </Button>
+                    {ffmpegMissing && detectedStreamUrl && (
+                      <p className="text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
+                        Stream detected but ffmpeg is missing on the server. Install ffmpeg to enable the live preview, or continue to save the camera with the discovered URL.
+                      </p>
+                    )}
                 </CardFooter>
             )}
              {(cameraType === 'cloud') && (
@@ -706,4 +1043,3 @@ export default function ConnectCameraPage() {
     </div>
   );
 }
-

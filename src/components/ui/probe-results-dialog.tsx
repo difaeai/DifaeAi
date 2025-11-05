@@ -24,6 +24,7 @@ type ProbeDialogProps = {
 
 export function ProbeResultsDialog({ open, onClose, results, inProgress }: ProbeDialogProps) {
   const hasSuccess = results.some(r => r.ok);
+  const ffmpegMissing = results.some(r => r.stderr?.toLowerCase().includes('ffmpeg not available'));
 
   const formatUrl = (url: string) => {
     try {
@@ -55,6 +56,14 @@ export function ProbeResultsDialog({ open, onClose, results, inProgress }: Probe
         <ScrollArea className="h-[60vh] rounded-md border p-4">
           {results.length === 0 && inProgress && (
             <div className="flex items-center justify-center h-full text-sm text-muted-foreground">Probing... please wait</div>
+          )}
+
+          {ffmpegMissing && !inProgress && (
+            <Alert variant="default" className="mb-4 text-xs text-left border-amber-200 bg-amber-50 text-amber-700">
+              <AlertDescription>
+                ffmpeg is not installed on the server. Live preview will be unavailable until ffmpeg is available, but you can still use the detected URLs.
+              </AlertDescription>
+            </Alert>
           )}
 
           {results.map((result, i) => (

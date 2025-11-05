@@ -4,6 +4,9 @@ import net from 'net';
 import fetch from 'node-fetch';
 import dgram from 'dgram';
 import { spawn } from 'child_process';
+import dns from 'dns';
+
+const dnsPromises = dns.promises;
 
 type ScanRequest = {
   subnet?: string; // e.g. 192.168.1
@@ -93,6 +96,35 @@ async function rtspDescribe(host: string, port: number, timeoutMs: number): Prom
   });
 }
 
+async function resolveHostname(ip: string): Promise<string | null> {
+  if (!dnsPromises) return null;
+  try {
+    const names = await dnsPromises.reverse(ip);
+    if (names && names.length > 0 && names[0]) {
+      const name = names[0].replace(/\.$/, '');
+      if (name && name !== ip) {
+        return name;
+      }
+    }
+  } catch (e) {
+    // reverse lookup failed, fall back
+  }
+
+  try {
+    const service = await dnsPromises.lookupService(ip, 80);
+    if (service && service.hostname) {
+      const name = service.hostname.replace(/\.$/, '');
+      if (name && name !== ip && name !== 'localhost') {
+        return name;
+      }
+    }
+  } catch (e) {
+    // lookupService failed
+  }
+
+  return null;
+}
+
 // Run a concurrent ping sweep (Windows `ping -n 1 -w <ms>`) to populate the ARP table
 async function pingSweep(ips: string[], concurrency: number, timeoutMs = 300) {
   let idx = 0;
@@ -168,7 +200,7 @@ export async function POST(req: Request) {
   const httpPorts = [80, 8080, 8000, 81];
   const rtspPorts = [554, 8554, 88];
 
-    const results: Array<{ ip: string; openPorts: number[]; httpHits: string[] }> = [];
+    const results: Array<{ ip: string; openPorts: number[]; httpHits: string[]; hostname?: string }> = [];
 
     // simple concurrency queue
     let index = 0;
@@ -194,6 +226,7 @@ export async function POST(req: Request) {
           }));
 
           // quick HTTP snapshot probe for common paths across common HTTP ports
+          const serverNames = new Set<string>();
           await Promise.all(httpPorts.map(async (port) => {
             await Promise.all(httpSnapshotPaths.map(async (p) => {
               const probe = await probeHttpSnapshot(`${ip}:${port}`, p, timeoutMs);
@@ -203,8 +236,12 @@ export async function POST(req: Request) {
                 // include non-200 status as hint
                 httpHits.push(`${port}${p} (status:${probe.status})`);
               }
+              if (probe.server) {
+                serverNames.add(probe.server);
+              }
             }));
           }));
+          serverNames.forEach((name) => httpHits.push(`server:${name}`));
 
           if (openPorts.length || httpHits.length) {
             results.push({ ip, openPorts, httpHits });
@@ -248,6 +285,27 @@ export async function POST(req: Request) {
         }
       } catch (e) {
         // ignore ONVIF discovery errors
+      }
+    }
+
+    await Promise.all(results.map(async (entry) => {
+      if (!entry.hostname) {
+        const name = await resolveHostname(entry.ip);
+        if (name) entry.hostname = name;
+      }
+    }));
+    for (const entry of results) {
+      if (!entry.hostname) {
+        const serverIndex = entry.httpHits.findIndex((hit) => hit.startsWith('server:'));
+        if (serverIndex !== -1) {
+          const serverName = entry.httpHits[serverIndex].slice('server:'.length);
+          if (serverName) {
+            entry.hostname = serverName;
+          }
+          entry.httpHits.splice(serverIndex, 1);
+        }
+      } else {
+        entry.httpHits = entry.httpHits.filter((hit) => !(hit.startsWith('server:') && hit.slice('server:'.length) === entry.hostname));
       }
     }
 

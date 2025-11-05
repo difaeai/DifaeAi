@@ -574,7 +574,7 @@ export default function ConnectCameraPage() {
         results={probeResults}
         inProgress={probeInProgress}
       />
-      <NetworkScannerDialog open={scannerOpen} onClose={() => setScannerOpen(false)} onSelect={async (ip: string, streamUrl?: string, verified?: boolean) => {
+      <NetworkScannerDialog open={scannerOpen} onClose={() => setScannerOpen(false)} onSelect={async (ip: string, streamUrl?: string, verified?: boolean, hostname?: string) => {
         const el = document.getElementById('camera-ip') as HTMLInputElement | null;
         if (el) el.value = ip;
         setScannerOpen(false);

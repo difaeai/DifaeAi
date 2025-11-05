@@ -5,13 +5,13 @@ import { Button } from "./button";
 import { ScrollArea } from "./scroll-area";
 import { Loader2 } from "lucide-react";
 
-type ScanResult = { ip: string; openPorts: number[]; httpHits: string[] };
+type ScanResult = { ip: string; openPorts: number[]; httpHits: string[]; hostname?: string };
 
 type Props = {
   open: boolean;
   onClose: () => void;
   // onSelect receives the chosen IP and optionally a best-guess stream URL
-  onSelect: (ip: string, streamUrl?: string, verified?: boolean) => void;
+  onSelect: (ip: string, streamUrl?: string, verified?: boolean, hostname?: string) => void;
 };
 
 export function NetworkScannerDialog({ open, onClose, onSelect }: Props) {
@@ -32,7 +32,13 @@ export function NetworkScannerDialog({ open, onClose, onSelect }: Props) {
       const res = await fetch('/api/scan', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       const js = await res.json();
       if (js.success && Array.isArray(js.results)) {
-        setResults(js.results);
+        const list = js.results as ScanResult[];
+        const sorted = [...list].sort((a, b) => {
+          const aLabel = (a.hostname || a.ip || '').toLowerCase();
+          const bLabel = (b.hostname || b.ip || '').toLowerCase();
+          return aLabel.localeCompare(bLabel);
+        });
+        setResults(sorted);
       }
     } catch (e) {
       console.error(e);
@@ -64,7 +70,7 @@ export function NetworkScannerDialog({ open, onClose, onSelect }: Props) {
 
     const first = prioritized[0];
     try {
-      onSelect(scan.ip, first, false);
+      onSelect(scan.ip, first, false, scan.hostname);
     } catch (err) {
       console.error(err);
     }
@@ -79,13 +85,13 @@ export function NetworkScannerDialog({ open, onClose, onSelect }: Props) {
         clearTimeout(timer);
         if (res.ok) {
           const js = await res.json();
-          if (js && js.url) {
-            try {
-              onSelect(scan.ip, js.url, !!js.ffmpegAvailable);
-            } catch (e) {
-              console.error(e);
+            if (js && js.url) {
+              try {
+              onSelect(scan.ip, js.url, !!js.ffmpegAvailable, scan.hostname);
+              } catch (e) {
+                console.error(e);
+              }
             }
-          }
         }
       } catch (e) {
         console.warn('Background quick probe failed', e);
@@ -115,11 +121,18 @@ export function NetworkScannerDialog({ open, onClose, onSelect }: Props) {
                 <div key={r.ip} className="p-2 border rounded">
                   <div className="flex items-start justify-between">
                     <div>
-                      <div className="font-mono">{r.ip}</div>
-                      <div className="text-xs text-muted-foreground">Ports: {r.openPorts.length ? r.openPorts.join(', ') : 'none'}</div>
+                      <div className="font-semibold">
+                        {r.hostname || r.ip}
+                      </div>
+                      {r.hostname && (
+                        <div className="text-xs text-muted-foreground font-mono">
+                          {r.ip}
+                        </div>
+                      )}
+                      <div className="text-xs text-muted-foreground mt-1">Ports: {r.openPorts.length ? r.openPorts.join(', ') : 'none'}</div>
                     </div>
                     <div>
-                        <Button onClick={() => handleUse(r)}>
+                        <Button onClick={() => handleUse(r)} disabled={scanning}>
                           {scanning ? <Loader2 className="animate-spin h-4 w-4" /> : 'Use'}
                         </Button>
                       </div>

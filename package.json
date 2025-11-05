@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "dev:check": "node scripts/check-env.js && next dev",
+    "dev": "cross-env NODE_ENV=development tsx server.ts",
+    "dev:check": "node scripts/check-env.js && cross-env NODE_ENV=development tsx server.ts",
     "genkit:dev": "genkit start -- tsx src/ai/dev.ts",
     "genkit:watch": "genkit start -- tsx --watch src/ai/dev.ts",
     "build": "next build",
