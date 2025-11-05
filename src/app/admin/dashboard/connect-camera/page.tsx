@@ -59,6 +59,7 @@ export default function ConnectCameraPage() {
   const [previewCandidates, setPreviewCandidates] = useState<string[]>([]);
   const [candidateIndex, setCandidateIndex] = useState<number>(0);
   const [showMjpegFallback, setShowMjpegFallback] = useState(false);
+  const [credentialsError, setCredentialsError] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
@@ -114,8 +115,9 @@ export default function ConnectCameraPage() {
 
     const handleTestConnection = async () => {
     if (!formRef.current || !cameraType) return;
-    // If a guessed preview URL is already set (from scanner), skip the server probe and let the player attempt to connect
-    if (previewRtspUrl) {
+    const previousPreviewUrl = previewRtspUrl;
+    // If we already have a working preview, allow a quick retest without hitting the server again
+    if (previewRtspUrl && isConnectionTested) {
       setIsTesting(true);
       setIsConnectionTested(false);
       toast({ title: 'Attempting live preview...', description: 'Trying the detected stream URL in the player.' });
@@ -127,6 +129,8 @@ export default function ConnectCameraPage() {
     setShowProbeResults(false);
     setProbeInProgress(false);
     setProbeResults([]);
+    setShowMjpegFallback(false);
+    setCredentialsError(null);
     
     let toastDescription = "This may take a moment.";
     if (cameraType === 'cloud') {
@@ -137,24 +141,45 @@ export default function ConnectCameraPage() {
 
     try {
       const formData = new FormData(formRef.current);
+      const username = String(formData.get('stream-user') ?? '').trim();
+      const password = String(formData.get('stream-pass') ?? '').trim();
       const result = await testCameraConnection(cameraType, formData);
+      const enrichUrl = (url: string | undefined | null) => {
+        if (!url) return '';
+        if (!username) return url;
+        try {
+          const u = new URL(url);
+          u.username = username;
+          if (password) u.password = password;
+          return u.toString();
+        } catch {
+          return url ?? '';
+        }
+      };
+      const isNonEmptyString = (value: string | null | undefined): value is string => !!value;
 
       if (result.success) {
         if (result.candidates && result.candidates.length > 0) {
-          setPreviewCandidates(result.candidates);
+          let candidates = [...result.candidates];
+          if (previousPreviewUrl) {
+            const enriched = enrichUrl(previousPreviewUrl);
+            if (enriched && !candidates.includes(enriched)) {
+              candidates = [enriched, ...candidates];
+            }
+          }
+          candidates = [...new Set(candidates.map(enrichUrl).filter(isNonEmptyString))];
+          setPreviewCandidates(candidates);
           setCandidateIndex(0);
-          if (result.candidates[0]) {
-            setPreviewRtspUrl(result.candidates[0]);
+          if (candidates[0]) {
+            setShowMjpegFallback(false);
+            setPreviewRtspUrl(candidates[0]);
           }
 
           try {
             // include optional credentials from the form so server can retry with auth if needed
-            const fd = new FormData(formRef.current!);
-            const probeBody: any = { candidates: result.candidates, timeoutMs: 7000, concurrentLimit: 3 };
-            const user = fd.get('stream-user');
-            const pass = fd.get('stream-pass');
-            if (user) probeBody.username = String(user);
-            if (pass) probeBody.password = String(pass);
+            const probeBody: any = { candidates, timeoutMs: 7000, concurrentLimit: 3 };
+            if (username) probeBody.username = username;
+            if (password) probeBody.password = password;
 
             const probeRes = await fetch('/api/probe', {
               method: 'POST',
@@ -162,14 +187,77 @@ export default function ConnectCameraPage() {
               body: JSON.stringify(probeBody)
             });
 
-            const probeJson = await probeRes.json();
-            setProbeResults(probeJson.results || []);
+            const responseStatus = probeRes.status;
+            let probeJson: any = null;
+            let parseError: string | null = null;
+            try {
+              probeJson = await probeRes.json();
+            } catch (err) {
+              parseError = err instanceof Error ? err.message : String(err);
+            }
 
-            // If any result indicates auth is required, prompt the user to enter credentials
-            const anyAuth = (probeJson.results || []).some((r: any) => !!r.requiresAuth);
-            if (anyAuth) {
-              toast({ variant: 'destructive', title: 'Authentication Required', description: 'This camera requires a username and password. Enter credentials and re-run Test Connection.' });
+            const detailResults = Array.isArray(probeJson?.results) ? probeJson.results : [];
+            setProbeResults(detailResults);
+
+            const requiresAuth = detailResults.some((r: any) => !!r?.requiresAuth);
+            const unauthorizedStatus = detailResults.some((r: any) => {
+              const rawStatus = r?.statusCode;
+              const status = typeof rawStatus === 'number' ? rawStatus : Number(rawStatus ?? 0);
+              if (status === 401 || status === 403) return true;
+              const stderr = typeof r?.stderr === 'string' ? r.stderr : '';
+              return /401|403|unauthorized|forbidden/i.test(stderr);
+            });
+            const messageIndicatesAuth =
+              typeof probeJson?.message === 'string' &&
+              /401|403|unauthorized|forbidden|invalid credential|authenticat/i.test(probeJson.message);
+            const directStatusAuth = responseStatus === 401 || responseStatus === 403;
+            const parseIndicatesAuth = typeof parseError === 'string' && /401|403|unauthorized|forbidden/i.test(parseError);
+
+            if (!username && (requiresAuth || messageIndicatesAuth || directStatusAuth || parseIndicatesAuth)) {
+              const message = 'This camera requires a username and password. Enter credentials and re-run Test Connection.';
+              setCredentialsError(message);
+              toast({ variant: 'destructive', title: 'Authentication Required', description: message });
               setIsTesting(false);
+              setPreviewCandidates([]);
+              setCandidateIndex(0);
+              setPreviewRtspUrl('');
+              setShowMjpegFallback(false);
+              setShowProbeResults(true);
+              return;
+            }
+
+            if (username && (requiresAuth || unauthorizedStatus || messageIndicatesAuth || directStatusAuth || parseIndicatesAuth)) {
+              const message = 'The camera rejected the username or password you entered. Please verify and try again.';
+              setCredentialsError(message);
+              toast({
+                variant: 'destructive',
+                title: 'Invalid Credentials',
+                description: message,
+              });
+              setIsTesting(false);
+              setIsConnectionTested(false);
+              setPreviewCandidates([]);
+              setCandidateIndex(0);
+              setPreviewRtspUrl('');
+              setShowMjpegFallback(false);
+              setShowProbeResults(true);
+              return;
+            }
+
+            if (!probeJson || typeof probeJson !== 'object') {
+              const message = parseError
+                ? `Server response unreadable: ${parseError}`
+                : 'Server returned an unexpected response.';
+              toast({
+                variant: 'destructive',
+                title: 'Probe Error',
+                description: message,
+              });
+              setShowProbeResults(true);
+              setIsTesting(false);
+              setPreviewCandidates([]);
+              setCandidateIndex(0);
+              setShowMjpegFallback(true);
               return;
             }
 
@@ -177,6 +265,8 @@ export default function ConnectCameraPage() {
               setPreviewCandidates([]);
               setPreviewRtspUrl(probeJson.url);
               setIsConnectionTested(true);
+              setShowMjpegFallback(false);
+              setCredentialsError(null);
               toast({
                 title: 'Stream Found',
                 description: `Found working stream (${probeJson.latencyMs}ms)`,
@@ -185,6 +275,7 @@ export default function ConnectCameraPage() {
                 toast({ variant: 'destructive', title: 'Server missing ffmpeg', description: 'Server does not have ffmpeg installed. Live preview requires ffmpeg on the server; the detected URL will still be saved.' });
               }
             } else {
+              setShowProbeResults(true);
               toast({
                 variant: 'destructive',
                 title: 'Server Probe Failed',
@@ -192,6 +283,7 @@ export default function ConnectCameraPage() {
               });
             }
           } catch (e) {
+            setShowProbeResults(true);
             toast({
               variant: 'destructive',
               title: 'Probe Error',
@@ -200,13 +292,20 @@ export default function ConnectCameraPage() {
           }
         } else if (result.streamUrl) {
           setPreviewCandidates([]);
-          setPreviewRtspUrl(result.streamUrl);
+          const singleCandidate = enrichUrl(result.streamUrl);
+          if (singleCandidate) {
+            setShowMjpegFallback(false);
+            setCredentialsError(null);
+            setPreviewRtspUrl(singleCandidate);
+          }
         } else if (cameraType === 'cloud' || cameraType === 'usb') {
           setIsConnectionTested(true);
           toast({ title: "Connection Verified!", description: result.message });
         }
       } else {
         setIsConnectionTested(false);
+        setShowProbeResults(true);
+        setShowMjpegFallback(false);
         toast({
           variant: "destructive",
           title: "Connection Failed",
@@ -289,6 +388,8 @@ export default function ConnectCameraPage() {
       setCameraType(type);
       setIsConnectionTested(false);
       setPreviewRtspUrl('');
+      setShowMjpegFallback(false);
+      setCredentialsError(null);
       if (type === 'usb') {
           // webcam permission will trigger test
       } else {
@@ -327,13 +428,16 @@ export default function ConnectCameraPage() {
       <div className="grid sm:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="stream-user">Username (optional)</Label>
-          <Input id="stream-user" name="stream-user" placeholder="e.g., admin" />
+          <Input id="stream-user" name="stream-user" placeholder="e.g., admin" onChange={() => setCredentialsError(null)} />
         </div>
         <div className="space-y-2">
           <Label htmlFor="stream-pass">Password (optional)</Label>
-          <Input id="stream-pass" name="stream-pass" placeholder="Camera password" type="password" />
+          <Input id="stream-pass" name="stream-pass" placeholder="Camera password" type="password" onChange={() => setCredentialsError(null)} />
         </div>
       </div>
+      {credentialsError && (
+        <p className="text-sm text-destructive">{credentialsError}</p>
+      )}
             
             <Accordion type="single" collapsible className="w-full">
                 <AccordionItem value="item-1">
@@ -502,6 +606,15 @@ export default function ConnectCameraPage() {
     }
     
   if (previewRtspUrl) {
+    const isRtsp = previewRtspUrl.toLowerCase().startsWith('rtsp://') || previewRtspUrl.toLowerCase().startsWith('rtsps://');
+    if (!isRtsp) {
+      return (
+        <div className="aspect-video bg-black rounded-lg overflow-hidden flex items-center justify-center">
+          <img src={previewRtspUrl} alt="Camera MJPEG stream" className="w-full h-full object-cover" />
+        </div>
+      );
+    }
+
     const tryNextCandidate = () => {
       if (previewCandidates && previewCandidates.length > candidateIndex + 1) {
         const nextIndex = candidateIndex + 1;
@@ -513,6 +626,8 @@ export default function ConnectCameraPage() {
         setIsConnectionTested(false);
         setPreviewCandidates([]);
         setCandidateIndex(0);
+        setPreviewRtspUrl('');
+        setShowMjpegFallback(true);
         toast({ variant: 'destructive', title: 'Connection Failed', description: 'Could not connect using common stream paths.' });
       }
     };
@@ -523,6 +638,7 @@ export default function ConnectCameraPage() {
         onPlay={() => {
           setIsTesting(false);
           setIsConnectionTested(true);
+          setShowMjpegFallback(false);
           // clear candidates on success
           setPreviewCandidates([]);
           setCandidateIndex(0);
@@ -532,11 +648,41 @@ export default function ConnectCameraPage() {
           setIsTesting(false);
           // try next guessed candidate if available
           tryNextCandidate();
-          // also enable MJPEG fallback probe
-          setShowMjpegFallback(true);
         }}
       />
     );
+  }
+
+  if (showMjpegFallback) {
+    let fallbackIp = '';
+    let fallbackUser = '';
+    let fallbackPass = '';
+    if (formRef.current) {
+      const fd = new FormData(formRef.current);
+      fallbackIp = String(fd.get('stream-url') ?? '').trim();
+      fallbackUser = String(fd.get('stream-user') ?? '').trim();
+      fallbackPass = String(fd.get('stream-pass') ?? '').trim();
+    }
+    if (fallbackIp) {
+      return (
+        <div className="space-y-3">
+          <MjpegPreview
+            ip={fallbackIp}
+            username={fallbackUser || undefined}
+            password={fallbackPass || undefined}
+            onFound={(url) => {
+              setPreviewRtspUrl(url);
+              setShowMjpegFallback(false);
+              setIsConnectionTested(true);
+              toast({ title: 'MJPEG Stream Found', description: 'Connected via HTTP fallback stream.' });
+            }}
+          />
+          <p className="text-xs text-muted-foreground">
+            Trying an MJPEG fallback stream. If the preview remains blank, double-check the camera credentials and network access.
+          </p>
+        </div>
+      );
+    }
   }
     
     if (isConnectionTested && cameraType === 'cloud') {
@@ -578,6 +724,8 @@ export default function ConnectCameraPage() {
         const el = document.getElementById('camera-ip') as HTMLInputElement | null;
         if (el) el.value = ip;
         setScannerOpen(false);
+        setCredentialsError(null);
+        setShowMjpegFallback(false);
         if (streamUrl) {
           setPreviewCandidates([]);
           setCandidateIndex(0);
