@@ -11,7 +11,9 @@
     "format": "prettier --write \"**/*.{ts,tsx,js,json,md}\""
   },
   "dependencies": {
+    "firebase": "^12.5.0",
     "hls.js": "^1.5.8",
+    "lucide-react": "^0.553.0",
     "next": "14.2.15",
     "react": "18.3.1",
     "react-dom": "18.3.1"
@@ -20,9 +22,12 @@
     "@types/cors": "2.8.19",
     "@typescript-eslint/eslint-plugin": "^7.18.0",
     "@typescript-eslint/parser": "^7.18.0",
+    "autoprefixer": "^10.4.21",
     "eslint": "^8.57.1",
     "patch-package": "8.0.1",
-    "prettier": "^3.3.2"
+    "postcss": "^8.5.6",
+    "prettier": "^3.3.2",
+    "tailwindcss": "^4.1.17"
   },
   "packageManager": "npm@10.8.2"
 }
