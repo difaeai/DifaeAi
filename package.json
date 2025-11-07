@@ -11,15 +11,18 @@
     "format": "prettier --write \"**/*.{ts,tsx,js,json,md}\""
   },
   "dependencies": {
-    "hls.js": "^1.5.8"
+    "hls.js": "^1.5.8",
+    "next": "14.2.15",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
   },
   "devDependencies": {
     "@types/cors": "2.8.19",
     "@typescript-eslint/eslint-plugin": "^7.18.0",
     "@typescript-eslint/parser": "^7.18.0",
     "eslint": "^8.57.1",
-    "prettier": "^3.3.2",
-    "patch-package": "8.0.1"
+    "patch-package": "8.0.1",
+    "prettier": "^3.3.2"
   },
   "packageManager": "npm@10.8.2"
 }
