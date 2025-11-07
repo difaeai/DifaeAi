@@ -4,11 +4,11 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-  "build": "next build",
-  "start": "next start",
-  "lint": "next lint",
-  "postinstall": "patch-package || true",
-  "format": "prettier --write \"**/*.{ts,tsx,js,json,md}\""
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "postinstall": "patch-package || true",
+    "format": "prettier --write \"**/*.{ts,tsx,js,json,md}\""
   },
   "dependencies": {
     "hls.js": "^1.5.8"
@@ -18,7 +18,6 @@
     "@typescript-eslint/eslint-plugin": "^7.18.0",
     "@typescript-eslint/parser": "^7.18.0",
     "eslint": "^8.57.1",
-    "npm-run-all": "^4.1.5",
     "prettier": "^3.3.2",
     "patch-package": "8.0.1"
   },
