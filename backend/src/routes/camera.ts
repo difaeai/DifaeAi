@@ -23,7 +23,8 @@ cameraRouter.post('/probe', async (req, res) => {
     const candidates = await probeCameraEndpoints({
       ip,
       type,
-      includeOnvif: includeOnvif ?? type === 'ip' || type === 'dvr' || type === 'nvr',
+      includeOnvif: (includeOnvif ?? false) || type === 'ip' || type === 'dvr' || type === 'nvr'
+
     });
 
     return res.json({ candidates });

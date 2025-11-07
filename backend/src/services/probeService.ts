@@ -42,7 +42,7 @@ export async function probeCameraEndpoints(request: ProbeRequest): Promise<Probe
   }
 
   const rtspCandidates = buildRtspUrls(host, type);
-  const verifiedRtsp = await asyncPool(MAX_PARALLEL_PROBES, rtspCandidates, async (candidate) => {
+  const verifiedRtsp = await asyncPool(MAX_PARALLEL_PROBES, rtspCandidates, async (candidate: any) => {
     try {
       const startedAt = Date.now();
       const verified = await checkStreamWithFfprobe(candidate, VERIFICATION_TIMEOUT_MS);
@@ -72,7 +72,7 @@ export async function probeCameraEndpoints(request: ProbeRequest): Promise<Probe
   results.push(...verifiedRtsp);
 
   const mjpegCandidates = MJPEG_PATHS.map((path) => `http://${host}${path}`);
-  const verifiedMjpeg = await asyncPool(MAX_PARALLEL_PROBES, mjpegCandidates, async (candidate) => {
+  const verifiedMjpeg = await asyncPool(MAX_PARALLEL_PROBES, mjpegCandidates, async (candidate: any) => {
     const startedAt = Date.now();
     const headResponse = await headRequest(candidate, VERIFICATION_TIMEOUT_MS);
     return {
@@ -89,7 +89,7 @@ export async function probeCameraEndpoints(request: ProbeRequest): Promise<Probe
   results.push(...verifiedMjpeg);
 
   return results
-    .filter((candidate) => candidate.confidence > 0)
+    .filter((candidate: any) => candidate.confidence > 0)
     .sort((a, b) => Number(b.verified) - Number(a.verified) || b.confidence - a.confidence);
 }
 
