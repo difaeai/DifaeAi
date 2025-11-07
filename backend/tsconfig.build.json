@@ -1,20 +1,10 @@
 {
   "extends": "../tsconfig.base.json",
   "compilerOptions": {
-    "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
-    "skipLibCheck": true,
-    "outDir": "dist",
-    "rootDir": "src",
-    "tsBuildInfoFile": "dist/.tsbuildinfo",
-    "declaration": true,
-    "sourceMap": true,
-    "moduleResolution": "NodeNext",
-    "module": "NodeNext",
-    "target": "ES2020",
-    "types": ["node"],
-    "resolveJsonModule": true
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "declaration": true
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["node_modules", "dist", "tests"]
+  "exclude": ["**/*.test.ts", "node_modules", "dist"]
 }
