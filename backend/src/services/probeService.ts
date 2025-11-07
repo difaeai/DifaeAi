@@ -1,4 +1,4 @@
-import asyncPool from '@xdnweb/tiny-async-pool';
+import asyncPool from 'tiny-async-pool';
 import { probeOnvifService } from './probeOnvif.js';
 import { buildRtspUrls, MJPEG_PATHS } from './probePaths.js';
 import { checkStreamWithFfprobe, headRequest } from '../utils/probeHelpers.js';
