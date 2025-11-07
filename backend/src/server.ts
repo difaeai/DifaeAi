@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import pinoHttp from 'pino-http';
+const pinoHttp: any = require('pino-http');
 import { cameraRouter } from './routes/camera.js';
 import { logger } from './utils/logger.js';
 
@@ -16,7 +16,7 @@ export function createServer() {
       crossOriginResourcePolicy: { policy: 'same-origin' },
     }),
   );
-  app.use(pinoHttp({ logger }));
+  app.use((pinoHttp as any)({ logger }));
 
   app.get('/healthz', (_req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
