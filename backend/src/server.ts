@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-const pinoHttp: any = require('pino-http');
+import pinoHttp from 'pino-http';
 import { cameraRouter } from './routes/camera.js';
 import { logger } from './utils/logger.js';
 
