@@ -6,7 +6,6 @@ runConfig:
 
 env:
   # Tell the buildpack to run npm/yarn inside the backend folder
-  - variable: BP_NODE_PROJECT_PATH
-    value: backend
+ 
     availability:
       - BUILD
