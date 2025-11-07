@@ -1,0 +1,18 @@
+cameras:
+  - camera_id: demo-camera
+    source_url: rtsp://demo:demo@192.168.1.120/stream1
+    protocol: rtsp
+rate_limits:
+  discovery_probes_per_second: 1
+  max_concurrent_streams: 2
+security:
+  allowed_subnets:
+    - 192.168.1.0/24
+  tls:
+    enabled: false
+cors:
+  allowed_origins:
+    - http://localhost:5173
+notes: >
+  Update this file with cameras you own or are authorized to access.
+  The bridge agent never attempts to brute force credentials.

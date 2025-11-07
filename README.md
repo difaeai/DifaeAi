@@ -1,35 +1,113 @@
-# Firebase Studio
+# Camera Bridge Platform
 
-This is a NextJS starter in Firebase Studio.
+Securely onboard authorized CCTV/IP cameras, preview streams, and bridge isolated LAN devices to a cloud backend with explicit user consent.
 
-To get started, take a look at src/app/page.tsx.
+> ⚠️ Only connect to devices you own or have written authorization to access. This project does **not** circumvent vendor authentication. All probes are rate-limited and auditable.
 
-## Running locally (Windows PowerShell)
+## Monorepo layout
 
-Prerequisites:
+- `backend/` — Express + TypeScript API (`POST /api/camera/probe`, camera registry, auth placeholders)
+- `frontend/` — React + Vite onboarding wizard, test-connection UI, HLS preview
+- `bridge-agent/` — Python 3.11+ LAN agent that transcodes RTSP→HLS with token pairing
+- `infra/` — Docker Compose for local demo (backend, frontend, Postgres, RTSP simulator, bridge agent)
+- `tests/` — Cross-package test suites (Vitest + pytest)
+- `sample-configs/` — Environment templates, bridge-agent YAML
+- `docs/` — Security checklist, architecture notes (see `docs/camera-bridge`)
 
-- Node.js (18 or 20 LTS) installed and available on PATH
-- npm (comes with Node) or an alternative package manager
-- ffmpeg (optional: required only for RTSP/video streaming features) available on PATH
+## Prerequisites
 
-Install dependencies and run the dev server:
+- Node.js 20+
+- npm 9+
+- Python 3.11+ (for the bridge agent)
+- ffmpeg/ffprobe available on `PATH`
+- Docker + Docker Compose (for the demo stack)
 
-```powershell
-cd /d D:\New\DIFAE
-npm ci
+## Quick start
+
+```bash
+# install workspaces
+npm install
+
+# run backend and frontend together
 npm run dev
+
+# open the onboarding UI
+open http://localhost:5173
 ```
 
-Build and run in production mode (PowerShell example):
+Run pieces individually:
 
-```powershell
-cd /d D:\New\DIFAE
-npm run build
-#$env:NODE_ENV = 'production'  # not required if using the provided start script
-npm start
+```bash
+npm run dev:backend   # http://localhost:4000
+npm run dev:frontend  # http://localhost:5173
 ```
 
-Notes:
+Bridge agent (local machine on same LAN as cameras):
 
-- The server's production entry (`server.ts`) spawns `ffmpeg` for the `/stream` WebSocket endpoint. If `ffmpeg` isn't installed or not on your PATH, connections to `/stream` will fail and you'll see a clear error message in the server logs. Install ffmpeg from https://ffmpeg.org or via a package manager (choco/winget) on Windows.
-- The `start` script was adjusted to be cross-platform using `cross-env`.
+```bash
+python -m venv .venv && source .venv/bin/activate
+pip install -e bridge-agent[dev]
+camera-bridge-agent --config sample-configs/bridge-agent.yaml
+```
+
+Environment variables:
+
+- `VITE_BACKEND_URL` — override backend proxy target (default `http://localhost:4000`)
+- `VITE_BRIDGE_AGENT_ORIGIN` — origin for the local bridge agent (default `http://localhost:8787`)
+
+## Example flow (with RTSP test source)
+
+```bash
+cd infra
+docker compose up --build
+```
+
+1. Visit `http://localhost:5173` and select camera type.
+2. Enter the RTSP simulator IP (`rtsp-simulator` service exposes `rtsp://localhost:8554/mystream`).
+3. Click **Test Connection** to call `POST /api/camera/probe`.
+4. Select a candidate endpoint and start the bridge agent when prompted.
+5. Preview the HLS stream (`/stream/<cameraId>/playlist.m3u8`) in the browser.
+
+Stop the stack with `docker compose down`.
+
+## Automated tests
+
+- Backend unit tests (`/api/camera/probe` candidates):
+
+  ```bash
+  npm run test:backend
+  ```
+
+- Frontend component tests:
+
+  ```bash
+  npm run test:frontend
+  ```
+
+- Bridge agent pairing test:
+
+  ```bash
+  poetry install --with dev  # or pip install -e bridge-agent[dev]
+  pytest bridge-agent/tests
+  ```
+
+## Security and privacy guarantees
+
+- Explicit user consent before probing or pulling streams.
+- Safe ONVIF/RTSP/MJPEG path list — no brute force attempts.
+- Bridge agent pairing uses one-time codes with 10-minute tokens.
+- Short-lived ffmpeg probes (`ffprobe`, 3 s timeout) to validate streams.
+- Audit hooks ready for backend logging (extend via middleware).
+- See `docs/security-checklist.md` for deployment review steps.
+
+## Demo / recording plan
+
+Record a short GIF:
+
+1. Start Docker Compose demo stack.
+2. Launch frontend and show onboarding wizard selecting IP camera.
+3. Enter RTSP simulator IP, run **Test Connection**, show candidate list.
+4. Start bridge agent, refresh preview, and display HLS video.
+5. Highlight audit log panel (placeholder) and security notice.
+
+Use a tool like OBS or ScreenToGif to capture the flow (~45 s).

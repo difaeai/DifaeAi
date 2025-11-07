@@ -32,7 +32,7 @@ import { db } from "@/lib/firebase";
 import { collection, addDoc } from "firebase/firestore";
 import type { Camera } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import JsmpegPlayer from "@/components/jsmpeg-player";
+import LivePreviewPlayer from "@/components/live-preview-player";
 import MjpegPreview from "@/components/mjpeg-preview";
 import {
   AlertDialog,
@@ -822,37 +822,46 @@ export default function ConnectCameraPage() {
       );
     }
 
-    if (previewRtspUrl && ffmpegMissing) {
-        return (
-          <div className="aspect-video bg-muted rounded-lg flex items-center justify-center text-center p-6">
-            <div>
-              <p className="font-semibold text-destructive">Live preview requires ffmpeg on the server.</p>
-              <p className="text-sm text-muted-foreground mt-2">
-                We detected a stream at <span className="font-mono break-all">{previewRtspUrl}</span>, but ffmpeg is not installed on the backend.
-                Install ffmpeg and rerun the test to enable the in-browser preview. You can still save the camera with the detected URL.
-              </p>
-            </div>
-          </div>
-        );
-    }
-
     if (previewRtspUrl) {
+        const normalized = previewRtspUrl.toLowerCase();
+        const isRtsp = normalized.startsWith('rtsp://') || normalized.startsWith('rtsps://');
+        if (!isRtsp) {
+          return (
+            <div className="aspect-video bg-black rounded-lg overflow-hidden flex items-center justify-center">
+              <img src={previewRtspUrl} alt="Camera stream preview" className="w-full h-full object-cover" />
+            </div>
+          );
+        }
+
+        if (ffmpegMissing) {
+          return (
+            <div className="aspect-video bg-muted rounded-lg flex items-center justify-center text-center p-6">
+              <div>
+                <p className="font-semibold text-destructive">Live preview requires ffmpeg on the server.</p>
+                <p className="text-sm text-muted-foreground mt-2">
+                  We detected a stream at <span className="font-mono break-all">{previewRtspUrl}</span>, but ffmpeg is not installed on the backend.
+                  Install ffmpeg and rerun the test to enable the in-browser preview. You can still save the camera with the detected URL.
+                </p>
+              </div>
+            </div>
+          );
+        }
+
         return (
-           <JsmpegPlayer 
-                rtspUrl={previewRtspUrl} 
-                onPlay={() => {
-          setIsTesting(false);
-          setIsConnectionTested(true);
-          toast({ title: "Connection Verified!", description: "Live stream is playing successfully." });
-                }} 
-                        onError={() => {
-                            setIsTesting(false);
-                            setIsConnectionTested(false);
-                            // Try MJPEG fallback
-                            setShowMjpegFallback(true);
-                            toast({ variant: 'destructive', title: 'Stream Failed', description: 'Could not connect to the camera stream. Trying HTTP MJPEG fallback.' });
-                          }}
-            />
+          <LivePreviewPlayer
+            rtspUrl={previewRtspUrl}
+            onReady={() => {
+              setIsTesting(false);
+              setIsConnectionTested(true);
+              toast({ title: "Connection Verified!", description: "Live stream is playing successfully." });
+            }}
+            onError={(message) => {
+              setIsTesting(false);
+              setIsConnectionTested(false);
+              setShowMjpegFallback(true);
+              toast({ variant: 'destructive', title: 'Stream Failed', description: message || 'Could not connect to the camera stream. Trying HTTP MJPEG fallback.' });
+            }}
+          />
         );
     }
     

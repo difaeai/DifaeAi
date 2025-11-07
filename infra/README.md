@@ -1,25 +1,32 @@
 # Infrastructure
 
-This folder contains the Docker Compose stack and configuration files required to run the Universal Camera Bridge locally.
+Local development stack for the Camera Bridge Platform.
 
-## Quick start
+## Services
+
+- `postgres` — Device registry / metadata (default credentials in `sample-configs/backend.env.example`)
+- `rtsp-simulator` — MediaMTX container exposing a test RTSP stream (`rtsp://localhost:8554/mystream`)
+- `backend` — Express REST API (builds from `backend/Dockerfile`)
+- `frontend` — Vite preview server serving the onboarding UI
+- `bridge-agent` — Python LAN agent running in host networking mode for camera access
+
+## Usage
 
 ```bash
 cd infra
-cp .env.example .env  # already provided for convenience
-# ensure dev.key/dev.pub exist (generated in this repo)
 docker compose up --build
 ```
 
-Services:
-- `media`: nginx-rtmp with HLS output.
-- `janus`: WebRTC gateway.
-- `bridge-api`: Device registry / control plane.
-- `ingest-worker`: ffmpeg controller.
-- `web-demo`: Static web player.
+Make sure ffmpeg is installed on the host if you plan to access real cameras via the bridge agent.
 
-The JWT key paths are mounted into the API container and referenced via `JWT_PRIVATE_KEY_PATH` / `JWT_PUBLIC_KEY_PATH` environment variables.
+Environment defaults:
 
-Playback endpoints can be customised via:
-- `HLS_BASE_URL` – defaults to `http://localhost:8080`.
-- `JANUS_WS_URL` – defaults to `ws://localhost:8188`.
+- Backend listens on `http://localhost:4000`
+- Frontend available on `http://localhost:5173`
+- Bridge agent runs at `http://localhost:8787`
+
+To stop and clean up:
+
+```bash
+docker compose down -v
+```

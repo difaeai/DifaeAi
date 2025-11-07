@@ -30,7 +30,7 @@ import { db } from "@/lib/firebase";
 import { collection, addDoc } from "firebase/firestore";
 import type { Camera } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import JsmpegPlayer from "@/components/jsmpeg-player";
+import LivePreviewPlayer from "@/components/live-preview-player";
 import MjpegPreview from '@/components/mjpeg-preview';
 
 import { CameraType, testCameraConnection } from '@/lib/camera-connect';
@@ -606,7 +606,8 @@ export default function ConnectCameraPage() {
     }
     
   if (previewRtspUrl) {
-    const isRtsp = previewRtspUrl.toLowerCase().startsWith('rtsp://') || previewRtspUrl.toLowerCase().startsWith('rtsps://');
+    const normalized = previewRtspUrl.toLowerCase();
+    const isRtsp = normalized.startsWith('rtsp://') || normalized.startsWith('rtsps://');
     if (!isRtsp) {
       return (
         <div className="aspect-video bg-black rounded-lg overflow-hidden flex items-center justify-center">
@@ -615,39 +616,38 @@ export default function ConnectCameraPage() {
       );
     }
 
-    const tryNextCandidate = () => {
+    const tryNextCandidate = (errorMessage?: string) => {
       if (previewCandidates && previewCandidates.length > candidateIndex + 1) {
         const nextIndex = candidateIndex + 1;
         setCandidateIndex(nextIndex);
         setPreviewRtspUrl(previewCandidates[nextIndex]);
-        toast({ title: 'Trying alternative stream path...', description: `Attempt ${nextIndex + 1} of ${previewCandidates.length}` });
+        const base = `Attempt ${nextIndex + 1} of ${previewCandidates.length}`;
+        const description = errorMessage ? `${errorMessage} Retrying... (${base})` : base;
+        toast({ title: 'Trying alternative stream path...', description });
       } else {
-        // Exhausted candidates
         setIsConnectionTested(false);
         setPreviewCandidates([]);
         setCandidateIndex(0);
         setPreviewRtspUrl('');
         setShowMjpegFallback(true);
-        toast({ variant: 'destructive', title: 'Connection Failed', description: 'Could not connect using common stream paths.' });
+        toast({ variant: 'destructive', title: 'Connection Failed', description: errorMessage || 'Could not connect using common stream paths.' });
       }
     };
 
     return (
-       <JsmpegPlayer 
-        rtspUrl={previewRtspUrl} 
-        onPlay={() => {
+       <LivePreviewPlayer
+        rtspUrl={previewRtspUrl}
+        onReady={() => {
           setIsTesting(false);
           setIsConnectionTested(true);
           setShowMjpegFallback(false);
-          // clear candidates on success
           setPreviewCandidates([]);
           setCandidateIndex(0);
           toast({ title: 'Connection Verified!', description: 'Live stream is playing successfully.' });
         }}
-        onError={() => {
+        onError={(message) => {
           setIsTesting(false);
-          // try next guessed candidate if available
-          tryNextCandidate();
+          tryNextCandidate(message || 'Could not connect to the camera stream.');
         }}
       />
     );
