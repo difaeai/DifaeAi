@@ -4,11 +4,11 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint",
-    "postinstall": "patch-package || true",
-    "format": "prettier --write \"**/*.{ts,tsx,js,json,md}\""
+  "build": "next build",
+  "start": "next start",
+  "lint": "next lint",
+  "postinstall": "patch-package || true",
+  "format": "prettier --write \"**/*.{ts,tsx,js,json,md}\""
   },
   "dependencies": {
     "hls.js": "^1.5.8"
