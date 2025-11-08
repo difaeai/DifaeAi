@@ -9,7 +9,7 @@
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from '@genkit-ai/ai';
+import {z} from 'zod';
 
 const VideoAnalysisInputSchema = z.object({
   videoUrl: z.string().url().describe('A publicly accessible URL to a video file (e.g., from YouTube, Google Drive).'),
@@ -55,7 +55,7 @@ const videoAnalysisFlow = ai.defineFlow(
     inputSchema: VideoAnalysisInputSchema,
     outputSchema: VideoAnalysisOutputSchema,
   },
-  async (input) => {
+  async (input: VideoAnalysisInput) => {
     const {output} = await prompt(input);
     return output!;
   }

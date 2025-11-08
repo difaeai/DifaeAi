@@ -8,7 +8,7 @@
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from '@genkit-ai/ai';
+import {z} from 'zod';
 
 const PageAssistantInputSchema = z.object({
   pageContext: z.string().describe('A summary of the content and purpose of the current webpage.'),
@@ -76,7 +76,7 @@ const pageAssistantFlow = ai.defineFlow(
     inputSchema: PageAssistantInputSchema,
     outputSchema: PageAssistantOutputSchema,
   },
-  async (input) => {
+  async (input: PageAssistantInput) => {
     // Transform history for the prompt to add a boolean flag for Handlebars.
     const transformedHistory = input.history?.map(message => ({
         ...message,

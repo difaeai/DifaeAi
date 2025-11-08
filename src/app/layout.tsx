@@ -3,27 +3,7 @@ import type { Metadata } from "next";
 import { Toaster } from "@/components/ui/toaster";
 import "./globals.css";
 import { Providers } from "@/components/providers";
-import { PT_Sans, Space_Grotesk, Source_Code_Pro } from "next/font/google";
 import { AuthProvider } from "@/hooks/use-auth";
-
-const ptSans = PT_Sans({
-  subsets: ["latin"],
-  display: "swap",
-  weight: ["400", "700"],
-  variable: "--font-pt-sans",
-});
-
-const spaceGrotesk = Space_Grotesk({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-space-grotesk",
-});
-
-const sourceCodePro = Source_Code_Pro({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-source-code-pro",
-});
 
 export const metadata: Metadata = {
   title: {
@@ -40,14 +20,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body
-        className={`${ptSans.variable} ${spaceGrotesk.variable} ${sourceCodePro.variable} font-body antialiased`}
-      >
+      <body className="font-body antialiased">
         <AuthProvider>
-            <Providers>
-              {children}
-              <Toaster />
-            </Providers>
+          <Providers>
+            {children}
+            <Toaster />
+          </Providers>
         </AuthProvider>
       </body>
     </html>

@@ -10,7 +10,7 @@
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from '@genkit-ai/ai';
+import {z} from 'zod';
 
 const RealTimeThreatDetectionInputSchema = z.object({
   cameraFeedDataUri: z
@@ -130,7 +130,7 @@ const realTimeThreatDetectionFlow = ai.defineFlow(
     inputSchema: RealTimeThreatDetectionInputSchema,
     outputSchema: RealTimeThreatDetectionOutputSchema,
   },
-  async input => {
+  async (input: RealTimeThreatDetectionInput) => {
     const {output} = await prompt(input);
     return output!;
   }

@@ -10,7 +10,7 @@
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from '@genkit-ai/ai';
+import {z} from 'zod';
 
 const SecurityEventSchema = z.object({
   timestamp: z.string().describe('The timestamp of the security event.'),
@@ -65,7 +65,7 @@ const generateSecurityReportFlow = ai.defineFlow(
     inputSchema: SecurityReportInputSchema,
     outputSchema: SecurityReportOutputSchema,
   },
-  async input => {
+  async (input: SecurityReportInput) => {
     const {output} = await generateReportPrompt(input);
     return output!;
   }
