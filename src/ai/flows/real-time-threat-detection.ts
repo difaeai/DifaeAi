@@ -10,7 +10,7 @@
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import {z} from '@genkit-ai/ai';
 
 const RealTimeThreatDetectionInputSchema = z.object({
   cameraFeedDataUri: z

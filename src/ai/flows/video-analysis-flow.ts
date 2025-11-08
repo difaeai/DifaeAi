@@ -9,7 +9,7 @@
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import {z} from '@genkit-ai/ai';
 
 const VideoAnalysisInputSchema = z.object({
   videoUrl: z.string().url().describe('A publicly accessible URL to a video file (e.g., from YouTube, Google Drive).'),

@@ -10,7 +10,7 @@
 
 'use server';
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import {z} from '@genkit-ai/ai';
 
 const SmartTheftAlertInputSchema = z.object({
   cameraFeedDataUri: z

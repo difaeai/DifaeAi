@@ -10,7 +10,7 @@
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import {z} from '@genkit-ai/ai';
 
 const SecurityEventSchema = z.object({
   timestamp: z.string().describe('The timestamp of the security event.'),

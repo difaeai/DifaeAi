@@ -8,7 +8,7 @@
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import {z} from '@genkit-ai/ai';
 
 export const FacialRecognitionInputSchema = z.object({
   faceImageDataUri: z

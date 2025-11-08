@@ -8,7 +8,7 @@
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import {z} from '@genkit-ai/ai';
 
 const PageAssistantInputSchema = z.object({
   pageContext: z.string().describe('A summary of the content and purpose of the current webpage.'),
