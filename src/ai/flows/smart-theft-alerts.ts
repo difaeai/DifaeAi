@@ -10,7 +10,7 @@
 
 'use server';
 import {ai} from '@/ai/genkit';
-import {z} from '@genkit-ai/ai';
+import {z} from 'zod';
 
 const SmartTheftAlertInputSchema = z.object({
   cameraFeedDataUri: z
@@ -65,7 +65,7 @@ const smartTheftAlertFlow = ai.defineFlow(
     inputSchema: SmartTheftAlertInputSchema,
     outputSchema: SmartTheftAlertOutputSchema,
   },
-  async input => {
+  async (input: SmartTheftAlertInput) => {
     const {output} = await prompt(input);
     return output!;
   }

@@ -8,7 +8,7 @@
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from '@genkit-ai/ai';
+import {z} from 'zod';
 
 export const FacialRecognitionInputSchema = z.object({
   faceImageDataUri: z
@@ -66,7 +66,7 @@ const facialRecognitionFlow = ai.defineFlow(
     inputSchema: FacialRecognitionInputSchema,
     outputSchema: FacialRecognitionOutputSchema,
   },
-  async (input) => {
+  async (input: FacialRecognitionInput) => {
     const {output} = await prompt(input);
     return output!;
   }

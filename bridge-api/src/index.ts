@@ -4,6 +4,8 @@ import cors from "@fastify/cors";
 import swagger from "@fastify/swagger";
 import swaggerUi from "@fastify/swagger-ui";
 import pino from "pino";
+import fastifyJwt from "@fastify/jwt";
+import type { SignOptions } from "@fastify/jwt";
 import {
   APP_HOST,
   APP_PORT,
@@ -40,12 +42,18 @@ async function buildServer() {
   await app.register(swaggerUi, { routePrefix: "/docs" });
 
   if (JWT_PUBLIC_KEY) {
-    await app.register(import("@fastify/jwt"), {
+    const signOptions = {
+      algorithm: "RS256" as const,
+      ...(JWT_ISSUER ? { issuer: JWT_ISSUER } : {}),
+      ...(JWT_AUDIENCE ? { audience: JWT_AUDIENCE } : {}),
+    } satisfies Partial<SignOptions>;
+
+    await app.register(fastifyJwt, {
       secret: {
         private: JWT_PRIVATE_KEY,
         public: JWT_PUBLIC_KEY,
       },
-      sign: { algorithm: "RS256", issuer: JWT_ISSUER },
+      sign: signOptions,
     });
   } else {
     logger.warn("JWT public key not configured; token verification disabled");

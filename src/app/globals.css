@@ -1,10 +1,11 @@
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "./tailwind.generated.css";
 
 @layer base {
   :root {
+    --font-pt-sans: "PT Sans", "Helvetica Neue", Arial, sans-serif;
+    --font-space-grotesk: "Space Grotesk", "Helvetica Neue", Arial, sans-serif;
+    --font-source-code-pro: "Source Code Pro", "SFMono-Regular", Menlo, monospace;
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
     --card: 0 0% 100%;

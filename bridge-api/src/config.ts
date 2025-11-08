@@ -1,7 +1,29 @@
-import { config } from "dotenv";
 import { readFileSync, existsSync } from "node:fs";
+import { resolve } from "node:path";
 
-config();
+function loadEnvFromFile(filePath: string) {
+  if (!existsSync(filePath)) return;
+  const contents = readFileSync(filePath, "utf8");
+  for (const line of contents.split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const eqIndex = trimmed.indexOf("=");
+    if (eqIndex === -1) continue;
+    const key = trimmed.slice(0, eqIndex).trim();
+    if (!key || process.env[key] !== undefined) continue;
+    const value = trimmed.slice(eqIndex + 1).trim();
+    process.env[key] = value;
+  }
+}
+
+const envFiles = [".env.local", ".env"];
+const searchRoots = [process.cwd(), resolve(process.cwd(), "..")];
+
+for (const root of searchRoots) {
+  for (const file of envFiles) {
+    loadEnvFromFile(resolve(root, file));
+  }
+}
 
 export const APP_PORT = Number(process.env.BRIDGE_API_PORT ?? 8088);
 export const APP_HOST = process.env.BRIDGE_API_HOST ?? "0.0.0.0";

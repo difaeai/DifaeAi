@@ -10,7 +10,7 @@
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from '@genkit-ai/ai';
+import {z} from 'zod';
 
 const VisualSearchInputSchema = z.object({
   itemPhotoDataUri: z
@@ -65,7 +65,7 @@ const visualSearchFlow = ai.defineFlow(
     inputSchema: VisualSearchInputSchema,
     outputSchema: VisualSearchOutputSchema,
   },
-  async input => {
+  async (input: VisualSearchInput) => {
     const {output} = await prompt(input);
     return output!;
   }
