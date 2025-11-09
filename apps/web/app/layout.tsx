@@ -2,7 +2,6 @@
 import './globals.css';
 
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
 import { ReactNode } from 'react';
 
 const SITE_URL = 'https://difae.ai';
@@ -19,20 +18,6 @@ const openGraphImage = {
   height: 630,
   alt: 'Proland smartwatch hero image'
 };
-
-// defaultSeo کی تعریف برقرار رکھنے کیلئے
-export const defaultSeo = {
-  title: 'Proland',
-  description:
-    'The next-generation smartwatch that keeps you energised, protected, and connected wherever you go.',
-  openGraph: {
-    type: 'website',
-    locale: 'en_US',
-    site_name: 'Proland'
-  }
-};
-
-const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
 export const metadata: Metadata = {
   metadataBase,
@@ -53,10 +38,8 @@ export const metadata: Metadata = {
   }
 };
 
-const bodyClassName = [
-  inter.variable,
-  'flex min-h-screen flex-col bg-gradient-to-b from-[#060A15] via-[#060A15] to-[#0B1220] text-white'
-].join(' ');
+const bodyClassName =
+  'flex min-h-screen flex-col bg-gradient-to-b from-[#060A15] via-[#060A15] to-[#0B1220] text-white';
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
