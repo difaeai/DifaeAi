@@ -12,7 +12,6 @@
     "isolatedModules": true,
     "jsx": "preserve",
     "moduleDetection": "force",
-    "types": ["node"],
     "baseUrl": "."
   },
   "include": [],
