@@ -38,7 +38,12 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className="bg-[#060A15]">
-      <body className={`${inter.variable} flex min-h-screen flex-col bg-gradient-to-b from-[#060A15] via-[#060A15] to-[#0B1220] text-white`}>
+      <body
+        className={[
+          inter.variable,
+          'flex min-h-screen flex-col bg-gradient-to-b from-[#060A15] via-[#060A15] to-[#0B1220] text-white'
+        ].join(' ')}
+      >
         {children}
       </body>
     </html>
