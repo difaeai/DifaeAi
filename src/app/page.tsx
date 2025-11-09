@@ -21,6 +21,12 @@ import {
   ShoppingCart,
   Phone,
   Check,
+  LayoutDashboard,
+  CalendarCheck,
+  Lock,
+  UserPlus,
+  Compass,
+  Headset,
 } from "lucide-react";
 import Image from "next/image";
 import {
@@ -178,6 +184,63 @@ const partnershipHighlights = [
   "Deployment playbooks tailored to your footprint within 48 hours.",
 ];
 
+const sitePages = [
+  {
+    title: "About BERRETO",
+    description: "Learn our mission, leadership ethos and how we partner with security teams around the globe.",
+    href: "/about",
+    icon: Building,
+  },
+  {
+    title: "DIFAE Autonomous Agent",
+    description: "Understand the intelligence layers that power predictive monitoring and autonomous playbooks.",
+    href: "/agent",
+    icon: Bot,
+  },
+  {
+    title: "Products & Pricing",
+    description: "Compare hardware bundles, subscriptions and managed services tailored to your perimeter.",
+    href: "/products",
+    icon: Store,
+  },
+  {
+    title: "Customer Dashboard",
+    description: "View live feeds, manage devices and configure escalation rules from the secure command console.",
+    href: "/dashboard",
+    icon: LayoutDashboard,
+  },
+  {
+    title: "Pre-Booking Concierge",
+    description: "Reserve your deployment window and let our engineers map onboarding milestones with you.",
+    href: "/pre-booking",
+    icon: CalendarCheck,
+  },
+  {
+    title: "Checkout",
+    description: "Confirm equipment, seats and coverage tiers with transparent pricing before activating DIFAE.",
+    href: "/checkout",
+    icon: ShoppingCart,
+  },
+  {
+    title: "Contact & Support",
+    description: "Book live demos, reach mission control and access 24/7 emergency escalation lines.",
+    href: "/contact",
+    icon: Headset,
+  },
+  {
+    title: "Sign In",
+    description: "Existing operators can securely access dashboards and evidence vaults from anywhere.",
+    href: "/login",
+    icon: Lock,
+  },
+  {
+    title: "Create Account",
+    description: "Spin up your BERRETO workspace, invite teammates and start the guided deployment journey.",
+    href: "/signup",
+    icon: UserPlus,
+  },
+];
+
 export default function HomePage() {
   const [content, setContent] = useState<any>(null);
   const [products, setProducts] = useState<Product[]>([]);
@@ -250,10 +313,10 @@ export default function HomePage() {
         <section className="relative overflow-hidden pb-20 pt-24 sm:pb-28 sm:pt-28">
           <div className="container mx-auto grid gap-16 px-6 sm:px-10 lg:px-12 lg:grid-cols-[1.05fr,0.95fr] lg:items-center">
             <div className="space-y-6">
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-4 py-1 text-xs uppercase tracking-[0.35em] text-white/60">
-                <span>New</span>
+              <div className="inline-flex items-center gap-3 rounded-full border border-white/10 bg-white/10 px-4 py-1 text-xs uppercase tracking-[0.35em] text-white/60">
+                <Compass className="h-4 w-4 text-primary" />
                 <span className="h-1 w-1 rounded-full bg-primary" />
-                <span>Autonomous Security Cloud</span>
+                <span>Guided platform tour</span>
               </div>
               <h1 className="font-headline text-4xl font-semibold leading-tight text-white sm:text-5xl lg:text-[3.4rem] lg:leading-[1.05]">
                 {heroHeadline}
@@ -307,6 +370,46 @@ export default function HomePage() {
                   </Link>
                 </div>
               </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="relative pb-20">
+          <div className="container mx-auto px-6 sm:px-10 lg:px-12">
+            <div className="flex flex-col gap-4 text-center">
+              <Badge className="mx-auto w-max rounded-full border border-white/10 bg-white/10 px-4 py-1 text-xs uppercase tracking-[0.35em] text-white/60">
+                Navigate the platform
+              </Badge>
+              <h2 className="font-headline text-3xl font-semibold text-white sm:text-4xl">
+                Explore every mission-critical page
+              </h2>
+              <p className="mx-auto max-w-3xl text-base text-white/60 sm:text-lg">
+                Every experience in the BERRETO ecosystem is a click away—from pre-deployment planning to live operations.
+                Choose where you need to go next and continue the journey.
+              </p>
+            </div>
+            <div className="mt-12 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+              {sitePages.map((page) => {
+                const Icon = page.icon;
+                return (
+                  <Link key={page.title} href={page.href} className="group block h-full">
+                    <Card className="relative flex h-full flex-col justify-between overflow-hidden border-white/10 bg-white/5 p-6 text-left text-white transition duration-300 hover:border-primary/60 hover:bg-white/10">
+                      <div className="flex items-start justify-between gap-6">
+                        <div>
+                          <CardTitle className="font-headline text-xl">{page.title}</CardTitle>
+                          <CardDescription className="mt-3 text-sm text-white/70">{page.description}</CardDescription>
+                        </div>
+                        <span className="flex h-12 w-12 items-center justify-center rounded-full border border-white/15 bg-white/10 text-white/80 transition group-hover:border-primary/40 group-hover:bg-primary/20 group-hover:text-primary">
+                          <Icon className="h-6 w-6" />
+                        </span>
+                      </div>
+                      <span className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-primary transition group-hover:text-primary/90">
+                        Open page <ArrowRight className="h-4 w-4" />
+                      </span>
+                    </Card>
+                  </Link>
+                );
+              })}
             </div>
           </div>
         </section>
@@ -718,7 +821,7 @@ export default function HomePage() {
           </div>
         </section>
 
-        <PageAssistant pageContext="This is the redesigned BERRETO homepage showcasing DIFAE, an autonomous AI security platform. It highlights predictive threat detection, autonomous response playbooks, product offerings, deployment journey, and mission control support." />
+        <PageAssistant pageContext="This is the redesigned BERRETO homepage showcasing DIFAE, an autonomous AI security platform. It highlights predictive threat detection, autonomous response playbooks, product offerings, deployment journey, mission control support, and a site-wide navigation grid that links to every key page." />
       </main>
       <Footer />
     </div>
