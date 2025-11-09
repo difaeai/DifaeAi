@@ -6,17 +6,8 @@
       {
         "name": "next"
       }
-    ],
-    "incremental": true,
-    "esModuleInterop": true
+    ]
   },
-  "include": [
-    "next-env.d.ts",
-    "app/**/*",
-    ".next/types/**/*.ts",
-    "../../.next/types/**/*.ts"
-  ],
-  "exclude": [
-    "node_modules"
-  ]
+  "include": ["next-env.d.ts", "app/**/*"],
+  "exclude": ["node_modules"]
 }

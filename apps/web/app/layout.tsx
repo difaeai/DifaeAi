@@ -19,11 +19,24 @@ const openGraphImage = {
   alt: 'Proland smartwatch hero image'
 };
 
+// defaultSeo کی تعریف برقرار رکھنے کیلئے
+const defaultSeo = {
+  title: 'Proland',
+  description:
+    'The next-generation smartwatch that keeps you energised, protected, and connected wherever you go.',
+  openGraph: {
+    type: 'website',
+    locale: 'en_US',
+    site_name: 'Proland'
+  }
+} as const;
+
 export const metadata: Metadata = {
   metadataBase,
   title: SEO_TITLE,
   description: SEO_DESCRIPTION,
   openGraph: {
+    ...defaultSeo.openGraph,
     title: SEO_TITLE,
     description: SEO_DESCRIPTION,
     url: SITE_URL,
