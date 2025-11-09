@@ -1,10 +1,7 @@
 import './globals.css';
 
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
 import { ReactNode } from 'react';
-
-const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
 export const metadata: Metadata = {
   title: 'DIFAE Admin',
@@ -14,7 +11,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} min-h-screen bg-[#05070F] text-white`}>{children}</body>
+      <body className="min-h-screen bg-[#05070F] text-white antialiased">{children}</body>
     </html>
   );
 }
