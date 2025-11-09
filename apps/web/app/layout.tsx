@@ -10,18 +10,10 @@ const SEO_TITLE = 'Proland — The future of wearable tech';
 const SEO_DESCRIPTION =
   'Explore Proland, the smart wearable crafted for wellness, productivity, and safety with adaptive intelligence.';
 
-const metadataBase = new URL(SITE_URL);
-const openGraphImage = {
-  url: SOCIAL_IMAGE_PATH,
-  width: 1200,
-  height: 630,
-  alt: 'Proland smartwatch hero image'
-};
-
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
 export const metadata: Metadata = {
-  metadataBase,
+  metadataBase: new URL(SITE_URL),
   title: SEO_TITLE,
   description: SEO_DESCRIPTION,
   openGraph: {
@@ -29,7 +21,14 @@ export const metadata: Metadata = {
     description: SEO_DESCRIPTION,
     url: SITE_URL,
     siteName: 'Proland',
-    images: [openGraphImage]
+    images: [
+      {
+        url: SOCIAL_IMAGE_PATH,
+        width: 1200,
+        height: 630,
+        alt: 'Proland smartwatch hero image'
+      }
+    ]
   },
   twitter: {
     card: 'summary_large_image',
