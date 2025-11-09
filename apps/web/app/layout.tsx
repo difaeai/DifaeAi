@@ -1,3 +1,4 @@
+// apps/web/app/layout.tsx
 import './globals.css';
 
 import type { Metadata } from 'next';
@@ -10,6 +11,7 @@ const SEO_TITLE = 'Proland — The future of wearable tech';
 const SEO_DESCRIPTION =
   'Explore Proland, the smart wearable crafted for wellness, productivity, and safety with adaptive intelligence.';
 
+// اضافی کانسٹینٹس جو ہیڈ برانچ میں تھے
 const metadataBase = new URL(SITE_URL);
 const openGraphImage = {
   url: SOCIAL_IMAGE_PATH,
@@ -18,6 +20,7 @@ const openGraphImage = {
   alt: 'Proland smartwatch hero image'
 };
 
+// defaultSeo کی تعریف برقرار رکھنے کیلئے
 export const defaultSeo = {
   title: 'Proland',
   description:
