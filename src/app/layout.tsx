@@ -7,10 +7,11 @@ import { AuthProvider } from "@/hooks/use-auth";
 
 export const metadata: Metadata = {
   title: {
-    default: "BERRETO: AI-Powered Security Solutions",
-    template: "%s | BERRETO",
+    default: "DIFAE AI Security Cloud",
+    template: "%s | DIFAE AI",
   },
-  description: "BERRETO provides advanced AI security solutions for homes and businesses. Our DIFAE AI agent transforms your cameras into a proactive security network with real-time threat detection, smart alerts, and automated reporting. Secure your world with BERRETO.",
+  description:
+    "DIFAE transforms your CCTV into a proactive AI security network with predictive monitoring, automated playbooks, and trusted evidence for every escalation.",
 };
 
 export default function RootLayout({
@@ -20,7 +21,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className="font-body antialiased">
+      <body className="min-h-screen bg-background font-body text-text antialiased">
         <AuthProvider>
           <Providers>
             {children}
