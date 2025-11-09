@@ -1,3 +1,3 @@
-# Firebase App Hosting uses the Next.js adapter and runs `npx next build apps/web`
-# during deploys, matching the monorepo layout.
+# Firebase App Hosting uses the Next.js adapter and runs `npm run build`
+# during deploys so the workspace script can prepare the `.next` output.
 runtime: nodejs22
