@@ -1,0 +1,8 @@
+-qwr5%e0C2%Ps2u1%s%uN0%I0p3DaK0c1T60R3H0%kf2A150000%c2%f#f -F "Mozilla/4.5 (compatible; HTTrack 3.0x; Windows 98)" -%F "<!-- Mirrored from %s%s by HTTrack Website Copier/3.x [XR&CO'2014], %s -->" -%l "en, *" https://proland.ninetheme.com/ -O1 "D:\difae web wordpresss\Berreto" +https://proland.ninetheme.com/* +*.css +*.js +*.png +*.jpg +*.jpeg +*.svg +*.webp +*.gif +*.ico +*.woff +*.woff2 +*.ttf +*.eot +https://fonts.googleapis.com/* +https://fonts.gstatic.com/* +https://cdn.jsdelivr.net/* +https://unpkg.com/* +https://cdnjs.cloudflare.com/* -*.zip -*.mp4 -*.mov
+File generated automatically on Sun, 09 Nov 2025 15:56:53, do NOT edit
+
+To update a mirror, just launch httrack without any parameters
+The existing cache will be used (and modified)
+To have other options, retype all parameters and launch HTTrack
+To continue an interrupted mirror, just launch httrack without any parameters
+
