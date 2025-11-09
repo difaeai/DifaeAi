@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const nextConfig = {
+  distDir: '../../.next',
   images: {
     remotePatterns: [
       {
