@@ -1,172 +1,232 @@
-
 "use client";
 
 import PublicHeader from "@/components/public-header";
 import Footer from "@/components/footer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Target, Eye, Handshake, Lightbulb, ShieldCheck, Loader2 } from 'lucide-react';
+import { Target, Eye, Handshake, Lightbulb, ShieldCheck, Loader2, Globe, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { PageAssistant } from "@/components/page-assistant";
 import { useEffect, useState } from "react";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { PageSection } from "@/components/ui/page-section";
+import { FadeIn } from "@/components/ui/fade-in";
+import { GradientHeading } from "@/components/ui/gradient-heading";
+import { Container } from "@/components/ui/container";
 
 async function getPageContent(pageName: string): Promise<any> {
-    const docRef = doc(db, 'content', pageName);
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-        return docSnap.data();
-    }
-    return null;
+  const docRef = doc(db, "content", pageName);
+  const docSnap = await getDoc(docRef);
+  if (docSnap.exists()) {
+    return docSnap.data();
+  }
+  return null;
 }
 
 const values = [
-    { icon: <Lightbulb className="h-8 w-8 text-primary" />, title: "Innovation", description: "We are driven by a passion for discovery, constantly pushing the boundaries of what's possible in AI security." },
-    { icon: <ShieldCheck className="h-8 w-8 text-primary" />, title: "Integrity", description: "We uphold the highest standards of quality and ethics, ensuring our technology is used responsibly to create a safer world." },
-    { icon: <Handshake className="h-8 w-8 text-primary" />, title: "Customer Commitment", description: "Our clients are our partners. We are dedicated to providing security solutions that deliver real, measurable value." },
+  {
+    icon: <Lightbulb className="h-8 w-8 text-primary" />,
+    title: "Innovation",
+    description:
+      "We are driven by a passion for discovery, constantly pushing the boundaries of what's possible in AI security.",
+  },
+  {
+    icon: <ShieldCheck className="h-8 w-8 text-primary" />,
+    title: "Integrity",
+    description:
+      "We uphold the highest standards of quality and ethics, ensuring our technology is used responsibly to create a safer world.",
+  },
+  {
+    icon: <Handshake className="h-8 w-8 text-primary" />,
+    title: "Customer Commitment",
+    description:
+      "Our clients are our partners. We are dedicated to providing security solutions that deliver real, measurable value.",
+  },
 ];
 
 export default function AboutPage() {
-    const [content, setContent] = useState<any>(null);
-    const [isLoading, setIsLoading] = useState(true);
+  const [content, setContent] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-    useEffect(() => {
-        async function fetchContent() {
-        try {
-            const pageContent = await getPageContent('aboutpage');
-            setContent(pageContent);
-        } catch (error) {
-            console.error("Failed to fetch page content", error);
-        } finally {
-            setIsLoading(false);
-        }
-        }
-        fetchContent();
-    }, []);
-
-    if (isLoading) {
-        return (
-            <div className="flex h-screen items-center justify-center bg-background">
-                <Loader2 className="h-16 w-16 animate-spin" />
-            </div>
-        );
+  useEffect(() => {
+    async function fetchContent() {
+      try {
+        const pageContent = await getPageContent("aboutpage");
+        setContent(pageContent);
+      } catch (error) {
+        console.error("Failed to fetch page content", error);
+      } finally {
+        setIsLoading(false);
+      }
     }
+    fetchContent();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-background">
+        <Loader2 className="h-16 w-16 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    <div className="flex min-h-screen flex-col bg-background text-text">
       <PublicHeader />
       <main className="flex-1">
-        {/* Hero Section */}
-        <section className="w-full py-20 md:py-32 bg-secondary">
-          <div className="container mx-auto px-6 md:px-10 lg:px-12">
-            <div className="flex flex-col items-center space-y-4 text-center">
-              <h1 className="font-headline text-4xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none">
-                {content?.hero?.headline ?? "About BERRETO"}
+        <section className="relative overflow-hidden pt-20">
+          <div className="absolute inset-0 -z-10 bg-gradient-to-br from-primary/10 via-white to-accent/5" />
+          <Container className="grid gap-12 pb-20 lg:grid-cols-[1.2fr,1fr] lg:items-center">
+            <FadeIn className="space-y-6">
+              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary/70">Our mission</p>
+              <h1 className="font-headline text-4xl font-semibold tracking-tight sm:text-5xl">
+                {content?.hero?.headline ?? "Who we are"}
               </h1>
-              <p className="max-w-[800px] text-muted-foreground md:text-xl" dangerouslySetInnerHTML={{ __html: (content?.hero?.description ?? "We are the creators of the world's first Smart AI Surveillance Agent, the <a href='/agent' class='font-semibold text-primary hover:underline'>DIFAE AI agent</a>, committed to making advanced security accessible to everyone.")}}>
+              <p
+                className="max-w-2xl text-lg text-text/70"
+                dangerouslySetInnerHTML={{
+                  __html:
+                    content?.hero?.description ??
+                    "DIFAE transforms how cities and enterprises respond to risk. Our teams combine security expertise with advanced AI to keep people, places, and assets safe.",
+                }}
+              />
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <Button asChild size="lg" className="rounded-full">
+                  <Link href="/contact">Meet the team</Link>
+                </Button>
+                <Button asChild size="lg" variant="secondary" className="rounded-full border border-primary/20 bg-white text-primary hover:bg-primary/10">
+                  <Link href="/products">Explore DIFAE</Link>
+                </Button>
+              </div>
+            </FadeIn>
+            <FadeIn delay={150} className="rounded-3xl border border-border/60 bg-white/80 p-8 shadow-xl shadow-primary/10">
+              <h3 className="font-headline text-xl font-semibold text-text">Fast facts</h3>
+              <div className="mt-6 grid gap-6 text-sm text-text/70">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary/70">Founded</p>
+                  <p className="mt-2 text-lg font-semibold text-text">2019 in Islamabad</p>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary/70">Coverage</p>
+                  <p className="mt-2 text-lg font-semibold text-text">35 cities and growing</p>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary/70">Customers protected</p>
+                  <p className="mt-2 text-lg font-semibold text-text">Banks, retailers, logistics leaders</p>
+                </div>
+              </div>
+            </FadeIn>
+          </Container>
+        </section>
+
+        <PageSection>
+          <FadeIn className="mx-auto max-w-3xl space-y-6 text-center">
+            <GradientHeading>From innovation studio to AI security leader</GradientHeading>
+            <p className="text-lg text-text/70">
+              {content?.story?.headline ?? "From vision to a global service"}
+            </p>
+            <p className="text-base text-text/60" dangerouslySetInnerHTML={{ __html: content?.story?.p1 ?? "Started in 2019, BERRETO Pvt Ltd. established itself as a leading development and design partner for ambitious organisations across the world." }} />
+            <p className="text-base text-text/60">
+              {content?.story?.p2 ?? "Today, we channel that expertise into DIFAE AI, our flagship security platform delivering proactive protection for cities, campuses, and enterprises."}
+            </p>
+          </FadeIn>
+        </PageSection>
+
+        <PageSection background="muted">
+          <FadeIn className="space-y-10">
+            <div className="max-w-2xl">
+              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary/70">Mission & Vision</p>
+              <GradientHeading className="mt-4">Purpose that shapes every deployment</GradientHeading>
+            </div>
+            <div className="grid gap-8 md:grid-cols-2">
+              <Card className="rounded-3xl border border-border/60 bg-white/80 shadow-lg shadow-primary/10">
+                <CardHeader className="flex flex-row items-center gap-4">
+                  <Target className="h-10 w-10 text-primary" />
+                  <CardTitle className="font-headline text-2xl text-text">Our Mission</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p
+                    className="text-sm text-text/70"
+                    dangerouslySetInnerHTML={{
+                      __html:
+                        content?.missionVision?.mission ??
+                        "To deliver superior AI-driven security solutions that provide measurable value and peace of mind for organisations and communities.",
+                    }}
+                  />
+                </CardContent>
+              </Card>
+              <Card className="rounded-3xl border border-border/60 bg-white/80 shadow-lg shadow-primary/10">
+                <CardHeader className="flex flex-row items-center gap-4">
+                  <Eye className="h-10 w-10 text-primary" />
+                  <CardTitle className="font-headline text-2xl text-text">Our Vision</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-text/70">
+                    {content?.missionVision?.vision ??
+                      "To become a leading force in the global security industry by delivering AI solutions that prevent incidents before they escalate."}
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          </FadeIn>
+        </PageSection>
+
+        <PageSection>
+          <FadeIn className="space-y-12">
+            <div className="max-w-2xl">
+              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary/70">Our Values</p>
+              <GradientHeading className="mt-4">The principles that guide every decision</GradientHeading>
+              <p className="mt-3 text-lg text-text/70">
+                Our culture is built on trust, experimentation, and uncompromising security standards.
               </p>
             </div>
-          </div>
-        </section>
-
-        {/* Our Story Section */}
-        <section className="w-full py-16 md:py-24">
-          <div className="container mx-auto px-6 md:px-10 lg:px-12">
-            <div className="grid gap-10 lg:grid-cols-1 lg:gap-16 items-center text-center">
-              <div className="space-y-4 max-w-3xl mx-auto">
-                <div className="inline-block rounded-lg bg-secondary px-3 py-1 text-sm font-headline text-secondary-foreground">
-                  Our Journey
+            <div className="grid gap-8 md:grid-cols-3">
+              {values.map((value) => (
+                <div key={value.title} className="rounded-3xl border border-border/60 bg-white/80 p-6 text-center shadow-lg shadow-primary/10">
+                  <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">{value.icon}</div>
+                  <h4 className="mt-6 font-headline text-xl font-semibold text-text">{value.title}</h4>
+                  <p className="mt-3 text-sm text-text/70">{value.description}</p>
                 </div>
-                <h2 className="font-headline text-3xl font-bold tracking-tighter sm:text-4xl">
-                  {content?.story?.headline ?? "From Vision to a Global Service"}
-                </h2>
-                <p className="text-muted-foreground md:text-lg">
-                  {content?.story?.p1 ?? "Started in 2019, BERRETO Pvt Ltd. established itself as a leading Development & Design expert, providing superior Software, Web, and Mobile solutions. Our journey has been driven by a passion for innovation and a commitment to excellence."}
-                </p>
-                <p className="text-muted-foreground md:text-lg">
-                  {content?.story?.p2 ?? "As a company registered and regulated by the Securities and Exchange Commission of Pakistan and recognized by the Pakistan Software Export Board, we uphold the highest standards of quality and integrity. Today, we are proud to channel that expertise into DIFAE AI, our flagship security platform."}
-                </p>
+              ))}
+            </div>
+          </FadeIn>
+        </PageSection>
+
+        <PageSection background="tint">
+          <FadeIn className="grid gap-10 lg:grid-cols-[1.1fr,1fr] lg:items-center">
+            <div className="space-y-6">
+              <GradientHeading>Global perspective, local delivery</GradientHeading>
+              <p className="max-w-2xl text-lg text-text/70">
+                DIFAE is built by engineers, data scientists, and security experts collaborating across Pakistan and the broader region to deliver rapid innovation with enterprise-grade reliability.
+              </p>
+              <div className="grid gap-6 sm:grid-cols-2">
+                <div className="rounded-3xl border border-border/60 bg-white/80 p-6 shadow-lg shadow-primary/10">
+                  <Globe className="h-8 w-8 text-primary" />
+                  <p className="mt-4 text-sm font-semibold uppercase tracking-[0.24em] text-primary/70">Operational footprint</p>
+                  <p className="mt-2 text-lg text-text">Monitoring 5+ countries with regional partners</p>
+                </div>
+                <div className="rounded-3xl border border-border/60 bg-white/80 p-6 shadow-lg shadow-primary/10">
+                  <Users className="h-8 w-8 text-primary" />
+                  <p className="mt-4 text-sm font-semibold uppercase tracking-[0.24em] text-primary/70">Security experts</p>
+                  <p className="mt-2 text-lg text-text">Certified analysts and architects on-call 24/7</p>
+                </div>
               </div>
             </div>
-          </div>
-        </section>
-
-        {/* Mission & Vision Section */}
-        <section className="w-full py-16 md:py-24 bg-secondary">
-          <div className="container mx-auto px-6 md:px-10 lg:px-12">
-            <div className="grid gap-10 md:grid-cols-2">
-              <Card>
-                <CardHeader className="flex flex-row items-center gap-4">
-                    <Target className="w-10 h-10 text-primary" />
-                    <CardTitle className="font-headline text-2xl">Our Mission</CardTitle>
-                </CardHeader>
-                <CardContent className="text-muted-foreground" dangerouslySetInnerHTML={{ __html: (content?.missionVision?.mission ?? "To deliver superior AI-driven security solutions that provide measurable value and peace of mind. We strive to leverage the most effective use of technology to help organizations and individuals across the globe achieve their safety objectives through our <a href='/products' class='font-semibold text-primary hover:underline'>products</a>.")}}>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center gap-4">
-                    <Eye className="w-10 h-10 text-primary" />
-                    <CardTitle className="font-headline text-2xl">Our Vision</CardTitle>
-                </CardHeader>
-                <CardContent className="text-muted-foreground">
-                  {content?.missionVision?.vision ?? "To become a leading force in the global security industry by continuously innovating and introducing impactful AI solutions that contribute to the betterment and safety of society, advancing Pakistan’s position in the global technology landscape."}
-                </CardContent>
-              </Card>
+            <div className="space-y-6 rounded-3xl border border-border/60 bg-white/80 p-8 shadow-xl shadow-primary/10">
+              <h3 className="font-headline text-2xl font-semibold text-text">Join us</h3>
+              <p className="text-sm text-text/70">
+                We are building the next generation of AI security infrastructure. If you’re passionate about protecting communities with technology, we want to hear from you.
+              </p>
+              <Button asChild className="rounded-full">
+                <Link href="mailto:hello@berreto.co">Send your portfolio</Link>
+              </Button>
             </div>
-          </div>
-        </section>
-
-        {/* Our Values Section */}
-        <section className="w-full py-16 md:py-24">
-            <div className="container mx-auto px-6 md:px-10 lg:px-12">
-                 <div className="flex flex-col items-center justify-center space-y-4 text-center">
-                    <div className="space-y-2">
-                        <div className="inline-block rounded-lg bg-secondary px-3 py-1 text-sm font-headline text-secondary-foreground">
-                            Our Values
-                        </div>
-                        <h2 className="font-headline text-3xl font-bold tracking-tighter sm:text-5xl">
-                            The Principles That Guide Us
-                        </h2>
-                        <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                           Our core values are the foundation of our culture and the way we do business.
-                        </p>
-                    </div>
-                </div>
-                <div className="mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 mt-12">
-                    {values.map((value) => (
-                        <div key={value.title} className="text-center space-y-3">
-                            <div className="flex items-center justify-center h-16 w-16 rounded-full bg-secondary mx-auto">
-                                {value.icon}
-                            </div>
-                            <h4 className="font-bold font-headline text-xl">{value.title}</h4>
-                            <p className="text-sm text-muted-foreground">{value.description}</p>
-                        </div>
-                    ))}
-                </div>
-            </div>
-        </section>
-
-        {/* CTA Section */}
-         <section className="w-full py-16 md:py-24">
-            <div className="container mx-auto px-6 md:px-10 lg:px-12">
-                <div className="rounded-lg bg-primary text-primary-foreground p-8 md:p-12 lg:p-16 text-center">
-                  <div className="space-y-4">
-                    <h2 className="font-headline text-3xl font-bold tracking-tighter sm:text-4xl">
-                      {content?.cta?.headline ?? "Join Us in Building a Safer Future"}
-                    </h2>
-                    <p className="max-w-2xl mx-auto">
-                      {content?.cta?.description ?? "We're always looking for talented individuals to join the BERRETO team. If you're passionate about AI and security, we'd love to hear from you."}
-                    </p>
-                     <Button asChild size="lg" variant="secondary" className="font-headline mt-4">
-                        <Link href="/contact">Get In Touch</Link>
-                    </Button>
-                  </div>
-                </div>
-            </div>
-        </section>
-        <PageAssistant pageContext="This is the About Us page for BERRETO. It tells the story of the company, its mission to make AI security accessible, and introduces the team and company values."/>
+          </FadeIn>
+        </PageSection>
       </main>
       <Footer />
+      <PageAssistant pageContext="about" />
     </div>
   );
 }

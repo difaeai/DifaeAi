@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link";
@@ -15,6 +14,7 @@ import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/use-auth";
 import { UserNav } from "./user-nav";
+import { Container } from "@/components/ui/container";
 
 const NAV_LINKS = [
   { href: "/", label: "Home" },
@@ -38,29 +38,27 @@ export default function PublicHeader() {
   const { user } = useAuth();
 
   return (
-    <header className="sticky top-0 z-50 border-b border-white/10 bg-[rgba(7,12,27,0.92)] backdrop-blur-xl">
-      <div className="container mx-auto flex h-16 items-center gap-3 px-6 sm:px-10 lg:px-12">
-        <Link href="/" className="group flex items-center gap-3 text-sm font-semibold text-white">
-          <span className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/10 font-headline text-lg font-bold text-white transition group-hover:shadow-[0_0_25px_rgba(120,119,198,0.35)]">
-            B
+    <header className="sticky top-0 z-50 border-b border-border/60 bg-white/70 backdrop-blur-xl">
+      <Container className="flex h-20 items-center gap-4">
+        <Link href="/" className="group flex items-center gap-3">
+          <span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 font-headline text-xl font-semibold text-primary transition group-hover:-translate-y-0.5 group-hover:shadow-lg group-hover:shadow-primary/20">
+            D
           </span>
           <div className="flex flex-col leading-tight">
-            <span className="text-xs uppercase tracking-[0.35em] text-white/50">Berreto</span>
-            <span className="bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-base font-semibold text-transparent">
-              DIFAE Security Cloud
-            </span>
+            <span className="text-[11px] uppercase tracking-[0.32em] text-primary/70">DIFAE AI</span>
+            <span className="text-base font-semibold text-text">Security Cloud</span>
           </div>
         </Link>
 
-        <nav className="hidden items-center gap-8 md:flex">
+        <nav className="ml-6 hidden items-center gap-6 lg:flex">
           {NAV_LINKS.map((link) => (
             <Link
               key={link.href}
               href={link.href}
-              className="group relative text-sm font-medium text-white/70 transition-colors hover:text-white"
+              className="group relative text-sm font-medium text-text/70 transition-colors hover:text-text"
             >
               {link.label}
-              <span className="absolute -bottom-2 left-0 h-px w-full origin-left scale-x-0 bg-gradient-to-r from-primary via-secondary to-accent transition-transform duration-200 group-hover:scale-x-100" />
+              <span className="absolute -bottom-2 left-0 h-0.5 w-full origin-left scale-x-0 rounded-full bg-gradient-to-r from-primary via-primary/70 to-accent transition-transform duration-200 group-hover:scale-x-100" />
             </Link>
           ))}
         </nav>
@@ -71,21 +69,21 @@ export default function PublicHeader() {
               <Button
                 variant="ghost"
                 size="icon"
-                className="relative h-10 w-10 border border-white/10 bg-white/5 text-white shadow-sm shadow-primary/20 hover:bg-white/10"
+                className="relative h-11 w-11 rounded-2xl border border-primary/20 bg-white text-primary shadow-sm shadow-primary/10 hover:bg-primary/5"
               >
                 <ShoppingCart className="h-5 w-5" />
                 {cartCount > 0 && (
-                  <Badge className="absolute -right-2 -top-2 h-5 w-5 rounded-full bg-primary text-[10px] font-bold uppercase tracking-tight text-primary-foreground">
+                  <Badge className="absolute -right-1 -top-1 h-5 min-w-[1.25rem] rounded-full bg-accent px-1 text-[10px] font-semibold tracking-tight text-white">
                     {cartCount}
                   </Badge>
                 )}
                 <span className="sr-only">Open shopping cart</span>
               </Button>
             </SheetTrigger>
-            <SheetContent className="flex w-full flex-col border-l border-white/10 bg-[rgba(5,10,23,0.96)] text-white backdrop-blur-xl sm:max-w-md">
-              <div className="border-b border-white/10 px-6 py-5">
-                <h2 className="text-lg font-semibold">Your DIFAE Kit</h2>
-                <p className="text-sm text-white/60">Seamless protection, curated for you.</p>
+            <SheetContent className="flex w-full flex-col border-l border-border/60 bg-white/95 text-text backdrop-blur-2xl sm:max-w-md">
+              <div className="border-b border-border/60 px-6 py-5">
+                <h2 className="text-lg font-headline font-semibold text-text">Your DIFAE Kit</h2>
+                <p className="text-sm text-text/60">Curate the devices that keep every perimeter protected.</p>
               </div>
               {cartItems.length > 0 ? (
                 <>
@@ -94,9 +92,9 @@ export default function PublicHeader() {
                       {cartItems.map((item) => (
                         <li
                           key={item.id}
-                          className="group flex gap-4 rounded-2xl border border-white/10 bg-white/5 p-4 shadow-sm shadow-black/30 transition hover:border-primary/60 hover:bg-white/10"
+                          className="group flex gap-4 rounded-3xl border border-border/60 bg-white/80 p-4 shadow-lg shadow-primary/10 transition hover:-translate-y-1 hover:shadow-xl"
                         >
-                          <div className="relative h-24 w-24 overflow-hidden rounded-xl border border-white/10">
+                          <div className="relative h-24 w-24 overflow-hidden rounded-2xl border border-border/60 bg-muted">
                             <Image
                               src={item.image}
                               alt={item.name}
@@ -108,13 +106,13 @@ export default function PublicHeader() {
                           <div className="flex flex-1 flex-col">
                             <div className="flex items-start justify-between gap-4">
                               <div>
-                                <h3 className="font-semibold text-white">{item.name}</h3>
-                                <p className="text-sm text-white/60">Rs {item.price.toLocaleString()}</p>
+                                <h3 className="font-semibold text-text">{item.name}</h3>
+                                <p className="text-sm text-text/60">Rs {item.price.toLocaleString()}</p>
                               </div>
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-8 w-8 text-white/60 hover:text-destructive"
+                                className="h-8 w-8 rounded-full text-text/40 hover:text-destructive"
                                 onClick={() => removeFromCart(item.id)}
                               >
                                 <Trash2 className="h-4 w-4" />
@@ -122,11 +120,11 @@ export default function PublicHeader() {
                               </Button>
                             </div>
                             <div className="mt-auto flex items-center justify-between">
-                              <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-2 py-1 text-white/80">
+                              <div className="flex items-center gap-2 rounded-full border border-border/60 bg-muted/70 px-2 py-1 text-text/80">
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="h-7 w-7"
+                                  className="h-7 w-7 rounded-full"
                                   onClick={() => updateQuantity(item.id, item.quantity - 1)}
                                 >
                                   <Minus className="h-4 w-4" />
@@ -135,13 +133,13 @@ export default function PublicHeader() {
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="h-7 w-7"
+                                  className="h-7 w-7 rounded-full"
                                   onClick={() => updateQuantity(item.id, item.quantity + 1)}
                                 >
                                   <Plus className="h-4 w-4" />
                                 </Button>
                               </div>
-                              <span className="text-sm font-medium text-white/70">
+                              <span className="text-sm font-medium text-text/70">
                                 Total: Rs {(item.price * item.quantity).toLocaleString()}
                               </span>
                             </div>
@@ -150,133 +148,110 @@ export default function PublicHeader() {
                       ))}
                     </ul>
                   </div>
-                  <div className="border-t border-white/10 px-6 py-6">
-                    <div className="space-y-4 rounded-2xl border border-white/10 bg-white/5 p-5 shadow-inner shadow-black/20">
+                  <div className="border-t border-border/60 px-6 py-6">
+                    <div className="space-y-4 rounded-3xl border border-border/60 bg-white/80 p-5 shadow-inner shadow-primary/10">
                       <div className="flex items-center justify-between text-sm">
-                        <span className="text-white/60">Subtotal</span>
-                        <span className="text-lg font-semibold text-white">Rs {cartTotal.toLocaleString()}</span>
+                        <span className="text-text/60">Subtotal</span>
+                        <span className="text-lg font-semibold text-text">Rs {cartTotal.toLocaleString()}</span>
                       </div>
-                      <p className="text-xs text-white/50">
+                      <p className="text-xs text-text/60">
                         Complimentary deployment support across Pakistan on every order.
                       </p>
-                      <SheetClose asChild>
-                        <Button asChild className="w-full text-base font-semibold">
-                          <Link href="/checkout">Secure Checkout</Link>
-                        </Button>
-                      </SheetClose>
+                      <Button asChild className="w-full rounded-full">
+                        <Link href="/checkout">Secure checkout</Link>
+                      </Button>
                     </div>
                   </div>
                 </>
               ) : (
-                <div className="flex flex-1 flex-col items-center justify-center gap-4 px-6 text-center">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-full border border-white/10 bg-white/5">
-                    <ShoppingCart className="h-7 w-7 text-white/50" />
+                <div className="flex flex-1 flex-col items-center justify-center space-y-4 px-6 text-center">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-3xl border border-border/60 bg-muted/70 text-primary">
+                    <ShoppingCart className="h-7 w-7" />
                   </div>
                   <div className="space-y-2">
-                    <h3 className="text-xl font-semibold text-white">Your cart is standing by</h3>
-                    <p className="text-sm text-white/60">
-                      Add a plan or device to activate your autonomous security perimeter.
+                    <p className="text-base font-semibold text-text">Your kit is waiting</p>
+                    <p className="text-sm text-text/60">
+                      Add DIFAE devices to start preventing incidents before they unfold.
                     </p>
                   </div>
-                  <SheetClose asChild>
-                    <Button asChild variant="secondary" className="mt-2">
-                      <Link href="/products">Explore Solutions</Link>
-                    </Button>
-                  </SheetClose>
+                  <Button asChild className="rounded-full">
+                    <Link href="/products">Explore solutions</Link>
+                  </Button>
                 </div>
               )}
             </SheetContent>
           </Sheet>
 
-          <div className="hidden items-center gap-2 md:flex">
+          <nav className="hidden items-center gap-2 lg:flex">
             {user ? (
               <UserNav />
             ) : (
               <>
-                <Button
-                  variant="ghost"
-                  asChild
-                  className="h-10 rounded-full border border-white/10 bg-transparent px-5 text-sm font-semibold text-white/70 transition hover:bg-white/10 hover:text-white"
-                >
-                  <Link href="/login">Login</Link>
+                <Button asChild variant="ghost" size="sm" className="rounded-full text-text/70 hover:text-text">
+                  <Link href="/login">Log in</Link>
                 </Button>
-                <Button
-                  asChild
-                  className="h-10 rounded-full bg-gradient-to-r from-primary via-secondary to-accent px-5 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/30"
-                >
-                  <Link href="/signup">Create Account</Link>
+                <Button asChild size="sm" className="rounded-full">
+                  <Link href="/signup">Create account</Link>
                 </Button>
               </>
             )}
-          </div>
+          </nav>
 
-          <div className="md:hidden">
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-10 w-10 border border-white/10 bg-white/5 text-white hover:bg-white/10"
-                >
-                  <Menu className="h-5 w-5" />
-                  <span className="sr-only">Toggle navigation menu</span>
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left" className="flex w-full max-w-xs flex-col border-r border-white/10 bg-[rgba(5,10,23,0.96)] text-white backdrop-blur-xl">
-                <div className="border-b border-white/10 px-6 py-6">
-                  <Link href="/" className="flex items-center gap-3 text-lg font-semibold">
-                    <span className="font-headline">BERRETO</span>
-                    <span className="rounded-full bg-white/10 px-2 py-1 text-xs uppercase tracking-widest text-white/70">
-                      DIFAE AI
-                    </span>
-                  </Link>
-                </div>
-                <nav className="grid gap-4 px-6 py-6 text-base font-medium">
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-primary/20 bg-white text-primary hover:bg-primary/5 lg:hidden"
+              >
+                <Menu className="h-5 w-5" />
+                <span className="sr-only">Open navigation</span>
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="flex w-full flex-col border-l border-border/60 bg-white/95 text-text backdrop-blur-2xl sm:max-w-xs">
+              <div className="flex items-center justify-between border-b border-border/60 pb-4">
+                <Link href="/" className="flex items-center gap-3 text-sm font-semibold">
+                  <span className="flex h-11 w-11 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 font-headline text-lg text-primary">
+                    D
+                  </span>
+                  <span className="text-left leading-tight">
+                    <span className="block text-[11px] uppercase tracking-[0.32em] text-primary/70">DIFAE AI</span>
+                    <span className="block text-sm text-text">Security Cloud</span>
+                  </span>
+                </Link>
+              </div>
+              <div className="flex flex-1 flex-col gap-6 py-6">
+                <nav className="flex flex-col gap-2 text-base font-medium text-text/80">
                   {NAV_LINKS.map((link) => (
-                    <SheetClose asChild key={link.href}>
-                      <Link href={link.href} className="rounded-full border border-transparent px-3 py-2 text-white/70 transition hover:border-white/10 hover:bg-white/10 hover:text-white">
+                    <SheetClose key={link.href} asChild>
+                      <Link
+                        href={link.href}
+                        className="rounded-2xl px-4 py-2 transition hover:bg-primary/5 hover:text-text"
+                      >
                         {link.label}
                       </Link>
                     </SheetClose>
                   ))}
-                  <div className="my-4 border-t border-white/10" />
+                </nav>
+                <div className="mt-auto space-y-3">
                   {user ? (
+                    <UserNav />
+                  ) : (
                     <>
-                      <SheetClose asChild>
-                        <Link href="/dashboard" className="rounded-full border border-transparent px-3 py-2 text-white/70 transition hover:border-white/10 hover:bg-white/10 hover:text-white">
-                          Dashboard
-                        </Link>
-                      </SheetClose>
-                      <Button
-                        onClick={() => {
-                          // Handle signout logic here
-                        }}
-                        variant="ghost"
-                        className="justify-start rounded-full border border-white/10 bg-white/5 px-3 py-2 text-left text-white/70 hover:bg-white/10 hover:text-white"
-                      >
-                        Log Out
+                      <Button asChild className="w-full rounded-full">
+                        <Link href="/signup">Create account</Link>
+                      </Button>
+                      <Button asChild variant="ghost" className="w-full rounded-full text-text/70 hover:text-text">
+                        <Link href="/login">Log in</Link>
                       </Button>
                     </>
-                  ) : (
-                    <div className="flex flex-col gap-3">
-                      <SheetClose asChild>
-                        <Link href="/login" className="rounded-full border border-white/10 bg-transparent px-3 py-2 text-center text-white/70 transition hover:bg-white/10 hover:text-white">
-                          Login
-                        </Link>
-                      </SheetClose>
-                      <SheetClose asChild>
-                        <Link href="/signup" className="rounded-full bg-gradient-to-r from-primary via-secondary to-accent px-3 py-2 text-center text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/30">
-                          Create Account
-                        </Link>
-                      </SheetClose>
-                    </div>
                   )}
-                </nav>
-              </SheetContent>
-            </Sheet>
-          </div>
+                </div>
+              </div>
+            </SheetContent>
+          </Sheet>
         </div>
-      </div>
+      </Container>
     </header>
   );
 }
