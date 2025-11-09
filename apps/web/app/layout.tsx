@@ -18,6 +18,17 @@ const openGraphImage = {
   alt: 'Proland smartwatch hero image'
 };
 
+export const defaultSeo = {
+  title: 'Proland',
+  description:
+    'The next-generation smartwatch that keeps you energised, protected, and connected wherever you go.',
+  openGraph: {
+    type: 'website',
+    locale: 'en_US',
+    site_name: 'Proland'
+  }
+};
+
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
 export const metadata: Metadata = {
