@@ -10,34 +10,34 @@ const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://difae.ai'),
-  title: 'DIFAE AI — Proactive Security Cloud',
+  title: 'Proland — The future of wearable tech',
   description:
-    'DIFAE transforms CCTV into a proactive AI security network that triages incidents in real-time.',
+    'Explore Proland, the smart wearable crafted for wellness, productivity, and safety with adaptive intelligence.',
   openGraph: {
-    title: 'DIFAE AI — Proactive Security Cloud',
+    title: 'Proland — The future of wearable tech',
     description:
-      'DIFAE transforms CCTV into a proactive AI security network that triages incidents in real-time.',
+      'Explore Proland, the smart wearable crafted for wellness, productivity, and safety with adaptive intelligence.',
     url: 'https://difae.ai',
-    siteName: 'DIFAE AI',
+    siteName: 'Proland',
     images: [
       {
-        url: '/media/dashboard-mock.svg',
+        url: '/proland/watch-hero.svg',
         width: 1200,
         height: 630,
-        alt: 'DIFAE AI dashboard preview'
+        alt: 'Proland smartwatch hero image'
       }
     ]
   }
 };
 
 const defaultSeo = {
-  title: 'DIFAE AI',
+  title: 'Proland',
   description:
-    'Proactive security cloud that turns CCTV into an intelligent incident response network.',
+    'The next-generation smartwatch that keeps you energised, protected, and connected wherever you go.',
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    site_name: 'DIFAE AI'
+    site_name: 'Proland'
   }
 };
 
