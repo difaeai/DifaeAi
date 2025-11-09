@@ -1,3 +1,4 @@
+// apps/web/app/layout.tsx
 import './globals.css';
 
 import type { Metadata } from 'next';
@@ -10,10 +11,31 @@ const SEO_TITLE = 'Proland — The future of wearable tech';
 const SEO_DESCRIPTION =
   'Explore Proland, the smart wearable crafted for wellness, productivity, and safety with adaptive intelligence.';
 
+// اضافی کانسٹینٹس جو ہیڈ برانچ میں تھے
+const metadataBase = new URL(SITE_URL);
+const openGraphImage = {
+  url: SOCIAL_IMAGE_PATH,
+  width: 1200,
+  height: 630,
+  alt: 'Proland smartwatch hero image'
+};
+
+// defaultSeo کی تعریف برقرار رکھنے کیلئے
+export const defaultSeo = {
+  title: 'Proland',
+  description:
+    'The next-generation smartwatch that keeps you energised, protected, and connected wherever you go.',
+  openGraph: {
+    type: 'website',
+    locale: 'en_US',
+    site_name: 'Proland'
+  }
+};
+
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(SITE_URL),
+  metadataBase,
   title: SEO_TITLE,
   description: SEO_DESCRIPTION,
   openGraph: {
@@ -21,14 +43,7 @@ export const metadata: Metadata = {
     description: SEO_DESCRIPTION,
     url: SITE_URL,
     siteName: 'Proland',
-    images: [
-      {
-        url: SOCIAL_IMAGE_PATH,
-        width: 1200,
-        height: 630,
-        alt: 'Proland smartwatch hero image'
-      }
-    ]
+    images: [openGraphImage]
   },
   twitter: {
     card: 'summary_large_image',
