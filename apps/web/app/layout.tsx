@@ -4,10 +4,13 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import { ReactNode } from 'react';
 
+const SITE_URL = 'https://difae.ai';
+const SOCIAL_IMAGE = '/proland/watch-hero.svg';
+
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://difae.ai'),
+  metadataBase: new URL(SITE_URL),
   title: 'Proland — The future of wearable tech',
   description:
     'Explore Proland, the smart wearable crafted for wellness, productivity, and safety with adaptive intelligence.',
@@ -15,11 +18,11 @@ export const metadata: Metadata = {
     title: 'Proland — The future of wearable tech',
     description:
       'Explore Proland, the smart wearable crafted for wellness, productivity, and safety with adaptive intelligence.',
-    url: 'https://difae.ai',
+    url: SITE_URL,
     siteName: 'Proland',
     images: [
       {
-        url: '/proland/watch-hero.svg',
+        url: SOCIAL_IMAGE,
         width: 1200,
         height: 630,
         alt: 'Proland smartwatch hero image'
@@ -31,21 +34,19 @@ export const metadata: Metadata = {
     title: 'Proland — The future of wearable tech',
     description:
       'Explore Proland, the smart wearable crafted for wellness, productivity, and safety with adaptive intelligence.',
-    images: ['/proland/watch-hero.svg']
+    images: [SOCIAL_IMAGE]
   }
 };
+
+const bodyClassName = [
+  inter.variable,
+  'flex min-h-screen flex-col bg-gradient-to-b from-[#060A15] via-[#060A15] to-[#0B1220] text-white'
+].join(' ');
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className="bg-[#060A15]">
-      <body
-        className={[
-          inter.variable,
-          'flex min-h-screen flex-col bg-gradient-to-b from-[#060A15] via-[#060A15] to-[#0B1220] text-white'
-        ].join(' ')}
-      >
-        {children}
-      </body>
+      <body className={bodyClassName}>{children}</body>
     </html>
   );
 }
