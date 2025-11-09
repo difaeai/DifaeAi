@@ -2,53 +2,43 @@ import './globals.css';
 
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
-import { DefaultSeo } from 'next-seo';
 import { ReactNode } from 'react';
-import { colors } from '@difae/ui';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://difae.ai'),
-  title: 'DIFAE AI — Proactive Security Cloud',
+  title: 'Proland — The future of wearable tech',
   description:
-    'DIFAE transforms CCTV into a proactive AI security network that triages incidents in real-time.',
+    'Explore Proland, the smart wearable crafted for wellness, productivity, and safety with adaptive intelligence.',
   openGraph: {
-    title: 'DIFAE AI — Proactive Security Cloud',
+    title: 'Proland — The future of wearable tech',
     description:
-      'DIFAE transforms CCTV into a proactive AI security network that triages incidents in real-time.',
+      'Explore Proland, the smart wearable crafted for wellness, productivity, and safety with adaptive intelligence.',
     url: 'https://difae.ai',
-    siteName: 'DIFAE AI',
+    siteName: 'Proland',
     images: [
       {
-        url: '/media/dashboard-mock.svg',
+        url: '/proland/watch-hero.svg',
         width: 1200,
         height: 630,
-        alt: 'DIFAE AI dashboard preview'
+        alt: 'Proland smartwatch hero image'
       }
     ]
-  }
-};
-
-const defaultSeo = {
-  title: 'DIFAE AI',
-  description:
-    'Proactive security cloud that turns CCTV into an intelligent incident response network.',
-  openGraph: {
-    type: 'website',
-    locale: 'en_US',
-    site_name: 'DIFAE AI'
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Proland — The future of wearable tech',
+    description:
+      'Explore Proland, the smart wearable crafted for wellness, productivity, and safety with adaptive intelligence.',
+    images: ['/proland/watch-hero.svg']
   }
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className="bg-[#060A15]">
-      <body
-        className={`${inter.variable} flex min-h-screen flex-col bg-gradient-to-b from-[#060A15] via-[#060A15] to-[#0B1220]`}
-        style={{ color: colors.foreground }}
-      >
-        <DefaultSeo {...defaultSeo} />
+      <body className={`${inter.variable} flex min-h-screen flex-col bg-gradient-to-b from-[#060A15] via-[#060A15] to-[#0B1220] text-white`}>
         {children}
       </body>
     </html>
