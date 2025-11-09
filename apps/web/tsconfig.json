@@ -2,16 +2,12 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "baseUrl": ".",
-    "paths": {
-      "@difae/ui": ["../../packages/ui/src"],
-      "@difae/ui/*": ["../../packages/ui/src/*"]
-    },
     "plugins": [
       {
         "name": "next"
       }
     ]
   },
-  "include": ["next-env.d.ts", "app/**/*", "lib/**/*", "components/**/*"],
+  "include": ["next-env.d.ts", "app/**/*"],
   "exclude": ["node_modules"]
 }
