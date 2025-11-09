@@ -23,5 +23,6 @@ ENV NODE_ENV=production
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/package.json ./package.json
 RUN npm install --omit=dev --prefer-offline
+ENV PORT=4173
 EXPOSE 4173
-CMD ["npx", "vite", "preview", "--host", "0.0.0.0", "--port", "4173"]
+CMD ["sh", "-c", "npx vite preview --host 0.0.0.0 --port ${PORT}"]
