@@ -12,13 +12,7 @@
   },
   "apphosting": {
     "build": {
-      "command": "npx next build apps/web",
-      "env": [
-        {
-          "key": "BP_NODE_PROJECT_PATH",
-          "value": "backend"
-        }
-      ]
+      "command": "npm run build"
     }
   },
   "firestore": {
