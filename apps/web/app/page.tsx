@@ -1,527 +1,556 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import type { LucideIcon } from 'lucide-react';
 import {
-  Activity,
   BatteryCharging,
   BellRing,
-  CheckCircle2,
   Cpu,
-  Droplet,
+  HeartPulse,
+  MapPin,
+  Moon,
   ShieldCheck,
   Sparkles,
-  Waves
+  Sun,
+  Wifi
 } from 'lucide-react';
 
-interface FeatureCard {
-  title: string;
-  description: string;
-  icon: LucideIcon;
-}
-
-interface SpecItem {
-  name: string;
-  value: string;
-}
-
-interface Testimonial {
-  quote: string;
-  author: string;
-  role: string;
-}
-
-const navItems = [
+const navigation = [
   { label: 'Home', href: '#home' },
-  { label: 'Product', href: '#product' },
   { label: 'Features', href: '#features' },
-  { label: 'Reviews', href: '#reviews' },
-  { label: 'Contact', href: '#contact' },
-  { label: 'Blog', href: '#blog' }
+  { label: 'Showcase', href: '#showcase' },
+  { label: 'Experience', href: '#experience' },
+  { label: 'Pricing', href: '#pricing' },
+  { label: 'FAQ', href: '#faq' },
+  { label: 'Contact', href: '#contact' }
 ];
 
-const featureCards: FeatureCard[] = [
+const featureHighlights = [
   {
-    title: 'Wellness insights',
-    description: 'Track heart rate variability, oxygen levels, and mindful minutes with medical-grade precision.',
-    icon: Activity
+    title: 'Intelligent health tracking',
+    description:
+      'Continuous biometric monitoring with AI-assisted insights that keep you ahead of stress, sleep, and training goals.',
+    icon: HeartPulse
   },
   {
-    title: 'Adaptive battery',
-    description: 'Enjoy 72 hours of continuous use thanks to the auto-optimised solar and kinetic charging system.',
-    icon: BatteryCharging
-  },
-  {
-    title: 'Always-on safety',
-    description: 'Fall detection, SOS beacons, and live location sharing keep your loved ones informed at all times.',
+    title: 'Resilient design',
+    description:
+      'Ultra-light titanium chassis, ceramic shield glass, and IP68 protection allow Proland to thrive in any environment.',
     icon: ShieldCheck
   },
   {
-    title: 'Crystal clear calls',
-    description: 'Dual-mic array with intelligent noise cancellation makes every conversation effortless.',
-    icon: Waves
+    title: 'Always connected',
+    description:
+      '5G, dual-band Wi-Fi, and onboard eSIM keep notifications, calls, and maps one gesture away even without your phone.',
+    icon: Wifi
   },
   {
-    title: 'Smart assistant',
-    description: 'Voice-first assistant sets reminders, responds to messages, and orchestrates your smart home devices.',
+    title: 'Adaptive battery',
+    description:
+      'Optimised power profiles learn your routine to unlock up to 72 hours of performance with rapid solar top-ups.',
+    icon: BatteryCharging
+  },
+  {
+    title: 'Navigation built-in',
+    description:
+      'Precision dual-frequency GPS with offline maps, waypoint sharing, and trackback guidance for confident exploration.',
+    icon: MapPin
+  },
+  {
+    title: 'Ambient intelligence',
+    description:
+      'Context-aware assistant anticipates what you need—morning briefings, travel reminders, and smarter home automation.',
     icon: Sparkles
-  },
-  {
-    title: 'Hydration coach',
-    description: 'Automatic reminders adapt to your activity level so you stay energised throughout the day.',
-    icon: Droplet
   }
 ];
 
-const specs: SpecItem[] = [
-  { name: 'Battery life', value: 'Up to 72 hrs' },
-  { name: 'Water resistance', value: '50 meters' },
-  { name: 'Connectivity', value: '5G + Wi-Fi 6E' },
-  { name: 'Compatibility', value: 'iOS & Android' }
-];
-
-const testimonials: Testimonial[] = [
+const strapOptions = [
   {
-    quote:
-      'Proland keeps me ahead of my training goals without ever feeling intrusive. The adaptive battery means I never worry about running out midway through the day.',
-    author: 'Sania Rahman',
-    role: 'Fitness coach'
+    name: 'Midnight Alloy',
+    description: 'Brushed titanium links with a magnetic clasp built for workdays and night outs alike.',
+    swatch: '#111827'
   },
   {
-    quote:
-      'The built-in safety tools helped our team stay connected on expeditions. Real-time tracking and incident alerts are absolute game changers.',
-    author: 'Eric Diaz',
-    role: 'Outdoor guide'
+    name: 'Summit Weave',
+    description: 'Breathable alpine nylon that dries fast and flexes with every ascent and descent.',
+    swatch: '#1f6feb'
+  },
+  {
+    name: 'Aurora Silicone',
+    description: 'Soft-touch fluoroelastomer strap inspired by polar skies for daily training sessions.',
+    swatch: '#6366f1'
   }
 ];
 
-const blogHighlights = [
+const experiencePillars = [
   {
-    slug: 'ai-ops-checklist',
-    title: 'Designing the ultimate wearable companion',
-    summary: 'A look at the product principles that shaped the Proland experience from strap to software.'
+    title: 'Proland OS 4',
+    description:
+      'Widgets, complications, and adaptive scenes tailored to your habits deliver just the right glanceable information.',
+    icon: Cpu
   },
   {
-    slug: 'soc-automation',
-    title: 'How the Proland OS keeps you moving',
-    summary: 'Discover the micro-optimisations that extend battery life and make workouts smarter.'
+    title: 'Night mode',
+    description:
+      'Auto-toned lunar interface preserves melatonin levels and extends overnight vitals tracking.',
+    icon: Moon
+  },
+  {
+    title: 'Sunrise routine',
+    description:
+      'Morning snapshots pair solar charge forecasts with hydration and motion prompts to kick-start the day.',
+    icon: Sun
+  },
+  {
+    title: 'Focus alerts',
+    description:
+      'Smart vibrations and haptic cues surface only the priority updates so you can stay in the zone.',
+    icon: BellRing
   }
 ];
 
-export default function ProlandLandingPage() {
+const pricingPlans = [
+  {
+    name: 'Explorer',
+    price: '$349',
+    description: 'Everything you need to monitor health metrics, workouts, and stay connected on the go.',
+    highlights: ['Titanium watch body', 'Magnetic charging puck', '6 months of Proland OS upgrades', 'Standard support'],
+    featured: false
+  },
+  {
+    name: 'Founder Edition',
+    price: '$449',
+    description: 'Exclusive finishes, extra straps, and 18 months of concierge support for power users.',
+    highlights: [
+      'Mirror-polished titanium + ceramic crown',
+      'Summit Weave & Aurora Silicone straps',
+      '18 months of Proland+ premium services',
+      'Priority concierge and accidental coverage'
+    ],
+    featured: true
+  }
+];
+
+const faqs = [
+  {
+    question: 'How long does the battery last on a single charge?',
+    answer:
+      'With adaptive battery modes enabled, Proland delivers up to 72 hours of typical use or 36 hours with continuous GPS and heart monitoring.'
+  },
+  {
+    question: 'Is the watch compatible with my phone?',
+    answer:
+      'Proland syncs with both iOS and Android using the companion app. Core features like eSIM calling, notifications, and workouts are available on both platforms.'
+  },
+  {
+    question: 'Can I take Proland swimming?',
+    answer:
+      'Yes. The titanium chassis and sealed gaskets are rated IP68 and tested for water resistance up to 50 meters.'
+  },
+  {
+    question: 'What kind of warranty do I receive?',
+    answer:
+      'Every watch includes a two-year limited hardware warranty with the option to extend coverage through Proland+.'
+  }
+];
+
+const stories = [
+  {
+    title: 'Designing the strap ecosystem',
+    excerpt: 'From mountain-ready nylon to lounge-worthy silicone, see how we prototyped 120 strap variations.',
+    href: '#'
+  },
+  {
+    title: 'Inside the Proland sensor core',
+    excerpt: 'Discover how our optical array captures medical-grade signals even during intense motion.',
+    href: '#'
+  },
+  {
+    title: 'Battery breakthroughs that power Proland',
+    excerpt: 'A behind-the-scenes look at adaptive cell chemistry and solar augmentation.',
+    href: '#'
+  }
+];
+
+export default function ProlandHomePage() {
   return (
-    <div className="bg-[#f5f7fb] text-slate-900">
-      <header
-        id="home"
-        className="relative mx-auto flex w-full max-w-6xl flex-col gap-10 px-6 pb-16 pt-10 md:px-10"
-      >
-        <div className="flex items-center justify-between gap-8">
-          <Link href="#home" className="flex items-center gap-2 text-lg font-semibold tracking-tight">
-            <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-orange-500 to-pink-500 text-white">
+    <main className="relative min-h-screen bg-slate-950 text-slate-100">
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top,_rgba(99,102,241,0.35),_transparent_55%)]" />
+
+      <header className="sticky top-0 z-20 border-b border-white/10 bg-slate-950/80 backdrop-blur">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-6 px-6 py-4">
+          <Link href="#home" className="flex items-center gap-3 text-lg font-semibold tracking-tight text-white">
+            <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 text-lg">
               P
             </span>
             Proland
           </Link>
-          <nav className="hidden items-center gap-6 text-sm font-medium text-slate-600 md:flex">
-            {navItems.map((item) => (
-              <Link key={item.label} href={item.href} className="transition hover:text-orange-500">
+          <nav className="hidden items-center gap-6 text-sm font-medium text-slate-300 lg:flex">
+            {navigation.map((item) => (
+              <Link key={item.label} href={item.href} className="transition hover:text-white">
                 {item.label}
               </Link>
             ))}
           </nav>
           <Link
-            href="#purchase"
-            className="inline-flex items-center rounded-full bg-gradient-to-r from-orange-500 to-pink-500 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-orange-200"
+            href="#pricing"
+            className="hidden rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-blue-500/30 lg:inline-flex"
           >
-            Buy it now
+            Pre-order now
           </Link>
-        </div>
-        <nav className="flex flex-wrap gap-4 text-sm font-medium text-slate-600 md:hidden">
-          {navItems.map((item) => (
-            <Link key={item.label} href={item.href} className="rounded-full bg-white px-4 py-2 shadow-sm">
-              {item.label}
-            </Link>
-          ))}
-        </nav>
-        <div className="flex flex-col items-start gap-12 md:flex-row md:items-center">
-          <div className="flex flex-1 flex-col gap-6">
-            <span className="text-sm font-semibold uppercase tracking-[0.35em] text-orange-500">Smart wearable</span>
-            <h1 className="text-4xl font-bold leading-tight md:text-6xl">The future of tech is here</h1>
-            <p className="max-w-xl text-lg text-slate-600">
-              Holistically incentivise revolutionary collaboration and idea sharing before cost effective users. Actual focused services before highly efficient human capital.
-            </p>
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <Link
-                href="#product"
-                className="inline-flex items-center justify-center rounded-full bg-slate-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
-              >
-                Explore the watch
-              </Link>
-              <Link
-                href="#features"
-                className="inline-flex items-center justify-center rounded-full border border-slate-300 px-6 py-3 text-sm font-semibold text-slate-700 transition hover:border-orange-400 hover:text-orange-500"
-              >
-                Discover features
-              </Link>
-            </div>
-            <dl className="grid gap-4 sm:grid-cols-3">
-              {[
-                { label: 'Community members', value: '65K+' },
-                { label: 'Daily sync sessions', value: '2.4M' },
-                { label: 'Global retailers', value: '120+' }
-              ].map((stat) => (
-                <div key={stat.label} className="rounded-2xl bg-white p-4 shadow-md">
-                  <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">{stat.label}</dt>
-                  <dd className="mt-2 text-2xl font-bold text-slate-900">{stat.value}</dd>
-                </div>
-              ))}
-            </dl>
-          </div>
-          <div className="relative flex flex-1 items-center justify-center">
-            <div className="absolute -left-24 top-0 h-64 w-64 rounded-full bg-orange-200 blur-3xl" />
-            <div className="absolute -right-16 bottom-10 h-56 w-56 rounded-full bg-pink-200 blur-3xl" />
-            <div className="relative flex w-[320px] flex-col items-center">
-              <div className="absolute -left-10 top-1/2 h-48 w-20 -translate-y-1/2 rounded-full bg-gradient-to-b from-slate-900 to-slate-700 shadow-lg shadow-slate-400/50" />
-              <div className="absolute -right-10 top-1/2 h-48 w-20 -translate-y-1/2 rounded-full bg-gradient-to-b from-slate-900 to-slate-700 shadow-lg shadow-slate-400/50" />
-              <div className="relative z-10 h-[460px] w-[220px] overflow-hidden rounded-[3rem] border-[10px] border-slate-900 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 shadow-2xl">
-                <div className="absolute inset-6 rounded-[2.3rem] bg-gradient-to-br from-orange-400 via-pink-500 to-purple-600" />
-                <div className="absolute inset-14 flex flex-col justify-between rounded-[1.6rem] bg-white/95 p-6 text-left">
-                  <div className="space-y-1">
-                    <p className="text-xs font-medium text-slate-500">Proland OS</p>
-                    <p className="text-xl font-semibold text-slate-900">09:45</p>
-                    <p className="text-sm text-slate-500">Mountaintop focus session</p>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between rounded-2xl bg-slate-900/90 px-4 py-3 text-white">
-                      <span className="text-sm font-medium">Next insight</span>
-                      <span className="text-xs text-orange-200">Breathing break</span>
-                    </div>
-                    <div className="rounded-2xl bg-orange-100 px-4 py-3 text-sm font-medium text-orange-600">Hydration boost scheduled</div>
-                    <div className="rounded-2xl bg-slate-100 px-4 py-3 text-sm text-slate-600">Step goal: 7,820 / 10,000</div>
-                  </div>
-                </div>
-              </div>
-              <div className="mt-6 flex items-center gap-4 rounded-full bg-white px-5 py-2 shadow-lg">
-                <BellRing className="h-5 w-5 text-orange-500" />
-                <div className="text-sm">
-                  <p className="font-semibold">Instant focus alerts</p>
-                  <p className="text-xs text-slate-500">Stay in flow wherever you move</p>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       </header>
 
-      <main className="space-y-24">
-        <section id="product" className="relative">
-          <div className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-6 md:px-10">
-            <div className="flex flex-col items-start gap-6 md:flex-row md:items-center">
-              <div className="flex-1 space-y-4">
-                <span className="rounded-full bg-orange-100 px-4 py-1 text-xs font-semibold uppercase tracking-wide text-orange-600">
-                  Product
-                </span>
-                <h2 className="text-3xl font-bold md:text-4xl">Designed to move with you</h2>
-                <p className="text-base text-slate-600">
-                  Crafted from recycled titanium with ceramic inlays, the Proland watch balances durability with elegance. Interchangeable straps snap into place, while the adaptive crown gives precise tactile control.
-                </p>
-                <dl className="grid gap-4 sm:grid-cols-2">
-                  {specs.map((spec) => (
-                    <div key={spec.name} className="rounded-2xl bg-white p-5 shadow-md">
-                      <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">{spec.name}</dt>
-                      <dd className="mt-2 text-xl font-semibold text-slate-900">{spec.value}</dd>
-                    </div>
-                  ))}
-                </dl>
-              </div>
-              <div className="flex flex-1 flex-col items-center gap-6">
-                <Image
-                  src="/proland/watch-hero.svg"
-                  alt="Proland smart watch"
-                  width={420}
-                  height={420}
-                  className="w-full max-w-sm"
-                  priority
-                />
-                <div className="flex items-center gap-4 rounded-2xl bg-white p-4 shadow-lg">
-                  <CheckCircle2 className="h-6 w-6 text-green-500" />
-                  <p className="text-sm text-slate-600">
-                    Ships with three vegan leather straps and fast magnetic charger
-                  </p>
-                </div>
-              </div>
-            </div>
+      <section id="home" className="mx-auto flex max-w-6xl flex-col gap-16 px-6 pb-24 pt-16 lg:flex-row lg:items-center">
+        <div className="flex flex-1 flex-col gap-6">
+          <span className="w-fit rounded-full border border-blue-500/40 bg-blue-500/10 px-4 py-1 text-xs font-semibold uppercase tracking-[0.35em] text-blue-300">
+            Limited release
+          </span>
+          <h1 className="text-4xl font-bold leading-tight tracking-tight text-white sm:text-5xl lg:text-6xl">
+            A wearable companion engineered for every expedition
+          </h1>
+          <p className="max-w-xl text-lg text-slate-300">
+            Proland fuses aerospace-grade materials with ambient intelligence so you can move faster, recover smarter, and stay
+            effortlessly connected without your phone.
+          </p>
+          <div className="flex flex-col gap-4 sm:flex-row">
+            <Link
+              href="#features"
+              className="inline-flex items-center justify-center rounded-full bg-white px-6 py-3 text-sm font-semibold text-slate-900 shadow-lg shadow-white/20 transition hover:bg-slate-200"
+            >
+              Explore features
+            </Link>
+            <Link
+              href="#experience"
+              className="inline-flex items-center justify-center rounded-full border border-white/30 px-6 py-3 text-sm font-semibold text-white transition hover:border-white/60 hover:text-slate-50"
+            >
+              Watch the experience
+            </Link>
           </div>
-        </section>
-
-        <section id="features" className="bg-white py-20">
-          <div className="mx-auto flex w-full max-w-6xl flex-col gap-12 px-6 md:px-10">
-            <div className="space-y-4 text-center">
-              <span className="rounded-full bg-slate-900 px-4 py-1 text-xs font-semibold uppercase tracking-wide text-white">
-                Features
-              </span>
-              <h2 className="text-3xl font-bold md:text-4xl">Everything you need on your wrist</h2>
-              <p className="mx-auto max-w-2xl text-base text-slate-600">
-                Powerful, intuitive, and crafted for everyday adventures. Proland brings together wellness, productivity, and protection in a single ecosystem.
-              </p>
-            </div>
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {featureCards.map(({ title, description, icon: Icon }) => (
-                <div key={title} className="group flex h-full flex-col gap-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:border-orange-400/70 hover:shadow-xl">
-                  <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-100 text-orange-600 transition group-hover:bg-orange-500 group-hover:text-white">
-                    <Icon className="h-5 w-5" />
-                  </div>
-                  <h3 className="text-xl font-semibold text-slate-900">{title}</h3>
-                  <p className="text-sm text-slate-600">{description}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className="relative">
-          <div className="absolute inset-x-0 top-1/2 -z-10 h-3/4 -translate-y-1/2 bg-gradient-to-b from-orange-100 via-white to-transparent" />
-          <div className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-6 md:px-10 lg:flex-row">
-            <div className="flex flex-1 flex-col gap-6 rounded-3xl bg-white p-10 shadow-xl">
-              <span className="inline-flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-orange-500">
-                <Cpu className="h-4 w-4" /> Core intelligence
-              </span>
-              <h2 className="text-3xl font-bold">Proland OS keeps pace with your rhythm</h2>
-              <p className="text-base text-slate-600">
-                From sunrise rituals to late-night wind-downs, adaptive automations learn from your habits and coach you toward healthier focus. Sync seamlessly across phone, tablet, and desktop dashboards.
-              </p>
-              <ul className="space-y-3 text-sm text-slate-600">
-                <li className="flex items-center gap-3">
-                  <CheckCircle2 className="h-5 w-5 text-green-500" />
-                  Personalised workout libraries with live coaching feedback
-                </li>
-                <li className="flex items-center gap-3">
-                  <CheckCircle2 className="h-5 w-5 text-green-500" />
-                  Context-aware notifications that surface only what matters
-                </li>
-                <li className="flex items-center gap-3">
-                  <CheckCircle2 className="h-5 w-5 text-green-500" />
-                  End-to-end encryption keeps every metric private by default
-                </li>
-              </ul>
-              <Link
-                href="/features"
-                className="inline-flex items-center gap-2 text-sm font-semibold text-orange-500 transition hover:text-orange-600"
-              >
-                Dive deeper into Proland OS
-                <span aria-hidden>&rarr;</span>
-              </Link>
-            </div>
-            <div className="flex flex-1 flex-col justify-between gap-6">
-              <div className="rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-10 text-white shadow-2xl">
-                <h3 className="text-2xl font-semibold">Focus sessions that adapt in real time</h3>
-                <p className="mt-4 text-sm text-slate-200">
-                  Guided breathing, posture nudges, and ambient soundscapes dynamically adjust based on your heart rate and surroundings.
-                </p>
-                <div className="mt-6 grid gap-4 sm:grid-cols-2">
-                  <div className="rounded-2xl bg-white/10 p-4">
-                    <p className="text-xs uppercase tracking-wider text-orange-200">Today</p>
-                    <p className="mt-2 text-lg font-semibold">3 Focus streaks</p>
-                  </div>
-                  <div className="rounded-2xl bg-white/10 p-4">
-                    <p className="text-xs uppercase tracking-wider text-orange-200">Energy</p>
-                    <p className="mt-2 text-lg font-semibold">Balanced</p>
-                  </div>
-                </div>
-              </div>
-              <div className="rounded-3xl bg-white p-8 shadow-xl">
-                <h3 className="text-xl font-semibold text-slate-900">Find your look</h3>
-                <p className="mt-2 text-sm text-slate-600">Swap bands with magnetic connectors. Choose between sport, classic, and woven collections.</p>
-                <div className="mt-6 flex flex-wrap gap-4">
-                  {['Sunset coral', 'Midnight titanium', 'Olive trail'].map((band) => (
-                    <span
-                      key={band}
-                      className="rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-xs font-semibold text-slate-600"
-                    >
-                      {band}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section id="reviews" className="bg-white py-20">
-          <div className="mx-auto flex w-full max-w-6xl flex-col gap-12 px-6 md:px-10">
-            <div className="space-y-4 text-center">
-              <span className="rounded-full bg-orange-100 px-4 py-1 text-xs font-semibold uppercase tracking-wide text-orange-600">
-                Reviews
-              </span>
-              <h2 className="text-3xl font-bold md:text-4xl">Loved by creators and explorers</h2>
-              <p className="mx-auto max-w-2xl text-base text-slate-600">
-                Hear how people around the world weave Proland into their day. Every story fuels the future of our wearable platform.
-              </p>
-            </div>
-            <div className="grid gap-6 md:grid-cols-2">
-              {testimonials.map((testimonial) => (
-                <article key={testimonial.author} className="flex h-full flex-col gap-4 rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
-                  <p className="text-lg text-slate-700">“{testimonial.quote}”</p>
-                  <div className="mt-auto">
-                    <p className="font-semibold text-slate-900">{testimonial.author}</p>
-                    <p className="text-sm text-slate-500">{testimonial.role}</p>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section id="contact" className="relative">
-          <div className="absolute inset-x-0 top-0 -z-10 h-full bg-gradient-to-br from-pink-50 via-orange-50 to-transparent" />
-          <div className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-6 py-20 md:px-10 lg:flex-row">
-            <div className="flex-1 space-y-4">
-              <span className="rounded-full bg-white px-4 py-1 text-xs font-semibold uppercase tracking-wide text-orange-600 shadow">
-                Contact
-              </span>
-              <h2 className="text-3xl font-bold md:text-4xl">Let’s build your Proland experience</h2>
-              <p className="text-base text-slate-600">
-                Our specialists can help you choose the right bundles, accessories, and enterprise deployment packages for your team.
-              </p>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="rounded-2xl bg-white p-5 shadow-md">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Showroom</p>
-                  <p className="mt-1 font-semibold text-slate-900">Downtown Innovation Hub</p>
-                  <p className="text-sm text-slate-500">Visit us Mon-Sat, 10am — 7pm</p>
-                </div>
-                <div className="rounded-2xl bg-white p-5 shadow-md">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Support</p>
-                  <p className="mt-1 font-semibold text-slate-900">support@proland.co</p>
-                  <p className="text-sm text-slate-500">We respond within 24 hours</p>
-                </div>
-              </div>
-            </div>
-            <form className="flex flex-1 flex-col gap-4 rounded-3xl bg-white p-8 shadow-xl">
-              <div>
-                <label htmlFor="name" className="text-sm font-semibold text-slate-700">
-                  Name
-                </label>
-                <input
-                  id="name"
-                  name="name"
-                  type="text"
-                  placeholder="Jane Doe"
-                  className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-200"
-                  required
-                />
-              </div>
-              <div>
-                <label htmlFor="email" className="text-sm font-semibold text-slate-700">
-                  Email
-                </label>
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  placeholder="you@example.com"
-                  className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-200"
-                  required
-                />
-              </div>
-              <div>
-                <label htmlFor="message" className="text-sm font-semibold text-slate-700">
-                  Message
-                </label>
-                <textarea
-                  id="message"
-                  name="message"
-                  rows={4}
-                  placeholder="Tell us about your ideal setup..."
-                  className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-200"
-                  required
-                />
-              </div>
-              <button
-                type="submit"
-                className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-orange-500 to-pink-500 px-6 py-3 text-sm font-semibold text-white shadow-lg transition hover:shadow-xl"
-              >
-                Submit inquiry
-              </button>
-              <p className="text-xs text-slate-500">
-                By submitting this form, you agree to our <Link href="/support" className="text-orange-500 hover:text-orange-600">privacy policy</Link>.
-              </p>
-            </form>
-          </div>
-        </section>
-
-        <section id="blog" className="bg-white py-20">
-          <div className="mx-auto flex w-full max-w-6xl flex-col gap-12 px-6 md:px-10">
-            <div className="space-y-4 text-center">
-              <span className="rounded-full bg-orange-100 px-4 py-1 text-xs font-semibold uppercase tracking-wide text-orange-600">
-                Blog
-              </span>
-              <h2 className="text-3xl font-bold md:text-4xl">Stay tuned with the Proland community</h2>
-              <p className="mx-auto max-w-2xl text-base text-slate-600">
-                Latest stories, behind-the-scenes drops, and tips to make the most of your watch.
-              </p>
-            </div>
-            <div className="grid gap-6 md:grid-cols-2">
-              {blogHighlights.map((post) => (
-                <article key={post.slug} className="flex h-full flex-col gap-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-orange-500">Featured</p>
-                  <h3 className="text-2xl font-semibold text-slate-900">{post.title}</h3>
-                  <p className="text-sm text-slate-600">{post.summary}</p>
-                  <Link href={`/blog/${post.slug}`} className="mt-auto text-sm font-semibold text-orange-500 transition hover:text-orange-600">
-                    Read more &rarr;
-                  </Link>
-                </article>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section id="purchase" className="pb-24">
-          <div className="mx-auto flex w-full max-w-5xl flex-col items-center gap-6 rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 px-8 py-16 text-center text-white shadow-2xl">
-            <span className="rounded-full bg-white/10 px-4 py-1 text-xs font-semibold uppercase tracking-wide text-orange-200">
-              Ready to ship
-            </span>
-            <h2 className="text-3xl font-bold md:text-4xl">Claim the future of wearable tech today</h2>
-            <p className="max-w-2xl text-sm text-slate-200">
-              Secure your launch bundle and receive exclusive access to limited edition bands, curated workouts, and priority updates.
-            </p>
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <Link
-                href="/pricing"
-                className="inline-flex items-center justify-center rounded-full bg-white px-6 py-3 text-sm font-semibold text-slate-900 transition hover:bg-orange-100"
-              >
-                View bundles
-              </Link>
-              <Link
-                href="/support"
-                className="inline-flex items-center justify-center rounded-full border border-white/30 px-6 py-3 text-sm font-semibold text-white transition hover:border-white"
-              >
-                Talk to sales
-              </Link>
-            </div>
-          </div>
-        </section>
-      </main>
-
-      <footer className="bg-slate-900 py-12 text-sm text-slate-300">
-        <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-6 md:flex-row md:items-center md:justify-between md:px-10">
-          <div className="flex items-center gap-3 text-white">
-            <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-orange-500 to-pink-500 font-semibold">
-              P
-            </span>
+          <dl className="grid max-w-2xl grid-cols-2 gap-6 pt-4 text-sm text-slate-300 sm:grid-cols-4">
             <div>
-              <p className="font-semibold">Proland</p>
-              <p className="text-xs text-slate-400">Smartwatch experiences reinvented</p>
+              <dt className="font-medium text-white">Battery</dt>
+              <dd>72h adaptive power</dd>
+            </div>
+            <div>
+              <dt className="font-medium text-white">Waterproof</dt>
+              <dd>IP68 · 50m tested</dd>
+            </div>
+            <div>
+              <dt className="font-medium text-white">Sensors</dt>
+              <dd>12-point optical array</dd>
+            </div>
+            <div>
+              <dt className="font-medium text-white">Connectivity</dt>
+              <dd>5G · eSIM · Wi-Fi 6E</dd>
+            </div>
+          </dl>
+        </div>
+        <div className="relative flex flex-1 justify-center">
+          <div className="absolute inset-0 -z-10 rounded-full bg-gradient-to-br from-indigo-500/30 to-blue-500/10 blur-3xl" />
+          <div className="relative flex h-full w-full max-w-md flex-col items-center justify-center gap-6 rounded-3xl border border-white/10 bg-white/5 p-10 text-center shadow-[0_40px_120px_rgba(37,99,235,0.25)] backdrop-blur">
+            <Image src="/proland/watch-hero.svg" alt="Proland smartwatch" width={320} height={320} priority />
+            <div className="space-y-2 text-sm text-slate-300">
+              <p className="font-semibold uppercase tracking-[0.3em] text-blue-200">Pulse sync engine</p>
+              <p>Track VO₂ max, HRV, blood oxygen, and body temperature with unrivalled accuracy—even during intense motion.</p>
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-4">
-            {navItems.map((item) => (
-              <Link key={item.label} href={item.href} className="transition hover:text-white">
-                {item.label}
-              </Link>
+        </div>
+      </section>
+
+      <section id="features" className="border-t border-white/10 bg-slate-900/50 py-20">
+        <div className="mx-auto flex max-w-6xl flex-col gap-12 px-6">
+          <div className="max-w-2xl space-y-4">
+            <span className="rounded-full border border-blue-400/40 bg-blue-400/10 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-blue-200">
+              Features
+            </span>
+            <h2 className="text-3xl font-semibold text-white sm:text-4xl">Every detail honed for performance and clarity</h2>
+            <p className="text-slate-300">
+              From the sapphire crystal lens to the neural vibration engine, Proland delivers a refined experience crafted to keep
+              you focused on what matters most.
+            </p>
+          </div>
+          <div className="grid gap-8 md:grid-cols-2">
+            {featureHighlights.map((feature) => (
+              <div key={feature.title} className="flex gap-5 rounded-2xl border border-white/10 bg-white/5 p-6 shadow-lg shadow-slate-900/20">
+                <div className="mt-1 flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 text-white">
+                  <feature.icon className="h-5 w-5" />
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-lg font-semibold text-white">{feature.title}</h3>
+                  <p className="text-sm leading-relaxed text-slate-300">{feature.description}</p>
+                </div>
+              </div>
             ))}
           </div>
-          <p className="text-xs text-slate-500">© {new Date().getFullYear()} Proland Labs. All rights reserved.</p>
+        </div>
+      </section>
+
+      <section id="showcase" className="py-20">
+        <div className="mx-auto flex max-w-6xl flex-col gap-12 px-6 lg:flex-row lg:items-center">
+          <div className="flex-1 space-y-6">
+            <span className="rounded-full border border-indigo-400/40 bg-indigo-400/10 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-indigo-200">
+              Strap studio
+            </span>
+            <h2 className="text-3xl font-semibold text-white sm:text-4xl">Switch looks in seconds</h2>
+            <p className="text-lg text-slate-300">
+              Each Proland ships with the Founder strap collection. Swap materials with a single click, pair colours to your fit,
+              and save routines that auto-adjust watch faces the moment a new strap is detected.
+            </p>
+            <ul className="space-y-5">
+              {strapOptions.map((strap) => (
+                <li key={strap.name} className="flex items-start gap-4 rounded-2xl border border-white/10 bg-white/5 p-5">
+                  <span className="mt-1 h-10 w-10 rounded-full border border-white/10" style={{ backgroundColor: strap.swatch }} />
+                  <div>
+                    <p className="text-base font-semibold text-white">{strap.name}</p>
+                    <p className="text-sm text-slate-300">{strap.description}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="flex flex-1 justify-center">
+            <div className="relative w-full max-w-md overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-indigo-500/20 to-blue-500/10 p-1 shadow-[0_30px_90px_rgba(59,130,246,0.35)]">
+              <div className="aspect-[3/4] overflow-hidden rounded-[calc(theme(borderRadius.3xl)-0.25rem)] bg-slate-950">
+                <Image src="/proland/watch-hero.svg" alt="Watch straps" width={600} height={800} className="h-full w-full object-contain" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="experience" className="border-y border-white/10 bg-slate-900/50 py-20">
+        <div className="mx-auto flex max-w-6xl flex-col gap-12 px-6">
+          <div className="max-w-2xl space-y-4">
+            <span className="rounded-full border border-purple-400/40 bg-purple-400/10 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-purple-200">
+              Experience
+            </span>
+            <h2 className="text-3xl font-semibold text-white sm:text-4xl">Proland OS delivers clarity day and night</h2>
+            <p className="text-slate-300">
+              Designed with explorers, athletes, and creators, our interface moves seamlessly from sunrise to after-hours with
+              thoughtful cues and immersive interactions.
+            </p>
+          </div>
+          <div className="grid gap-8 md:grid-cols-2">
+            {experiencePillars.map((pillar) => (
+              <div key={pillar.title} className="flex flex-col gap-4 rounded-2xl border border-white/10 bg-white/5 p-6 shadow-lg shadow-slate-900/30">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-purple-500 to-indigo-500 text-white">
+                  <pillar.icon className="h-5 w-5" />
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-lg font-semibold text-white">{pillar.title}</h3>
+                  <p className="text-sm text-slate-300">{pillar.description}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section id="pricing" className="py-20">
+        <div className="mx-auto flex max-w-6xl flex-col gap-12 px-6">
+          <div className="mx-auto max-w-2xl text-center">
+            <span className="rounded-full border border-blue-400/40 bg-blue-400/10 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-blue-200">
+              Pricing
+            </span>
+            <h2 className="mt-4 text-3xl font-semibold text-white sm:text-4xl">Choose your Proland collection</h2>
+            <p className="mt-4 text-slate-300">
+              Each pre-order ships with express delivery, onboarding support, and free returns within the first 60 days.
+            </p>
+          </div>
+          <div className="grid gap-8 md:grid-cols-2">
+            {pricingPlans.map((plan) => (
+              <div
+                key={plan.name}
+                className={`flex h-full flex-col gap-6 rounded-3xl border bg-white/5 p-8 shadow-[0_35px_120px_rgba(37,99,235,0.25)] ${
+                  plan.featured ? 'border-blue-500/60' : 'border-white/10'
+                }`}
+              >
+                <div className="space-y-2">
+                  <p className="text-sm font-semibold uppercase tracking-widest text-blue-200">{plan.name}</p>
+                  <p className="text-4xl font-bold text-white">{plan.price}</p>
+                  <p className="text-sm text-slate-300">{plan.description}</p>
+                </div>
+                <ul className="space-y-3 text-sm text-slate-200">
+                  {plan.highlights.map((item) => (
+                    <li key={item} className="flex items-start gap-3">
+                      <span className="mt-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-blue-500/30 text-[10px] font-semibold text-white">
+                        ✓
+                      </span>
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Link
+                  href="#contact"
+                  className={`mt-auto inline-flex items-center justify-center rounded-full px-6 py-3 text-sm font-semibold transition ${
+                    plan.featured
+                      ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-lg shadow-blue-500/40'
+                      : 'border border-white/30 text-white hover:border-white/60'
+                  }`}
+                >
+                  Reserve this model
+                </Link>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section id="faq" className="border-y border-white/10 bg-slate-900/50 py-20">
+        <div className="mx-auto flex max-w-6xl flex-col gap-12 px-6 lg:flex-row">
+          <div className="flex-1 space-y-4">
+            <span className="rounded-full border border-indigo-400/40 bg-indigo-400/10 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-indigo-200">
+              Support
+            </span>
+            <h2 className="text-3xl font-semibold text-white sm:text-4xl">Answers before you unbox</h2>
+            <p className="text-slate-300">
+              Need more details? Chat with us any time. Our concierge team is ready to guide sizing, strap selection, and setup.
+            </p>
+          </div>
+          <div className="flex-1 space-y-4">
+            {faqs.map((faq) => (
+              <details key={faq.question} className="group rounded-2xl border border-white/10 bg-white/5 p-5">
+                <summary className="cursor-pointer text-base font-semibold text-white group-open:text-blue-200">
+                  {faq.question}
+                </summary>
+                <p className="mt-3 text-sm leading-relaxed text-slate-300">{faq.answer}</p>
+              </details>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="py-20">
+        <div className="mx-auto flex max-w-6xl flex-col gap-10 px-6">
+          <div className="flex flex-col gap-4 text-center">
+            <span className="mx-auto w-fit rounded-full border border-purple-400/40 bg-purple-400/10 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-purple-200">
+              Stories
+            </span>
+            <h2 className="text-3xl font-semibold text-white sm:text-4xl">Behind the scenes at Proland Labs</h2>
+            <p className="mx-auto max-w-2xl text-slate-300">
+              Go deeper into our design philosophy, sustainability goals, and the community shaping the next wave of Proland
+              experiences.
+            </p>
+          </div>
+          <div className="grid gap-6 lg:grid-cols-3">
+            {stories.map((story) => (
+              <article key={story.title} className="flex h-full flex-col gap-4 rounded-2xl border border-white/10 bg-white/5 p-6">
+                <p className="text-sm font-semibold uppercase tracking-[0.3em] text-blue-200">Proland Journal</p>
+                <h3 className="text-xl font-semibold text-white">{story.title}</h3>
+                <p className="text-sm leading-relaxed text-slate-300">{story.excerpt}</p>
+                <Link href={story.href} className="mt-auto inline-flex items-center gap-2 text-sm font-semibold text-blue-200 hover:text-blue-100">
+                  Read story
+                  <span aria-hidden>→</span>
+                </Link>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section id="contact" className="border-t border-white/10 bg-slate-900/60 py-20">
+        <div className="mx-auto grid max-w-6xl gap-12 px-6 lg:grid-cols-[1.1fr_0.9fr]">
+          <div className="space-y-6">
+            <span className="rounded-full border border-blue-400/40 bg-blue-400/10 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-blue-200">
+              Concierge
+            </span>
+            <h2 className="text-3xl font-semibold text-white sm:text-4xl">Reserve your Proland</h2>
+            <p className="text-lg text-slate-300">
+              Share a few details and our concierge team will confirm availability, sizing guidance, and delivery timelines for
+              your region.
+            </p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-5 text-sm text-slate-200">
+                <p className="font-semibold text-white">Showroom</p>
+                <p>Level 18, Innovation Tower<br />Dubai Design District</p>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-5 text-sm text-slate-200">
+                <p className="font-semibold text-white">Support</p>
+                <p>concierge@proland.com<br />+971 4 000 1234</p>
+              </div>
+            </div>
+          </div>
+          <form className="rounded-3xl border border-white/10 bg-white/10 p-8 shadow-[0_35px_120px_rgba(37,99,235,0.35)] backdrop-blur">
+            <div className="grid gap-5 sm:grid-cols-2">
+              <label className="text-sm font-medium text-white/80">
+                Full name
+                <input
+                  className="mt-2 w-full rounded-xl border border-white/20 bg-slate-950/60 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                  placeholder="Amina Rahman"
+                  type="text"
+                  name="name"
+                  required
+                />
+              </label>
+              <label className="text-sm font-medium text-white/80">
+                Email
+                <input
+                  className="mt-2 w-full rounded-xl border border-white/20 bg-slate-950/60 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                  placeholder="you@example.com"
+                  type="email"
+                  name="email"
+                  required
+                />
+              </label>
+              <label className="text-sm font-medium text-white/80">
+                Region
+                <input
+                  className="mt-2 w-full rounded-xl border border-white/20 bg-slate-950/60 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                  placeholder="City, Country"
+                  type="text"
+                  name="region"
+                />
+              </label>
+              <label className="text-sm font-medium text-white/80">
+                Preferred edition
+                <select
+                  className="mt-2 w-full appearance-none rounded-xl border border-white/20 bg-slate-950/60 px-3 py-2 text-sm text-white focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                  name="edition"
+                >
+                  {pricingPlans.map((plan) => (
+                    <option key={plan.name} value={plan.name} className="bg-slate-900 text-white">
+                      {plan.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            <label className="mt-5 block text-sm font-medium text-white/80">
+              Message
+              <textarea
+                className="mt-2 h-28 w-full rounded-xl border border-white/20 bg-slate-950/60 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                placeholder="Tell us about your goals, team, or upcoming adventures."
+                name="message"
+              />
+            </label>
+            <button
+              type="submit"
+              className="mt-6 w-full rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-500/40 transition hover:from-blue-400 hover:to-indigo-400"
+            >
+              Submit request
+            </button>
+          </form>
+        </div>
+      </section>
+
+      <footer className="border-t border-white/10 bg-slate-950 py-10">
+        <div className="mx-auto flex max-w-6xl flex-col gap-6 px-6 text-sm text-slate-400 sm:flex-row sm:items-center sm:justify-between">
+          <p>© {new Date().getFullYear()} Proland Labs. Crafted with purpose in Dubai.</p>
+          <div className="flex flex-wrap gap-4 text-slate-400">
+            <Link href="#features" className="hover:text-white">
+              Features
+            </Link>
+            <Link href="#pricing" className="hover:text-white">
+              Pricing
+            </Link>
+            <Link href="#contact" className="hover:text-white">
+              Contact
+            </Link>
+            <Link href="#" className="hover:text-white">
+              Privacy
+            </Link>
+          </div>
         </div>
       </footer>
-    </div>
+    </main>
   );
 }
