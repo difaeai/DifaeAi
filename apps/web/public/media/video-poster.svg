@@ -1,0 +1,11 @@
+<svg width="1280" height="720" viewBox="0 0 1280 720" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1280" height="720" rx="48" fill="url(#grad)" />
+  <circle cx="640" cy="360" r="120" fill="rgba(34,211,238,0.2)" />
+  <polygon points="600,300 760,360 600,420" fill="#22D3EE" />
+  <defs>
+    <linearGradient id="grad" x1="0" y1="0" x2="1280" y2="720" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0F172A" />
+      <stop offset="1" stop-color="#111827" />
+    </linearGradient>
+  </defs>
+</svg>
