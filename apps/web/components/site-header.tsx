@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { Button } from '@difae/ui';
-import { Menu, X } from 'lucide-react';
+import { Mail, Menu, Phone, ShieldCheck, X } from 'lucide-react';
 
 const links = [
   { href: '/', label: 'Home' },
@@ -17,7 +17,31 @@ export function SiteHeader() {
   const [open, setOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-40 border-b border-white/5 bg-[#060A15]/80 backdrop-blur">
+    <header className="sticky top-0 z-40 bg-[#050815]/90 shadow-[0_1px_0_rgba(255,255,255,0.08)] backdrop-blur">
+      <div className="border-b border-white/10 bg-gradient-to-r from-[#0B1220] via-[#111B2F] to-[#0B1220]">
+        <div className="mx-auto hidden max-w-6xl items-center justify-between px-6 py-2 text-xs font-medium text-white/60 md:flex md:px-10">
+          <div className="flex items-center gap-6">
+            <span className="flex items-center gap-2">
+              <ShieldCheck className="h-3.5 w-3.5 text-[#22D3EE]" />
+              24/7 monitored SOC support
+            </span>
+            <a href="tel:+922138941122" className="flex items-center gap-2 text-white/60 transition hover:text-white">
+              <Phone className="h-3.5 w-3.5" />
+              +92 21 3894 1122
+            </a>
+            <a
+              href="mailto:hello@difae.ai"
+              className="flex items-center gap-2 text-white/60 transition hover:text-white"
+            >
+              <Mail className="h-3.5 w-3.5" />
+              hello@difae.ai
+            </a>
+          </div>
+          <Link href="/contact" className="transition hover:text-white">
+            Talk to sales →
+          </Link>
+        </div>
+      </div>
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4 md:px-10">
         <Link href="/" className="flex items-center gap-2 text-lg font-semibold text-white">
           <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#22D3EE]/20 text-[#22D3EE]">
@@ -57,6 +81,12 @@ export function SiteHeader() {
                 {link.label}
               </Link>
             ))}
+            <a href="tel:+922138941122" className="flex items-center gap-2 text-white/60">
+              <Phone className="h-4 w-4" /> +92 21 3894 1122
+            </a>
+            <a href="mailto:hello@difae.ai" className="flex items-center gap-2 text-white/60">
+              <Mail className="h-4 w-4" /> hello@difae.ai
+            </a>
             <Button asChild variant="ghost">
               <Link href="/auth/sign-in">Log in</Link>
             </Button>
