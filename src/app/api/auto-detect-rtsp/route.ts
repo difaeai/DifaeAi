@@ -95,6 +95,52 @@ async function testRTSPPath(ip: string, username: string, password: string, path
   }
 }
 
+// Common HTTP snapshot/MJPEG paths for browser access
+const COMMON_HTTP_PATHS = [
+  { path: "/snapshot.jpg", port: 80, name: "Snapshot" },
+  { path: "/snap.jpg", port: 80, name: "Snap" },
+  { path: "/image.jpg", port: 80, name: "Image" },
+  { path: "/cgi-bin/snapshot.cgi", port: 80, name: "CGI Snapshot" },
+  { path: "/video.mjpeg", port: 80, name: "MJPEG Stream" },
+  { path: "/mjpeg", port: 80, name: "MJPEG" },
+  { path: "/video.cgi", port: 80, name: "Video CGI" },
+  { path: "/videostream.cgi", port: 80, name: "Video Stream CGI" },
+  { path: "/cgi-bin/video.cgi", port: 80, name: "CGI Video" },
+];
+
+async function testHTTPSnapshot(ip: string, username: string, password: string, httpPath: typeof COMMON_HTTP_PATHS[0]): Promise<{success: boolean; url?: string}> {
+  try {
+    const credentials = username && password ? `${username}:${password}@` : '';
+    const testUrl = `http://${credentials}${ip}:${httpPath.port}${httpPath.path}`;
+    
+    // Use curl to test HTTP endpoint (browser will access it directly)
+    const { stdout, stderr } = await execFileAsync('curl', [
+      '-I', // HEAD request
+      '-s', // Silent
+      '-m', '3', // 3 second timeout
+      ...(username && password ? ['-u', `${username}:${password}`] : []),
+      `http://${ip}:${httpPath.port}${httpPath.path}`
+    ], {
+      timeout: 4000,
+    });
+    
+    // Check if we got 200 OK AND image content type
+    const has200 = stdout.includes('200 OK');
+    const hasImageType = stdout.includes('image/jpeg') || 
+                        stdout.includes('image/jpg') || 
+                        stdout.includes('multipart/x-mixed-replace');
+    
+    if (has200 && hasImageType) {
+      console.log(`✓ Found working HTTP snapshot: ${httpPath.name} at ${ip}:${httpPath.port}${httpPath.path}`);
+      return { success: true, url: testUrl };
+    }
+    
+    return { success: false };
+  } catch {
+    return { success: false };
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -115,13 +161,26 @@ export async function POST(req: NextRequest) {
       }, { status: 400 });
     }
     
-    console.log(`Starting RTSP auto-detection for ${ip}...`);
+    console.log(`Starting auto-detection for ${ip}...`);
     
-    // Try each common RTSP path
+    // Step 1: Try to find HTTP snapshot/MJPEG URL for browser preview
+    let httpSnapshotUrl = null;
+    for (const httpPath of COMMON_HTTP_PATHS) {
+      console.log(`Testing HTTP snapshot: ${httpPath.name}`);
+      const result = await testHTTPSnapshot(ip, username || '', password || '', httpPath);
+      
+      if (result.success && result.url) {
+        httpSnapshotUrl = result.url;
+        console.log(`✓ HTTP snapshot verified: ${httpPath.name}`);
+        break; // Found working HTTP snapshot
+      }
+    }
+    
+    // Step 2: Try each common RTSP path for recording
     for (let i = 0; i < COMMON_RTSP_PATHS.length; i++) {
       const pathConfig = COMMON_RTSP_PATHS[i];
       
-      console.log(`Testing ${i + 1}/${COMMON_RTSP_PATHS.length}: ${pathConfig.name}`);
+      console.log(`Testing RTSP ${i + 1}/${COMMON_RTSP_PATHS.length}: ${pathConfig.name}`);
       
       const result = await testRTSPPath(ip, username || '', password || '', pathConfig);
       
@@ -133,6 +192,7 @@ export async function POST(req: NextRequest) {
           success: true,
           rtspUrl: rtspUrl.replace(/:[^:@]+@/, ':****@'), // Hide password in response
           fullRtspUrl: rtspUrl, // Full URL for server use
+          httpSnapshotUrl: httpSnapshotUrl, // For browser preview
           streamInfo: result.streamInfo,
           detectedPath: pathConfig.name,
           testedPaths: i + 1,
@@ -141,19 +201,33 @@ export async function POST(req: NextRequest) {
       }
     }
     
-    // No working path found
-    console.log(`No working RTSP path found for ${ip} after testing ${COMMON_RTSP_PATHS.length} common paths`);
+    // No working RTSP path found, but return HTTP snapshot URL anyway
+    if (httpSnapshotUrl) {
+      return NextResponse.json({
+        success: true,
+        rtspUrl: null,
+        fullRtspUrl: null,
+        httpSnapshotUrl: httpSnapshotUrl,
+        streamInfo: null,
+        detectedPath: "HTTP Snapshot",
+        testedPaths: COMMON_RTSP_PATHS.length,
+        message: `RTSP stream not detected, but HTTP snapshot may be available for preview`,
+      });
+    }
+    
+    // Nothing found
+    console.log(`No working stream found for ${ip} after testing ${COMMON_RTSP_PATHS.length} common paths`);
     
     return NextResponse.json({
       success: false,
       testedPaths: COMMON_RTSP_PATHS.length,
-      error: `Could not auto-detect RTSP stream. Tested ${COMMON_RTSP_PATHS.length} common paths. This may be due to:\n1. Camera is offline or unreachable from this server\n2. Camera requires non-standard RTSP path\n3. Network firewall blocking access\n4. Camera is on a different network (local vs cloud)`,
+      error: `Could not auto-detect camera stream. Tested ${COMMON_RTSP_PATHS.length} common paths. This may be due to:\n1. Camera is offline or unreachable\n2. Camera requires non-standard paths\n3. Network firewall blocking access\n4. Incorrect credentials`,
     }, { status: 404 });
   } catch (error) {
     console.error("Auto-detection error:", error);
     return NextResponse.json({
       success: false,
-      error: "Failed to auto-detect RTSP stream",
+      error: "Failed to auto-detect stream",
     }, { status: 500 });
   }
 }

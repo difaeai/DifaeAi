@@ -90,24 +90,28 @@ export default function StepFourTest({ onComplete }: StepFourTestProps) {
       const autoDetectResult = await autoDetectResponse.json();
 
       if (autoDetectResult.success) {
-        // Auto-detection successful - FFmpeg found a working RTSP stream
+        // Auto-detection successful
         dispatch({ type: "SET_CONNECTION_TESTED", payload: { 
           tested: true, 
-          streamUrl: autoDetectResult.fullRtspUrl 
+          streamUrl: autoDetectResult.fullRtspUrl || autoDetectResult.httpSnapshotUrl
         } });
         
         setVideoReady(true);
         
+        const description = autoDetectResult.streamInfo 
+          ? `Found: ${autoDetectResult.detectedPath}\nResolution: ${autoDetectResult.streamInfo.width}x${autoDetectResult.streamInfo.height}\nTested ${autoDetectResult.testedPaths} path(s)`
+          : `Found: ${autoDetectResult.detectedPath}\nTested ${autoDetectResult.testedPaths} path(s)`;
+        
         toast({
           title: "Stream Auto-Detected!",
-          description: `Found working camera stream: ${autoDetectResult.detectedPath}\n` +
-                      `Resolution: ${autoDetectResult.streamInfo.width}x${autoDetectResult.streamInfo.height}\n` +
-                      `Tested ${autoDetectResult.testedPaths} path(s)`,
+          description: description,
         });
         
-        // Try to show live preview if HLS endpoint exists
-        setPreviewUrl(autoDetectResult.fullRtspUrl);
-        setShowPreview(true);
+        // Show live preview from HTTP snapshot (your browser connects directly to camera)
+        if (autoDetectResult.httpSnapshotUrl) {
+          setPreviewUrl(autoDetectResult.httpSnapshotUrl);
+          setShowPreview(true);
+        }
       } else {
         // Auto-detection failed
         dispatch({ type: "SET_CONNECTION_TESTED", payload: { tested: false } });
@@ -207,16 +211,34 @@ export default function StepFourTest({ onComplete }: StepFourTestProps) {
         <div className="space-y-2">
           <Label>Live Preview</Label>
           <div className="aspect-video w-full bg-muted rounded-lg overflow-hidden border-2 border-dashed flex items-center justify-center">
-            {showPreview ? (
+            {showPreview && state.cameraType === "usb" ? (
               <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline controls />
+            ) : showPreview && previewUrl ? (
+              <img 
+                src={previewUrl} 
+                alt="Camera Live Feed" 
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  // If image fails, try refreshing every second (for snapshot URLs)
+                  const img = e.target as HTMLImageElement;
+                  setTimeout(() => {
+                    img.src = previewUrl + '?t=' + Date.now();
+                  }, 1000);
+                }}
+              />
             ) : (
               <div className="text-center p-6">
                 <Video className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
                 <p className="text-sm text-muted-foreground">
                   {state.cameraType === "usb"
                     ? "Webcam preview should appear here"
-                    : "Preview will appear here after a successful test."}
+                    : "Live preview will appear here after a successful test."}
                 </p>
+                {state.cameraType !== "usb" && (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Your browser will connect directly to the camera on your local network.
+                  </p>
+                )}
               </div>
             )}
           </div>
