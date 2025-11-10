@@ -1,6 +1,9 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
+process.env.PORT = process.env.PORT || '5000';
+process.env.HOSTNAME = process.env.HOSTNAME || '0.0.0.0';
+
 const projectRoot = path.resolve(__dirname, '..');
 
 const candidateEntries = [

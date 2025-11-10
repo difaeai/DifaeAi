@@ -10,7 +10,7 @@
     ]
   },
   "scripts": {
-    "dev": "next dev apps/web",
+    "dev": "next dev apps/web -p 5000 -H 0.0.0.0",
     "prebuild": "node scripts/prebuild.js",
     "build": "next build apps/web && node scripts/prepare-standalone.mjs",
     "start": "node scripts/start-standalone.cjs",
