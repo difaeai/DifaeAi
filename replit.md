@@ -2,7 +2,7 @@
 
 This is a monorepo containing two distinct applications:
 
-1. **DIFAE AI Security Cloud** - A Next.js-based marketing website and admin platform for an AI-powered CCTV security system that provides real-time threat detection, smart alerts, visual search, and automated reporting.
+1. **BERRETO Security Cloud** - A Next.js-based marketing website and admin platform for an AI-powered CCTV security system that provides real-time threat detection, smart alerts, visual search, and automated reporting.
 
 2. **Universal Camera Bridge** - A production-ready system for bridging RTSP/ONVIF/P2P camera feeds into WebRTC and HLS playback paths, enabling secure camera connections and live streaming.
 
@@ -10,11 +10,22 @@ The repository uses a monorepo structure with npm workspaces and includes shared
 
 ## Recent Changes
 
-**November 10, 2025 - Replit Migration & UI Improvements**
+**November 10, 2025 - Complete BERRETO Rebranding**
 
-**Migration Complete:**
-- Successfully migrated DIFAE AI Security Cloud from Vercel to Replit
-- Fixed monorepo structure: Main DIFAE app now running from `src/app/` (root Next.js app)
+**BERRETO Rebrand Complete:**
+- Full rebrand from "DIFAE AI Security Cloud" to "BERRETO"
+- Updated logo from "D" to "B" in both desktop and mobile navigation
+- Changed all navigation labels: "DIFAE AI Agent" → "Agent"
+- Updated all user-facing pages with BERRETO branding (homepage, contact, products, footer)
+- Changed managed plans: "DIFAE Launch" → "BERRETO Launch", "DIFAE Scale" → "BERRETO Scale"
+- Updated shopping cart: "Your DIFAE Kit" → "Your BERRETO Kit"
+- Updated admin panel: "BERRETO Agent Page"
+- Updated homepage YouTube video ID to 9KsJnCt3NVE
+- Verified Firestore integration still working properly (admin panel loads/saves, frontend fetches with fallbacks)
+
+**Replit Migration & UI Improvements:**
+- Successfully migrated from Vercel to Replit
+- Fixed monorepo structure: Main app now running from `src/app/` (root Next.js app)
 - Updated Next.js dev server to bind to 0.0.0.0:5000 for Replit compatibility
 - Replaced custom Tailwind v4 PostCSS package with standard Tailwind v3 configuration
 - Fixed TypeScript configuration with proper path mappings for `@/*` imports
@@ -58,7 +69,7 @@ Preferred communication style: Simple, everyday language.
 
 ## Frontend Architecture
 
-**DIFAE AI Marketing Site (Next.js 14 App Router)**
+**BERRETO Marketing Site (Next.js 14 App Router)**
 - Built with Next.js 14 using the App Router pattern
 - Server and client components with React Server Components
 - Tailwind CSS for styling with custom design tokens
