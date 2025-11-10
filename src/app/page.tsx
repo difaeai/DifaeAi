@@ -285,7 +285,7 @@ export default function HomePage() {
               <div className="relative overflow-hidden rounded-3xl border border-border/60 bg-white shadow-2xl shadow-primary/20">
                 <div className="aspect-[4/3] w-full overflow-hidden">
                   <img 
-                    src="/attached_assets/stock_images/ai_surveillance_secu_fa89eccd.jpg" 
+                    src="/images/ai_surveillance_secu_fa89eccd.jpg" 
                     alt="DIFAE AI Surveillance System" 
                     className="h-full w-full object-cover"
                   />

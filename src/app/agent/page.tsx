@@ -148,39 +148,57 @@ export default function AgentPage() {
       <main className="flex-1">
         <section className="relative overflow-hidden pt-20">
           <div className="absolute inset-0 -z-10 bg-gradient-to-br from-primary/10 via-white to-accent/5" />
-          <Container className="grid gap-12 pb-20 lg:grid-cols-[1.1fr,1fr] lg:items-center">
-            <FadeIn className="space-y-6">
-              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary">DIFAE AI Agent</p>
-              <h1 className="font-headline text-4xl font-semibold tracking-tight sm:text-5xl">
-                {content?.hero?.headline ?? "The autonomous security specialist"}
-              </h1>
-              <p
-                className="max-w-2xl text-lg text-foreground"
-                dangerouslySetInnerHTML={{
-                  __html:
+          <Container className="pb-20">
+            <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
+              <FadeIn className="space-y-6">
+                <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.28em] text-primary shadow-lg">
+                  <BrainCircuit className="h-3.5 w-3.5" /> DIFAE AI Agent
+                </div>
+                <h1 className="font-headline text-4xl font-semibold tracking-tight sm:text-5xl lg:text-6xl">
+                  {content?.hero?.headline ?? "Your AI-Powered Security Specialist"}
+                </h1>
+                <p
+                  className="max-w-2xl text-lg text-foreground"
+                  dangerouslySetInnerHTML={{
+                    __html:
                     content?.hero?.description ??
-                    "DIFAE agents watch every pixel, predict risk, and coordinate human responders—giving your organisation minutes of advantage when seconds matter.",
-                }}
-              />
-              <div className="flex flex-col gap-3 sm:flex-row">
-                <Button asChild size="lg" className="rounded-full">
-                  <Link href="/products">Explore deployment</Link>
-                </Button>
-                <Button asChild size="lg" variant="secondary" className="rounded-full border border-primary/20 bg-white text-primary hover:bg-primary/10">
-                  <Link href="/contact">Talk to architects</Link>
-                </Button>
-              </div>
-            </FadeIn>
-            <FadeIn delay={150} className="space-y-6 rounded-3xl border border-border/60 bg-white/80 p-8 shadow-xl shadow-primary/10">
-              <h3 className="font-headline text-xl font-semibold text-foreground">Designed for relentless protection</h3>
-              <p className="text-sm text-muted-foreground">
-                Trained on millions of security incidents across retail, banking, logistics, and smart city deployments.
-              </p>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <MetricCard label="Incident reduction" value="-68%" icon={<ShieldCheck className="h-6 w-6" />} />
-                <MetricCard label="Verified alerts" value="99%" icon={<Eye className="h-6 w-6" />} />
-              </div>
-            </FadeIn>
+                    "DIFAE AI is BERRETO's intelligent surveillance agent that watches every pixel, predicts threats before they escalate, and coordinates rapid response—giving you minutes of advantage when seconds matter.",
+                  }}
+                />
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <MetricCard label="Threat prediction accuracy" value="99.1%" icon={<ShieldCheck className="h-6 w-6" />} />
+                  <MetricCard label="Incident reduction" value="-68%" icon={<Eye className="h-6 w-6" />} />
+                </div>
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  <Button asChild size="lg" className="rounded-full">
+                    <Link href="/products">View Pricing Plans</Link>
+                  </Button>
+                  <Button asChild size="lg" variant="secondary" className="rounded-full border border-primary/20 bg-white text-primary hover:bg-primary/10">
+                    <Link href="/contact">Request Demo</Link>
+                  </Button>
+                </div>
+              </FadeIn>
+              <FadeIn delay={150} className="space-y-6">
+                <div className="relative overflow-hidden rounded-3xl border border-border/60 bg-white shadow-2xl shadow-primary/20">
+                  <div className="aspect-[4/3] w-full overflow-hidden">
+                    <img 
+                      src="/images/security_guard_monit_7323191f.jpg" 
+                      alt="DIFAE AI Security Monitoring" 
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                  <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
+                    <p className="text-sm font-semibold opacity-90">AI-Powered Intelligence</p>
+                    <p className="mt-1 text-2xl font-headline font-semibold">24/7 Threat Detection & Prevention</p>
+                  </div>
+                </div>
+                <div className="rounded-3xl border border-border/60 bg-white/80 p-6 shadow-lg shadow-primary/10">
+                  <p className="text-sm font-semibold text-primary uppercase tracking-[0.24em]">Trusted by</p>
+                  <p className="mt-2 text-base text-foreground">Banks, retailers, logistics leaders, and smart city deployments across 35+ cities</p>
+                </div>
+              </FadeIn>
+            </div>
           </Container>
         </section>
 

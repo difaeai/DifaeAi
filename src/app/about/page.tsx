@@ -68,41 +68,54 @@ export default function AboutPage() {
           <div className="absolute inset-0 -z-10 bg-gradient-to-br from-primary/10 via-white to-accent/5" />
           <Container className="grid gap-12 pb-20 lg:grid-cols-[1.2fr,1fr] lg:items-center">
             <FadeIn className="space-y-6">
-              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary">Our mission</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary">About BERRETO</p>
               <h1 className="font-headline text-4xl font-semibold tracking-tight sm:text-5xl">
-                {content?.hero?.headline ?? "Who we are"}
+                {content?.hero?.headline ?? "Building the Future of Predictive Security"}
               </h1>
               <p
                 className="max-w-2xl text-lg text-foreground"
                 dangerouslySetInnerHTML={{
                   __html:
                     content?.hero?.description ??
-                    "DIFAE transforms how cities and enterprises respond to risk. Our teams combine security expertise with advanced AI to keep people, places, and assets safe.",
+                    "BERRETO is pioneering AI-powered security solutions with DIFAE AI, our intelligent surveillance agent that predicts threats and prevents incidents before they escalate. We combine security expertise with advanced AI to keep people, places, and assets safe.",
                 }}
               />
               <div className="flex flex-col gap-3 sm:flex-row">
                 <Button asChild size="lg" className="rounded-full">
-                  <Link href="/contact">Meet the team</Link>
+                  <Link href="/agent">Discover DIFAE AI</Link>
                 </Button>
                 <Button asChild size="lg" variant="secondary" className="rounded-full border border-primary/20 bg-white text-primary hover:bg-primary/10">
-                  <Link href="/products">Explore DIFAE</Link>
+                  <Link href="/contact">Talk to our team</Link>
                 </Button>
               </div>
             </FadeIn>
-            <FadeIn delay={150} className="rounded-3xl border border-border/60 bg-white/80 p-8 shadow-xl shadow-primary/10">
-              <h3 className="font-headline text-xl font-semibold text-foreground">Fast facts</h3>
-              <div className="mt-6 grid gap-6 text-sm text-muted-foreground">
+            <FadeIn delay={150} className="space-y-6">
+              <div className="relative overflow-hidden rounded-3xl border border-border/60 bg-white shadow-2xl shadow-primary/20">
+                <div className="aspect-[4/3] w-full overflow-hidden">
+                  <img 
+                    src="/images/security_control_roo_f485b0ba.jpg" 
+                    alt="BERRETO Security Control Center" 
+                    className="h-full w-full object-cover"
+                  />
+                </div>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+                <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
+                  <p className="text-sm font-semibold opacity-90">24/7 Security Operations</p>
+                  <p className="mt-1 text-xl font-headline font-semibold">Protecting assets around the clock</p>
+                </div>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-3 rounded-3xl border border-border/60 bg-white/80 p-6 shadow-lg shadow-primary/10">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary">Founded</p>
-                  <p className="mt-2 text-lg font-semibold text-foreground">2019 in Islamabad</p>
+                  <p className="mt-2 text-lg font-semibold text-foreground">2019</p>
                 </div>
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary">Coverage</p>
-                  <p className="mt-2 text-lg font-semibold text-foreground">35 cities and growing</p>
+                  <p className="mt-2 text-lg font-semibold text-foreground">35+ cities</p>
                 </div>
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary">Customers protected</p>
-                  <p className="mt-2 text-lg font-semibold text-foreground">Banks, retailers, logistics leaders</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary">Incidents</p>
+                  <p className="mt-2 text-lg font-semibold text-foreground">7.2K+/mo</p>
                 </div>
               </div>
             </FadeIn>
