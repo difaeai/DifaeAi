@@ -119,11 +119,11 @@ export default function StepThreeConnection() {
   // IP Camera / DVR flow
   return (
     <>
-      {/* <NetworkScannerDialog
+      <NetworkScannerDialog
         open={scannerDialogOpen}
         onOpenChange={setScannerDialogOpen}
         onSelectDevice={handleSelectDeviceFromDialog}
-      /> */}
+      />
       
       <Card>
         <CardHeader>
