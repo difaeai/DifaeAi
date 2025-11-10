@@ -70,80 +70,68 @@ export default function StepFourTest({ onComplete }: StepFourTestProps) {
 
     setIsTesting(true);
     setShowPreview(false);
-    toast({ title: "Testing connection...", description: "This may take a moment." });
+    toast({ 
+      title: "Auto-detecting RTSP stream...", 
+      description: "Testing common camera paths. This may take up to 30 seconds." 
+    });
 
     try {
-      // Test RTSP/IP camera connection
-      const testPayload: any = {
-        cameraType: state.cameraType,
-        streamUrl: state.streamUrl || `rtsp://${state.selectedIp}:554/stream1`,
-      };
-
-      if (state.streamUser) testPayload.username = state.streamUser;
-      if (state.streamPass) testPayload.password = state.streamPass;
-
-      const response = await fetch("/api/test-camera", {
+      // Step 1: Auto-detect RTSP URL from IP address
+      const autoDetectResponse = await fetch("/api/auto-detect-rtsp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(testPayload),
+        body: JSON.stringify({
+          ip: state.selectedIp,
+          username: state.streamUser || '',
+          password: state.streamPass || '',
+        }),
       });
 
-      const result = await response.json();
+      const autoDetectResult = await autoDetectResponse.json();
 
-      if (result.success) {
-        // Connection successful - FFmpeg verified RTSP stream
-        dispatch({ type: "SET_CONNECTION_TESTED", payload: { tested: true, streamUrl: result.streamUrl } });
+      if (autoDetectResult.success) {
+        // Auto-detection successful - FFmpeg found a working RTSP stream
+        dispatch({ type: "SET_CONNECTION_TESTED", payload: { 
+          tested: true, 
+          streamUrl: autoDetectResult.fullRtspUrl 
+        } });
         
-        // For IP/DVR cameras, FFmpeg probe validation is sufficient
-        // Video preview will be available after HLS transcoding is deployed
         setVideoReady(true);
         
         toast({
-          title: "Connection Verified!",
-          description: result.streamInfo 
-            ? `Camera validated: ${result.streamInfo.width}x${result.streamInfo.height}`
-            : "Camera connection successful.",
+          title: "Stream Auto-Detected!",
+          description: `Found working camera stream: ${autoDetectResult.detectedPath}\n` +
+                      `Resolution: ${autoDetectResult.streamInfo.width}x${autoDetectResult.streamInfo.height}\n` +
+                      `Tested ${autoDetectResult.testedPaths} path(s)`,
         });
-
-        // Optionally attempt video preview (if streaming endpoint exists)
-        const streamUrl = result.streamUrl || result.hlsUrl;
-        if (streamUrl && result.hlsUrl) {
-          setPreviewUrl(streamUrl);
-          setShowPreview(true);
-
-          // Load video if HLS
-          if (result.hlsUrl && videoRef.current) {
-            const video = videoRef.current;
-            
-            // Load HLS stream
-            if (video.canPlayType("application/vnd.apple.mpegurl")) {
-              video.src = result.hlsUrl;
-            } else if (typeof window !== "undefined" && (window as any).Hls) {
-              const Hls = (window as any).Hls;
-              if (Hls.isSupported()) {
-                const hls = new Hls();
-                hls.loadSource(result.hlsUrl);
-                hls.attachMedia(video);
-              }
-            }
-          }
-        } else {
-          // For cloud/mobile cameras without video preview
-          dispatch({ type: "SET_CONNECTION_TESTED", payload: { tested: true } });
-          setVideoReady(true);
-          toast({
-            title: "Connection Verified!",
-            description: result.message || "Camera connected successfully.",
-          });
-        }
+        
+        // Try to show live preview if HLS endpoint exists
+        setPreviewUrl(autoDetectResult.fullRtspUrl);
+        setShowPreview(true);
       } else {
-        // Connection failed
+        // Auto-detection failed
         dispatch({ type: "SET_CONNECTION_TESTED", payload: { tested: false } });
         setVideoReady(false);
+        
+        // Show detailed error message
+        const isLocalNetwork = state.selectedIp?.startsWith('192.168.') || 
+                              state.selectedIp?.startsWith('10.') ||
+                              state.selectedIp?.startsWith('172.');
+        
+        const errorMessage = isLocalNetwork
+          ? `Cannot reach camera at ${state.selectedIp} - this appears to be a local network address.\n\n` +
+            `Cloud servers cannot access cameras on your local network (192.168.x.x, 10.x.x.x, etc.).\n\n` +
+            `Solutions:\n` +
+            `1. Deploy this app on your local network\n` +
+            `2. Use a cloud-accessible camera\n` +
+            `3. Set up port forwarding on your router`
+          : autoDetectResult.error || "Could not auto-detect RTSP stream";
+        
         toast({
           variant: "destructive",
-          title: "Connection Failed",
-          description: result.message || "Could not connect to the camera. Check IP address and credentials.",
+          title: "Auto-Detection Failed",
+          description: errorMessage,
+          duration: 10000, // Show for 10 seconds
         });
       }
     } catch (error) {
