@@ -11,26 +11,39 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 
 function LiveCameraPreview({ url }: { url: string }) {
-  const [imgSrc, setImgSrc] = useState(url + '?t=' + Date.now());
+  const [imgSrc, setImgSrc] = useState('');
   const [hasError, setHasError] = useState(false);
   
   useEffect(() => {
+    // Use proxy to avoid HTTPS/HTTP mixed content blocking
+    const proxyUrl = `/api/camera-proxy?url=${encodeURIComponent(url)}`;
+    setImgSrc(proxyUrl + '&t=' + Date.now());
+    
     // Auto-refresh every second for snapshot URLs
     const interval = setInterval(() => {
-      setImgSrc(url + '?t=' + Date.now());
+      setImgSrc(proxyUrl + '&t=' + Date.now());
     }, 1000);
     
     return () => clearInterval(interval);
   }, [url]);
   
+  if (!imgSrc) return null;
+  
   return (
-    <img 
-      src={imgSrc} 
-      alt="Camera Live Feed" 
-      className="w-full h-full object-cover"
-      onLoad={() => setHasError(false)}
-      onError={() => setHasError(true)}
-    />
+    <div className="relative w-full h-full">
+      <img 
+        src={imgSrc} 
+        alt="Camera Live Feed" 
+        className="w-full h-full object-cover"
+        onLoad={() => setHasError(false)}
+        onError={() => setHasError(true)}
+      />
+      {hasError && (
+        <div className="absolute inset-0 flex items-center justify-center bg-muted/80">
+          <p className="text-sm text-muted-foreground">Connecting to camera...</p>
+        </div>
+      )}
+    </div>
   );
 }
 
