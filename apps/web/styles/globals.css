@@ -1,17 +1,44 @@
-@import 'tailwindcss/index.css';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 :root {
   --font-inter: 'Inter', sans-serif;
 }
 
 body {
-  @apply bg-[#060A15] text-white antialiased;
+  background-color: #060a15;
+  color: #ffffff;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 a {
-  @apply text-[#22D3EE] underline-offset-4 transition hover:text-[#4F46E5];
+  color: #22d3ee;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  transition: color 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+a:hover {
+  color: #4f46e5;
 }
 
 .section-shell {
-  @apply relative mx-auto flex w-full max-w-6xl flex-col gap-16 px-6 py-24 md:px-10;
+  position: relative;
+  margin-left: auto;
+  margin-right: auto;
+  display: flex;
+  width: 100%;
+  max-width: 72rem;
+  flex-direction: column;
+  gap: 4rem;
+  padding: 6rem 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .section-shell {
+    padding-left: 2.5rem;
+    padding-right: 2.5rem;
+  }
 }
