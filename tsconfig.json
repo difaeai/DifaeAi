@@ -40,6 +40,17 @@
   "exclude": [
     "node_modules",
     "apps/web",
-    "apps/admin"
+    "apps/admin",
+    "frontend",
+    "bridge-api",
+    "bridge-agent",
+    "ingest-worker",
+    "tests",
+    "edge-capture",
+    "media",
+    "packages",
+    "web-demo",
+    "sample-configs",
+    "docs"
   ]
 }
