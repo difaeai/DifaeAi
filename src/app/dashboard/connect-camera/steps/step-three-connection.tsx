@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Info, Wifi, Loader2, Video } from "lucide-react";
-import { useWizard } from "../page";
+import { useWizard } from "../wizard-context";
 import { useToast } from "@/hooks/use-toast";
 import NetworkScannerDialog from "../components/network-scanner-dialog";
 

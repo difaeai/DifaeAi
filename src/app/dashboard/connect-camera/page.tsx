@@ -1,42 +1,19 @@
 "use client";
 
-import { useState, useReducer, createContext, useContext } from "react";
+import { useState, useReducer } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-
-// Wizard State Management
-type CameraType = "" | "ip" | "dvr" | "mobile" | "usb" | "cloud";
-
-type WizardStep = 1 | 2 | 3 | 4;
-
-interface WizardState {
-  currentStep: WizardStep;
-  activationId: string;
-  cameraName: string;
-  location: string;
-  cameraType: CameraType;
-  selectedIp: string;
-  selectedHostname: string;
-  streamUrl: string;
-  streamUser: string;
-  streamPass: string;
-  isConnectionTested: boolean;
-  detectedStreamUrl: string;
-}
-
-type WizardAction =
-  | { type: "NEXT_STEP" }
-  | { type: "PREV_STEP" }
-  | { type: "GO_TO_STEP"; payload: WizardStep }
-  | { type: "SET_CAMERA_DETAILS"; payload: { activationId: string; cameraName: string; location: string } }
-  | { type: "SET_CAMERA_TYPE"; payload: CameraType }
-  | { type: "SET_CONNECTION_DETAILS"; payload: { selectedIp?: string; selectedHostname?: string; streamUrl?: string; streamUser?: string; streamPass?: string } }
-  | { type: "SET_CONNECTION_TESTED"; payload: { tested: boolean; streamUrl?: string } }
-  | { type: "RESET" };
+import {
+  WizardContext,
+  type WizardState,
+  type WizardAction,
+  type WizardStep,
+  type CameraType,
+} from "./wizard-context";
 
 const initialState: WizardState = {
   currentStep: 1,
@@ -84,20 +61,6 @@ function wizardReducer(state: WizardState, action: WizardAction): WizardState {
     default:
       return state;
   }
-}
-
-// Context
-const WizardContext = createContext<{
-  state: WizardState;
-  dispatch: React.Dispatch<WizardAction>;
-} | null>(null);
-
-function useWizard() {
-  const context = useContext(WizardContext);
-  if (!context) {
-    throw new Error("useWizard must be used within WizardProvider");
-  }
-  return context;
 }
 
 // Step Components
@@ -238,5 +201,3 @@ export default function ConnectCameraPage() {
     </WizardContext.Provider>
   );
 }
-
-export { useWizard };

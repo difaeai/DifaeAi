@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Wifi, Box, Usb, Smartphone, Cloud } from "lucide-react";
-import { useWizard } from "../page";
+import { useWizard } from "../wizard-context";
 
 type CameraType = "ip" | "dvr" | "usb" | "mobile" | "cloud";
 
