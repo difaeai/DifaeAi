@@ -7,7 +7,7 @@
     "dev": "next dev apps/web",
     "prebuild": "node scripts/prebuild.js",
     "build": "next build apps/web && node scripts/prepare-standalone.mjs",
-    "start": "node .next/server.js",
+    "start": "node scripts/start-standalone.cjs",
     "lint": "echo \"Linting handled in downstream pipelines\"",
     "test": "echo \"No automated tests configured\"",
     "typecheck": "tsc --project apps/web/tsconfig.json --noEmit",
