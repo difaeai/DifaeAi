@@ -1,0 +1,211 @@
+Owner avatar
+DifaeAi
+Public
+difaeai/DifaeAi
+Go to file
+t
+Name		
+difaeai
+difaeai
+Merge pull request #27 from difaeai/codex/check-for-missing-css-file
+1257c38
+ · 
+3 hours ago
+.github/workflows
+Replace pnpm with npm and add local Tailwind PostCSS plugin
+3 hours ago
+.idx
+Initial Firebase project upload
+last week
+.vscode
+fix(backend): make pino-http callable using require() and cast to res…
+3 days ago
+apps
+Replace pnpm with npm and add local Tailwind PostCSS plugin
+3 hours ago
+bridge-agent
+chore: updated project with latest changes and synced all files
+3 days ago
+bridge-api
+Refactor frontend build to run without external services
+2 days ago
+docs
+chore: updated project with latest changes and synced all files
+3 days ago
+edge-capture
+chore: initial codex setup and dependency fixes
+5 days ago
+frontend
+Fix frontend container to honor PORT env
+20 hours ago
+infra
+chore: updated project with latest changes and synced all files
+3 days ago
+ingest-worker
+chore: initial codex setup and dependency fixes
+5 days ago
+media
+chore: initial codex setup and dependency fixes
+5 days ago
+packages
+Replace pnpm with npm and add local Tailwind PostCSS plugin
+3 hours ago
+public
+chore: initial codex setup and dependency fixes
+5 days ago
+sample-configs
+chore: updated project with latest changes and synced all files
+3 days ago
+scripts
+Ensure standalone server entry for Firebase runtime
+10 hours ago
+src
+feat: redesign public marketing experience
+yesterday
+tests
+chore: updated project with latest changes and synced all files
+3 days ago
+web-demo
+chore: initial codex setup and dependency fixes
+5 days ago
+workspace/src/app/admin/dashboard/agent
+Initial Firebase project upload
+last week
+.env
+Initial Firebase project upload
+last week
+.env.example
+chore: scaffold difae ai monorepo
+yesterday
+.firebaserc
+Initial Firebase project upload
+last week
+.gitignore
+Ensure single React copy by ignoring nested node_modules
+yesterday
+.modified
+Initial Firebase project upload
+last week
+DifaeAi
+fix: remove invalid @xdnweb/tiny-async-pool and add package-lock.json…
+3 days ago
+README-camera-bridge.md
+chore: initial codex setup and dependency fixes
+5 days ago
+README.md
+Replace pnpm with npm and add local Tailwind PostCSS plugin
+3 hours ago
+apphosting.yaml
+Fix Firebase App Hosting build configuration
+20 hours ago
+camera-bridge-platform@0.1.0
+chore: updated project with latest changes and synced all files
+3 days ago
+codex_test_vscode.txt
+chore: initial codex setup and dependency fixes
+5 days ago
+components.json
+Initial Firebase project upload
+last week
+dev-log.txt
+chore: updated project with latest changes and synced all files
+3 days ago
+firebase.json
+Fix Firebase App Hosting build configuration
+20 hours ago
+firestore.rules
+Initial Firebase project upload
+last week
+index.html
+chore: initial codex setup and dependency fixes
+5 days ago
+next.config.js
+Initial Firebase project upload
+last week
+next.config.mjs
+Initial Firebase project upload
+last week
+npm-run-all
+chore: updated project with latest changes and synced all files
+3 days ago
+package-lock.json
+Replace pnpm with npm and add local Tailwind PostCSS plugin
+3 hours ago
+package.json
+Replace pnpm with npm and add local Tailwind PostCSS plugin
+3 hours ago
+pnpm-workspace.yaml
+chore: scaffold difae ai monorepo
+yesterday
+postcss.config.cjs
+Replace pnpm with npm and add local Tailwind PostCSS plugin
+3 hours ago
+postcss.config.mjs
+Replace pnpm with npm and add local Tailwind PostCSS plugin
+3 hours ago
+server.ts
+Refactor frontend build to run without external services
+2 days ago
+storage.rules
+Initial Firebase project upload
+last week
+tailwind.config.js
+feat: redesign public marketing experience
+yesterday
+tailwind.config.ts
+chore: scaffold difae ai monorepo
+yesterday
+test123.txt
+chore: initial codex setup and dependency fixes
+5 days ago
+tsconfig.json
+fix: harmonize layout metadata constants
+yesterday
+tsconfig.server.json
+Initial Firebase project upload
+last week
+Repository files navigation
+README
+DIFAE AI Monorepo
+This Turbo + npm workspace contains the DIFAE AI marketing site, admin panel, and shared UI library.
+
+Apps
+apps/web – Customer-facing marketing experience built with Next.js App Router.
+apps/admin – Admin console for content and operations teams.
+packages/ui – Shared component system, theme tokens, and auth utilities.
+Getting started
+Prerequisites
+Node.js 20+
+npm 10 (bundled with Node.js 20)
+Installation
+npm install
+Local development
+Run the marketing site locally:
+
+npm run dev --workspace web
+Run the admin console:
+
+npm run dev --workspace admin
+Build & tests
+npm run lint
+npm run typecheck
+npm run test
+npm run build
+Environment variables
+Create a .env file in each app (see .env.example below) and supply your Firebase project credentials plus GA4 ID.
+
+NEXT_PUBLIC_FIREBASE_API_KEY=
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
+NEXT_PUBLIC_FIREBASE_APP_ID=
+NEXT_PUBLIC_GA4_ID=
+Deploy
+The repository is set up for Firebase Hosting multi-site deployments (web + admin). Configure GitHub Actions secrets with Firebase tokens, then push to main to trigger CI/CD.
+
+Admin CMS workflow
+Use the admin console to manage plans, testimonials, partner logos, FAQs, and blog posts.
+The marketing site consumes Firestore collections and Storage assets surfaced through the admin screens once Firebase keys are provided.
+Demo accounts
+Create admin and agent accounts via Firebase Auth, then assign roles in Firestore (users collection) to unlock
