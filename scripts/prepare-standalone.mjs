@@ -38,6 +38,21 @@ async function main() {
   const outputStandaloneDir = path.join(rootNextDir, 'standalone');
   await copyDir(builtStandaloneDir, outputStandaloneDir);
 
+  const appsDir = path.join(outputStandaloneDir, 'apps');
+  const appsDirStats = await fs.stat(appsDir).catch(() => null);
+  if (appsDirStats && appsDirStats.isDirectory()) {
+    const appEntries = await fs.readdir(appsDir, { withFileTypes: true });
+    const firstApp = appEntries.find((entry) => entry.isDirectory());
+    if (firstApp) {
+      const nestedNextDir = path.join(appsDir, firstApp.name, '.next');
+      const nestedNextStats = await fs.stat(nestedNextDir).catch(() => null);
+      if (nestedNextStats && nestedNextStats.isDirectory()) {
+        const flattenedNextDir = path.join(outputStandaloneDir, '.next');
+        await copyDir(nestedNextDir, flattenedNextDir);
+      }
+    }
+  }
+
   const outputStaticDir = path.join(rootNextDir, 'static');
   const staticStats = await fs.stat(builtStaticDir).catch(() => null);
   if (staticStats && staticStats.isDirectory()) {
