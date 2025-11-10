@@ -10,7 +10,9 @@ The repository uses a monorepo structure with npm workspaces and includes shared
 
 ## Recent Changes
 
-**November 10, 2025 - Replit Migration Completed**
+**November 10, 2025 - Replit Migration & UI Improvements**
+
+**Migration Complete:**
 - Successfully migrated DIFAE AI Security Cloud from Vercel to Replit
 - Fixed monorepo structure: Main DIFAE app now running from `src/app/` (root Next.js app)
 - Updated Next.js dev server to bind to 0.0.0.0:5000 for Replit compatibility
@@ -20,16 +22,29 @@ The repository uses a monorepo structure with npm workspaces and includes shared
 - All core pages verified working: Home, About, Agent, Products, Contact, Login, Signup, Admin
 - Configured production deployment with autoscale target
 
+**UI Redesign - Text Contrast Improvements:**
+- Systematically replaced opacity-based text colors (`text-*/70`, `text-*/80`) with solid color tokens
+- Updated all main pages (Home, About, Products, Contact, Agent) to use `text-foreground` for body copy
+- Fixed shared UI components: metric-card, timeline, pricing-card, logo-cloud, sidebar, toast
+- Changed label text from low-contrast muted-foreground to text-primary for better visibility
+- Improved text readability by eliminating alpha channel mixing that created washed-out appearance
+
 **Technical Changes:**
 - Updated `package.json` scripts to point to root Next.js app instead of `apps/web`
 - Fixed `tsconfig.json` with correct path configuration and included `src` directory
 - Replaced `@tailwindcss/postcss` with standard `tailwindcss` in PostCSS config
 - Updated `tailwind.config.ts` with proper content paths and shadcn/ui color system
 - Modified About, Agent, and Contact pages to load without waiting for Firebase data
+- Replaced ~40+ instances of opacity-based colors with solid tokens across pages and components
+
+**Remaining Work:**
+- Some components still use semi-transparent backgrounds (`bg-white/80`, `bg-white/70`) which may affect contrast
+- Additional UI components (Badge, Accordion, feature-card) have opacity-based colors that could be improved
+- Consider replacing all `/opacity` modifiers with solid colors for maximum contrast
 
 **Known Issues:**
-- Minor styling issue: Some text appears faded (low contrast) - CSS color variables may need adjustment
 - React warning: Duplicate keys in footer component (non-critical)
+- Google AI API key reported as leaked - needs replacement
 
 **Security Notes:**
 - ⚠️ Firebase configuration is currently hardcoded in `src/lib/firebase.ts` - should be moved to environment variables (NEXT_PUBLIC_FIREBASE_*) for production
