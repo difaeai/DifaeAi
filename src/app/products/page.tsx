@@ -163,50 +163,50 @@ export default function ProductsPage() {
                     const primaryImage = plan.images?.[0];
                     return (
                       <FadeIn key={plan.id} delay={index * 80}>
-                        <Card className="flex h-full flex-col rounded-3xl border border-border/60 bg-white/80 shadow-lg shadow-primary/10">
-                          {primaryImage && (
-                            <div className="relative h-56 w-full overflow-hidden rounded-t-3xl">
-                              <Image src={primaryImage} alt={plan.name} fill className="object-cover" />
-                            </div>
-                          )}
-                          <CardHeader className="space-y-3">
-                            <div className="flex items-start justify-between gap-4">
-                              <CardTitle className="text-2xl font-semibold text-foreground">{plan.name}</CardTitle>
-                              {plan.subscription && (
-                                <span className="shrink-0 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
-                                  Subscription
-                                </span>
-                              )}
-                            </div>
-                            <div>
-                              <p className="font-headline text-3xl font-semibold text-primary">
-                                Rs {plan.price?.toLocaleString()}
-                                <span className="text-base font-normal text-muted-foreground">{plan.priceDescription || ''}</span>
-                              </p>
-                              {plan.subscription && (
-                                <p className="mt-1 text-sm text-muted-foreground">{plan.subscription}</p>
-                              )}
-                            </div>
-                            <CardDescription className="text-sm text-foreground">{plan.description}</CardDescription>
-                          </CardHeader>
-                          <CardContent className="mt-auto space-y-4">
-                            {plan.features && Array.isArray(plan.features) && plan.features.length > 0 && (
-                              <ul className="space-y-2 text-sm text-foreground">
-                                {plan.features.map((feature: string) => (
-                                  <li key={feature} className="flex items-start gap-2">
-                                    <Check className="mt-1 h-4 w-4 shrink-0 text-success" />
-                                    <span>{feature}</span>
-                                  </li>
-                                ))}
-                              </ul>
+                        <Link href={`/products/${plan.id}`}>
+                          <Card className="flex h-full flex-col rounded-3xl border border-border/60 bg-white/80 shadow-lg shadow-primary/10 cursor-pointer hover:-translate-y-1 transition hover:shadow-xl">
+                            {primaryImage && (
+                              <div className="relative h-56 w-full overflow-hidden rounded-t-3xl">
+                                <Image src={primaryImage} alt={plan.name} fill className="object-cover" />
+                              </div>
                             )}
-                          </CardContent>
-                          <CardFooter className="mt-4">
-                            <Button asChild className="w-full rounded-full" size="lg">
-                              <Link href="/contact">{plan.primaryActionText || 'Get started'}</Link>
-                            </Button>
-                          </CardFooter>
-                        </Card>
+                            <CardHeader className="space-y-3">
+                              <div className="flex items-start justify-between gap-4">
+                                <CardTitle className="text-2xl font-semibold text-foreground">{plan.name}</CardTitle>
+                                {plan.subscription && (
+                                  <span className="shrink-0 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+                                    Subscription
+                                  </span>
+                                )}
+                              </div>
+                              <div>
+                                <p className="font-headline text-3xl font-semibold text-primary">
+                                  Rs {plan.price?.toLocaleString()}
+                                  <span className="text-base font-normal text-muted-foreground">{plan.priceDescription || ''}</span>
+                                </p>
+                                {plan.subscription && (
+                                  <p className="mt-1 text-sm text-muted-foreground">{plan.subscription}</p>
+                                )}
+                              </div>
+                              <CardDescription className="text-sm text-foreground">{plan.description}</CardDescription>
+                            </CardHeader>
+                            <CardContent className="mt-auto space-y-4">
+                              {plan.features && Array.isArray(plan.features) && plan.features.length > 0 && (
+                                <ul className="space-y-2 text-sm text-foreground">
+                                  {plan.features.map((feature: string) => (
+                                    <li key={feature} className="flex items-start gap-2">
+                                      <Check className="mt-1 h-4 w-4 shrink-0 text-success" />
+                                      <span>{feature}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              )}
+                            </CardContent>
+                            <CardFooter className="mt-4">
+                              <div className="w-full text-center text-sm font-semibold text-primary">{plan.primaryActionText || 'View Details →'}</div>
+                            </CardFooter>
+                          </Card>
+                        </Link>
                       </FadeIn>
                     );
                   })}
@@ -236,50 +236,38 @@ export default function ProductsPage() {
                   {hardwareBundles.map((product) => {
                     const primaryImage = product.images?.[0];
                     return (
-                      <Card
-                        key={product.id}
-                        className="group flex h-full flex-col rounded-3xl border border-border/60 bg-white/80 shadow-lg shadow-primary/10 transition hover:-translate-y-1 hover:shadow-xl"
-                      >
-                      {primaryImage && (
-                        <div className="relative h-48 w-full overflow-hidden rounded-t-3xl">
-                          <Image src={primaryImage} alt={product.name} fill className="object-cover" />
-                        </div>
-                      )}
-                      <CardHeader className="space-y-2">
-                        <CardTitle className="text-xl font-semibold text-foreground">{product.name}</CardTitle>
-                        <CardDescription className="text-sm text-muted-foreground">{product.description}</CardDescription>
-                      </CardHeader>
-                      <CardContent className="mt-auto space-y-3 text-sm text-muted-foreground">
-                        <p className="text-lg font-headline text-primary">Rs {product.price?.toLocaleString()}</p>
-                        {product.features && Array.isArray(product.features) && (
-                          <ul className="space-y-2">
-                            {product.features.map((feature: string) => (
-                              <li key={feature} className="flex items-start gap-2">
-                                <Check className="mt-1 h-4 w-4 text-success" />
-                                <span>{feature}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        )}
-                      </CardContent>
-                      <CardFooter className="mt-4">
-                        <Button
-                          className="w-full rounded-full"
-                          onClick={() => {
-                            addToCart({
-                              id: product.id,
-                              name: product.name,
-                              price: product.price ?? 0,
-                              image: product.images?.[0] ?? "",
-                            });
-                            openCart();
-                          }}
+                      <Link key={product.id} href={`/products/${product.id}`}>
+                        <Card
+                          className="group flex h-full flex-col rounded-3xl border border-border/60 bg-white/80 shadow-lg shadow-primary/10 transition hover:-translate-y-1 hover:shadow-xl cursor-pointer"
                         >
-                          Add to kit
-                        </Button>
-                      </CardFooter>
-                    </Card>
-                  );
+                          {primaryImage && (
+                            <div className="relative h-48 w-full overflow-hidden rounded-t-3xl">
+                              <Image src={primaryImage} alt={product.name} fill className="object-cover" />
+                            </div>
+                          )}
+                          <CardHeader className="space-y-2">
+                            <CardTitle className="text-xl font-semibold text-foreground">{product.name}</CardTitle>
+                            <CardDescription className="text-sm text-muted-foreground">{product.description}</CardDescription>
+                          </CardHeader>
+                          <CardContent className="mt-auto space-y-3 text-sm text-muted-foreground">
+                            <p className="text-lg font-headline text-primary">Rs {product.price?.toLocaleString()}</p>
+                            {product.features && Array.isArray(product.features) && (
+                              <ul className="space-y-2">
+                                {product.features.map((feature: string) => (
+                                  <li key={feature} className="flex items-start gap-2">
+                                    <Check className="mt-1 h-4 w-4 text-success" />
+                                    <span>{feature}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </CardContent>
+                          <CardFooter className="mt-4">
+                            <div className="w-full text-center text-sm font-semibold text-primary">{product.primaryActionText || 'View Details →'}</div>
+                          </CardFooter>
+                        </Card>
+                      </Link>
+                    );
                   })}
                 </div>
               )}
