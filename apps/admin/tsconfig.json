@@ -3,8 +3,12 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "@difae/ui": ["../../packages/ui/src"],
-      "@difae/ui/*": ["../../packages/ui/src/*"]
+      "@difae/ui": [
+        "../../packages/ui/src"
+      ],
+      "@difae/ui/*": [
+        "../../packages/ui/src/*"
+      ]
     },
     "plugins": [
       {
@@ -12,6 +16,13 @@
       }
     ]
   },
-  "include": ["next-env.d.ts", "app/**/*", "components/**/*"],
-  "exclude": ["node_modules"]
+  "include": [
+    "next-env.d.ts",
+    "app/**/*",
+    "components/**/*",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
 }
