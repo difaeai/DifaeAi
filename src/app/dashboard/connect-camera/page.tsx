@@ -26,6 +26,9 @@ interface WizardState {
   streamPass: string;
   isConnectionTested: boolean;
   detectedStreamUrl: string;
+  useBridge: boolean;
+  bridgeId: string;
+  bridgeUrl: string;
 }
 
 type WizardAction =
@@ -34,7 +37,7 @@ type WizardAction =
   | { type: "GO_TO_STEP"; payload: WizardStep }
   | { type: "SET_CAMERA_DETAILS"; payload: { activationId: string; cameraName: string; location: string } }
   | { type: "SET_CAMERA_TYPE"; payload: CameraType }
-  | { type: "SET_CONNECTION_DETAILS"; payload: { selectedIp?: string; selectedHostname?: string; streamUrl?: string; streamUser?: string; streamPass?: string } }
+  | { type: "SET_CONNECTION_DETAILS"; payload: { selectedIp?: string; selectedHostname?: string; streamUrl?: string; streamUser?: string; streamPass?: string; useBridge?: boolean; bridgeId?: string; bridgeUrl?: string } }
   | { type: "SET_CONNECTION_TESTED"; payload: { tested: boolean; streamUrl?: string } }
   | { type: "RESET" };
 
@@ -51,6 +54,9 @@ const initialState: WizardState = {
   streamPass: "",
   isConnectionTested: false,
   detectedStreamUrl: "",
+  useBridge: false,
+  bridgeId: "",
+  bridgeUrl: "",
 };
 
 function wizardReducer(state: WizardState, action: WizardAction): WizardState {

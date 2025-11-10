@@ -6,7 +6,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Info } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Info, Bridge } from "lucide-react";
 import { useWizard } from "../page";
 import { useToast } from "@/hooks/use-toast";
 
@@ -143,15 +144,52 @@ export default function StepThreeConnection() {
           <div className="space-y-3">
             <Label>Camera Credentials (if required)</Label>
             <Input 
-              placeholder="Username" 
+              placeholder="Username"
+              value={state.streamUser || ""}
               onChange={(e) => dispatch({ type: "SET_CONNECTION_DETAILS", payload: { streamUser: e.target.value } })} 
             />
             <Input
               type="password"
               placeholder="Password"
+              value={state.streamPass || ""}
               onChange={(e) => dispatch({ type: "SET_CONNECTION_DETAILS", payload: { streamPass: e.target.value } })}
             />
             <p className="text-xs text-muted-foreground">Leave blank if your camera doesn't require authentication.</p>
+          </div>
+        )}
+
+        {/* Bridge Option */}
+        {state.selectedIp && (
+          <div className="space-y-3 rounded-md border bg-blue-50 dark:bg-blue-950/30 p-4">
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                id="use-bridge"
+                checked={state.useBridge}
+                onCheckedChange={(checked) => dispatch({ type: "SET_CONNECTION_DETAILS", payload: { useBridge: Boolean(checked) } })}
+              />
+              <Label htmlFor="use-bridge" className="text-sm font-medium cursor-pointer flex items-center gap-2">
+                <Bridge className="h-4 w-4" />
+                Use Camera Bridge (for cloud-hosted app)
+              </Label>
+            </div>
+            <p className="text-xs text-muted-foreground ml-6">
+              Enable this if you're accessing BERRETO from the cloud and need to stream cameras from your local network.
+            </p>
+            
+            {state.useBridge && (
+              <div className="ml-6 space-y-2">
+                <Label htmlFor="bridge-url" className="text-xs">Bridge URL</Label>
+                <Input 
+                  id="bridge-url"
+                  placeholder="http://localhost:8080"
+                  value={state.bridgeUrl || ""}
+                  onChange={(e) => dispatch({ type: "SET_CONNECTION_DETAILS", payload: { bridgeUrl: e.target.value } })}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Enter your Camera Bridge URL. <a href="/docs/bridge-setup" className="text-primary hover:underline">Setup guide</a>
+                </p>
+              </div>
+            )}
           </div>
         )}
       </CardContent>
