@@ -22,7 +22,8 @@ The repository uses a monorepo structure with npm workspaces and includes shared
 **Visual Assets & Images:**
 - Downloaded 9 stock images: AI surveillance cameras, security control rooms, monitoring dashboards, AI technology
 - Moved all images to `public/images/` directory for Next.js production serving
-- Added images to homepage DIFAE showcase, About hero, Agent hero with proper gradients and overlays
+- Added DIFAE Pro camera product image to homepage DIFAE AI showcase section
+- Added images to About hero, Agent hero with proper gradients and overlays
 - All image paths use `/images/` for production compatibility
 
 **Product Messaging Updates:**
@@ -30,6 +31,7 @@ The repository uses a monorepo structure with npm workspaces and includes shared
 - About page CTAs: "Discover DIFAE AI" and "Talk to our team"
 - Agent page positioning: Emphasizes threat prediction, 24/7 monitoring, and AI-powered intelligence
 - Consistent BERRETO = company, DIFAE AI = product messaging across all pages
+- Removed hardcoded pricing from homepage - pricing only available on Products page (fetched from Firestore)
 
 **Landing Page Design Elements:**
 - Modern card-based layouts with rounded corners and shadows

@@ -40,7 +40,6 @@ import { GradientHeading } from "@/components/ui/gradient-heading";
 import { MetricCard } from "@/components/ui/metric-card";
 import { FeatureCard } from "@/components/ui/feature-card";
 import { Timeline } from "@/components/ui/timeline";
-import { PricingCard } from "@/components/ui/pricing-card";
 import { VideoFrame } from "@/components/ui/video-frame";
 import { LogoCloud } from "@/components/ui/logo-cloud";
 
@@ -163,36 +162,6 @@ const capabilityHighlights = [
   },
 ];
 
-const pricingHighlights = [
-  {
-    name: "BERRETO Launch",
-    price: "Rs 39,000/mo",
-    description: "AI command centre, alert automation, and 24/7 SOC support for a single site.",
-    features: [
-      "Up to 16 video feeds",
-      "Real-time threat triage",
-      "Incident evidence vault",
-      "Human-in-the-loop escalation",
-    ],
-    ctaLabel: "Start coverage",
-    ctaHref: "/products",
-  },
-  {
-    name: "BERRETO Scale",
-    price: "Custom",
-    description: "Enterprise-wide prevention with role-based dashboards, analytics, and premium support.",
-    features: [
-      "Unlimited feeds & sites",
-      "Autonomous response playbooks",
-      "Advanced analytics & reporting",
-      "Dedicated security architect",
-    ],
-    ctaLabel: "Design my deployment",
-    ctaHref: "/contact",
-    featured: true,
-  },
-];
-
 const partnerLogos = [
   { name: "Allied Bank" },
   { name: "SafeCity" },
@@ -283,17 +252,17 @@ export default function HomePage() {
           <div className="grid gap-12 lg:grid-cols-[1fr,1.1fr] lg:items-center">
             <FadeIn delay={100} className="order-2 lg:order-1">
               <div className="relative overflow-hidden rounded-3xl border border-border/60 bg-white shadow-2xl shadow-primary/20">
-                <div className="aspect-[4/3] w-full overflow-hidden">
+                <div className="aspect-[4/3] w-full overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-12">
                   <img 
-                    src="/images/ai_surveillance_secu_fa89eccd.jpg" 
-                    alt="DIFAE AI Surveillance System" 
-                    className="h-full w-full object-cover"
+                    src="/images/difae-pro-camera.jpg" 
+                    alt="DIFAE Pro Camera" 
+                    className="w-full h-full object-contain"
                   />
                 </div>
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
                 <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
-                  <p className="text-sm font-semibold opacity-90">AI-Powered Threat Detection</p>
-                  <p className="mt-1 text-2xl font-headline font-semibold">Real-time. Intelligent. Proactive.</p>
+                  <p className="text-sm font-semibold opacity-90">DIFAE Pro</p>
+                  <p className="mt-1 text-2xl font-headline font-semibold">AI-Powered Surveillance Camera</p>
                 </div>
               </div>
             </FadeIn>
@@ -487,27 +456,6 @@ export default function HomePage() {
               )}
             </FadeIn>
           </div>
-        </PageSection>
-
-        <PageSection background="tint" id="pricing">
-          <FadeIn className="space-y-10">
-            <div className="max-w-2xl">
-              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary">Products & Pricing</p>
-              <GradientHeading className="mt-4">
-                Choose the deployment that meets your mission
-              </GradientHeading>
-              <p className="mt-3 text-lg text-foreground">
-                Every plan includes encrypted storage, operator training, and human-in-the-loop verification from our Security Operations Centre.
-              </p>
-            </div>
-            <div className="grid gap-6 lg:grid-cols-2">
-              {pricingHighlights.map((plan, index) => (
-                <FadeIn key={plan.name} delay={index * 80}>
-                  <PricingCard {...plan} />
-                </FadeIn>
-              ))}
-            </div>
-          </FadeIn>
         </PageSection>
 
         <PageSection>
