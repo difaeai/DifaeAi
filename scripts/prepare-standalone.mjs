@@ -21,6 +21,19 @@ async function copyDir(src, dest) {
   await fs.cp(src, dest, { recursive: true });
 }
 
+async function pathExists(filePath, predicate) {
+  const stats = await fs.stat(filePath).catch(() => null);
+  if (!stats) {
+    return false;
+  }
+
+  if (typeof predicate === 'function') {
+    return predicate(stats);
+  }
+
+  return true;
+}
+
 async function main() {
   const stats = await fs.stat(builtNextDir).catch(() => null);
   if (!stats || !stats.isDirectory()) {
@@ -38,19 +51,38 @@ async function main() {
   const outputStandaloneDir = path.join(rootNextDir, 'standalone');
   await copyDir(builtStandaloneDir, outputStandaloneDir);
 
+  let standaloneServerEntry = null;
+
   const appsDir = path.join(outputStandaloneDir, 'apps');
-  const appsDirStats = await fs.stat(appsDir).catch(() => null);
-  if (appsDirStats && appsDirStats.isDirectory()) {
+  if (await pathExists(appsDir, (dirStats) => dirStats.isDirectory())) {
     const appEntries = await fs.readdir(appsDir, { withFileTypes: true });
-    const firstApp = appEntries.find((entry) => entry.isDirectory());
-    if (firstApp) {
-      const nestedNextDir = path.join(appsDir, firstApp.name, '.next');
-      const nestedNextStats = await fs.stat(nestedNextDir).catch(() => null);
-      if (nestedNextStats && nestedNextStats.isDirectory()) {
-        const flattenedNextDir = path.join(outputStandaloneDir, '.next');
-        await copyDir(nestedNextDir, flattenedNextDir);
+    for (const entry of appEntries) {
+      if (!entry.isDirectory()) {
+        continue;
+      }
+
+      const serverCandidate = path.join('apps', entry.name, 'server.js');
+      if (await pathExists(path.join(outputStandaloneDir, serverCandidate), (fileStats) => fileStats.isFile())) {
+        standaloneServerEntry = serverCandidate;
+        const nestedNextDir = path.join(appsDir, entry.name, '.next');
+        if (await pathExists(nestedNextDir, (nextStats) => nextStats.isDirectory())) {
+          const flattenedNextDir = path.join(outputStandaloneDir, '.next');
+          await copyDir(nestedNextDir, flattenedNextDir);
+        }
+        break;
       }
     }
+  }
+
+  if (!standaloneServerEntry) {
+    const rootServerCandidate = 'server.js';
+    if (await pathExists(path.join(outputStandaloneDir, rootServerCandidate), (fileStats) => fileStats.isFile())) {
+      standaloneServerEntry = rootServerCandidate;
+    }
+  }
+
+  if (!standaloneServerEntry) {
+    throw new Error('Unable to locate a Next.js standalone server entry file after build.');
   }
 
   const outputStaticDir = path.join(rootNextDir, 'static');
@@ -67,12 +99,19 @@ async function main() {
   }
 
   const launchServerPath = path.join(rootNextDir, 'server.js');
-  const standaloneEntry = path.join('standalone', 'apps', 'web', 'server.js');
+  const standaloneEntry = path.join('standalone', standaloneServerEntry);
   const launcherSource = `const path = require('node:path');
 const entry = path.join(__dirname, ${JSON.stringify(standaloneEntry)});
 require(entry);
 `;
   await fs.writeFile(launchServerPath, launcherSource, 'utf8');
+
+  const standaloneLaunchPath = path.join(outputStandaloneDir, 'server.js');
+  const standaloneLauncherSource = `const path = require('node:path');
+const entry = path.join(__dirname, ${JSON.stringify(standaloneServerEntry)});
+require(entry);
+`;
+  await fs.writeFile(standaloneLaunchPath, standaloneLauncherSource, 'utf8');
 }
 
 main().catch((error) => {
