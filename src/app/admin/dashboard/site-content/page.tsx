@@ -457,7 +457,7 @@ export default function SiteContentPage() {
                 <TabsContent value="agentpage">
                     <Card>
                         <CardHeader>
-                            <CardTitle>DIFAE AI Agent Page Content</CardTitle>
+                            <CardTitle>BERRETO Agent Page Content</CardTitle>
                             <CardDescription>Manage the content for the AI Agent page.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-6 max-h-[70vh] overflow-y-auto pr-4">

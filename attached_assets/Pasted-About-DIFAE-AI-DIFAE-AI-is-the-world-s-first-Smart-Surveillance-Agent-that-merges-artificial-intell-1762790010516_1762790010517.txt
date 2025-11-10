@@ -1,0 +1,54 @@
+About DIFAE AI
+DIFAE AI is the world’s first Smart Surveillance Agent that merges artificial intelligence, machine learning, and real-time analytics to protect individuals and organizations from evolving threats. It doesn’t just react — it anticipates danger. From theft prevention to cyber protection, DIFAE gives you a complete security ecosystem that thinks and acts faster than any human guard.
+
+Our Mission
+Anticipating Danger. Ensuring Safety.
+Whether it’s your home, office, or vehicle, DIFAE ensures safety by continuously learning from activity patterns, identifying anomalies, and alerting you before the threat becomes reality.
+
+Key Features
+A Complete Security Ecosystem
+AI-Powered Theft Protection
+DIFAE detects intruders, prevents theft attempts, and helps you track stolen vehicles with precision through connected cameras across the DIFAE network.
+
+Human Recognition via Social Media Intelligence
+Using a custom AI API, DIFAE recognizes faces by cross-verifying with public social media data — enhancing identification accuracy for both known and unknown individuals.
+
+Unauthorized Access Alerts
+If there’s someone you don’t want near your home or workplace, simply upload their picture. DIFAE immediately alerts you the moment that person appears on any connected camera.
+
+Gun, Fire, and Smoke Detection
+DIFAE instantly identifies firearms, fire, or smoke — alerting you within seconds and helping you respond before any harm occurs.
+
+Event-Based PDF Reporting
+Get a detailed daily report in PDF format, summarizing all detected events with screenshots and timestamps — allowing you to review an entire day’s security activity in just one minute.
+
+Smart Network Trace
+If your vehicle or any object is stolen, DIFAE traces its last known location through its connected camera network, providing you with real-time tracking assistance.
+
+AI Cyber Shield
+DIFAE not only protects your physical surroundings but also safeguards your phone and network from phishing, hacking, and digital intrusions — securing every layer of your life.
+
+Supervised Learning & Continuous Improvement
+With every detection and user interaction, DIFAE’s intelligence grows stronger, adapting to your environment and making its predictions sharper with time.
+
+Advantages
+Why Choose DIFAE
+Predicts threats before they happen
+24/7 protection for home, office, and vehicle
+Instant alerts for physical and cyber threats
+Automated daily reporting for quick reviews
+Compatible with existing CCTV networks
+Reduces emergency response time to seconds
+Fully AI-driven, private, and secure
+Coming Soon
+Vision 2 – The Next Generation of DIFAE Security
+Vision 2 is DIFAE’s latest innovation — a portable, AI-powered camera designed to protect your car and property with intelligent tracking. If your car is stolen, Vision 2 scans the DIFAE network to locate its last known position. It also detects gunfire, fire, and smoke, and sends you instant alerts — ensuring your safety without constant monitoring. Vision 2 gives you a complete event report every 24 hours, letting you review your surroundings in just one minute — so you can finally rest with peace of mind.
+
+Limited units available — book yours today.
+
+Trigger Police Authorities in Real-Time
+“In a high-priority situation, a single tap can be the difference. The DIFAE AI agent empowers you to alert the police automatically, sending critical information for a faster, more effective response.”
+Don't just be a witness. Be the one who acts.
+
+Make Your Home Smart. Make It Safe.
+The future of security isn’t hardware. It’s intelligent software from BERRETO.

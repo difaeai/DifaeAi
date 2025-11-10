@@ -71,7 +71,7 @@ const intelligenceLayers = [
   {
     title: "Situational Awareness Mesh",
     description:
-      "Bring every feed, floor plan, and safe zone online in minutes. DIFAE calibrates spatial awareness instantly—no new wiring required.",
+      "Bring every feed, floor plan, and safe zone online in minutes. BERRETO calibrates spatial awareness instantly—no new wiring required.",
     points: [
       "Connect legacy CCTV, IP cameras, or drone feeds within minutes.",
       "Auto-map safe zones, blind spots, and escalation tiers.",
@@ -107,7 +107,7 @@ const journeySteps = [
   {
     title: "Connect",
     description:
-      "Pair cameras, choose safe zones, and define what DIFAE should watch. No rewiring. No hardware lock-in.",
+      "Pair cameras, choose safe zones, and define what BERRETO should watch. No rewiring. No hardware lock-in.",
   },
   {
     title: "Teach",
@@ -133,7 +133,7 @@ const capabilityHighlights = [
     icon: ShieldCheck,
     title: "Predictive Threat Intelligence",
     description:
-      "DIFAE watches every pixel for emerging risks, comparing context, movement, and intent to predict incidents before they unfold.",
+      "BERRETO watches every pixel for emerging risks, comparing context, movement, and intent to predict incidents before they unfold.",
     badge: "Proactive AI",
     href: "/agent#features",
   },
@@ -141,7 +141,7 @@ const capabilityHighlights = [
     icon: Siren,
     title: "Autonomous Response Playbooks",
     description:
-      "Escalate to guards, owners, or authorities with confidence. DIFAE’s playbooks coordinate calls, sirens, and evidence packs automatically.",
+      "Escalate to guards, owners, or authorities with confidence. BERRETO’s playbooks coordinate calls, sirens, and evidence packs automatically.",
     badge: "Autonomous",
     href: "/agent#features",
   },
@@ -165,7 +165,7 @@ const capabilityHighlights = [
 
 const pricingHighlights = [
   {
-    name: "DIFAE Launch",
+    name: "BERRETO Launch",
     price: "Rs 39,000/mo",
     description: "AI command centre, alert automation, and 24/7 SOC support for a single site.",
     features: [
@@ -178,7 +178,7 @@ const pricingHighlights = [
     ctaHref: "/products",
   },
   {
-    name: "DIFAE Scale",
+    name: "BERRETO Scale",
     price: "Custom",
     description: "Enterprise-wide prevention with role-based dashboards, analytics, and premium support.",
     features: [
@@ -250,14 +250,14 @@ export default function HomePage() {
                 Don’t Just Record Crime. Prevent It.
               </h1>
               <p className="max-w-xl text-lg text-foreground">
-                DIFAE transforms your CCTV into a proactive AI security network. Predict threats, orchestrate responses, and deliver trusted evidence before incidents escalate.
+                BERRETO transforms your CCTV into a proactive AI security network. Predict threats, orchestrate responses, and deliver trusted evidence before incidents escalate.
               </p>
               <div className="flex flex-col gap-4 sm:flex-row">
                 <Button asChild size="lg" className="rounded-full px-8 text-base">
                   <Link href="/products">Explore plans</Link>
                 </Button>
                 <Button asChild size="lg" variant="secondary" className="rounded-full border border-primary/20 bg-white px-8 text-base text-primary hover:bg-primary/10">
-                  <Link href="/agent">Meet DIFAE Agent</Link>
+                  <Link href="/agent">Meet BERRETO Agent</Link>
                 </Button>
               </div>
               <div className="grid gap-3 sm:grid-cols-3">
@@ -272,7 +272,7 @@ export default function HomePage() {
             <FadeIn delay={150}>
               <VideoFrame
                 videoId={content?.hero?.videoId ?? "l0q0VW2l4pI"}
-                title="DIFAE Security Cloud overview"
+                title="BERRETO Security Cloud overview"
                 className="shadow-2xl"
               />
             </FadeIn>
@@ -296,7 +296,7 @@ export default function HomePage() {
             <FadeIn className="space-y-6">
               <GradientHeading>Security that learns your perimeter</GradientHeading>
               <p className="max-w-2xl text-lg text-foreground">
-                DIFAE agents orchestrate a layered defence across perception, intelligence, and action. Each module is designed to eliminate blind spots while empowering your teams to act faster and smarter.
+                BERRETO agents orchestrate a layered defence across perception, intelligence, and action. Each module is designed to eliminate blind spots while empowering your teams to act faster and smarter.
               </p>
               <div className="grid gap-6 md:grid-cols-2">
                 {capabilityHighlights.map((feature) => (
@@ -307,7 +307,7 @@ export default function HomePage() {
             <FadeIn delay={120} className="space-y-6 rounded-3xl border border-border/60 bg-white/80 p-8 shadow-xl shadow-primary/10">
               <h3 className="font-headline text-2xl font-semibold text-foreground">Operates across every environment</h3>
               <p className="text-sm text-muted-foreground">
-                From luxury residences to critical infrastructure, DIFAE adapts to your risk profile while maintaining a zero-trust security posture.
+                From luxury residences to critical infrastructure, BERRETO adapts to your risk profile while maintaining a zero-trust security posture.
               </p>
               <ul className="grid grid-cols-2 gap-4 text-sm font-semibold text-primary">
                 {sectors.map((sector) => (
@@ -330,7 +330,7 @@ export default function HomePage() {
                   From perception to action in under a minute
                 </GradientHeading>
                 <p className="mt-4 text-lg text-foreground">
-                  Each DIFAE layer works in concert to surface only what matters and orchestrate the right response.
+                  Each BERRETO layer works in concert to surface only what matters and orchestrate the right response.
                 </p>
               </FadeIn>
             </div>
@@ -367,7 +367,7 @@ export default function HomePage() {
                 Three steps to proactive incident prevention
               </GradientHeading>
               <p className="mt-3 text-lg text-foreground">
-                Launch DIFAE without disrupting your existing infrastructure. Our architects guide every phase.
+                Launch BERRETO without disrupting your existing infrastructure. Our architects guide every phase.
               </p>
             </div>
             <Timeline items={journeySteps} />
@@ -395,7 +395,7 @@ export default function HomePage() {
               {featuredProduct ? (
                 <div className="space-y-4">
                   <p className="text-sm text-muted-foreground">
-                    {featuredProduct.description ?? "Kickstart proactive security with DIFAE’s most popular device bundle."}
+                    {featuredProduct.description ?? "Kickstart proactive security with BERRETO’s most popular device bundle."}
                   </p>
                   <p className="text-2xl font-headline font-semibold text-primary">Rs {featuredProduct.price?.toLocaleString()}</p>
                   <Button
@@ -414,7 +414,7 @@ export default function HomePage() {
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground">
-                  Configure your command centre with DIFAE hardware and software tuned to your perimeter.
+                  Configure your command centre with BERRETO hardware and software tuned to your perimeter.
                 </p>
               )}
             </FadeIn>
@@ -447,7 +447,7 @@ export default function HomePage() {
             <FadeIn className="space-y-6">
               <GradientHeading>Enterprise support when every second matters</GradientHeading>
               <p className="max-w-2xl text-lg text-foreground">
-                Security architects and analysts partner with your teams to design, deploy, and continuously improve DIFAE to fit every perimeter you protect.
+                Security architects and analysts partner with your teams to design, deploy, and continuously improve BERRETO to fit every perimeter you protect.
               </p>
               <div className="grid gap-6 sm:grid-cols-2">
                 <Card className="rounded-3xl border border-border/60 bg-white/80 shadow-lg shadow-primary/10">
@@ -480,7 +480,7 @@ export default function HomePage() {
                   <Link href="/contact">Book a strategy session</Link>
                 </Button>
                 <Button asChild variant="secondary" className="rounded-full border border-primary/20 bg-white text-primary hover:bg-primary/10">
-                  <Link href="/pre-booking">Pre-book DIFAE hardware</Link>
+                  <Link href="/pre-booking">Pre-book BERRETO hardware</Link>
                 </Button>
               </div>
             </FadeIn>

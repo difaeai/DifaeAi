@@ -19,7 +19,7 @@ import { Container } from "@/components/ui/container";
 const NAV_LINKS = [
   { href: "/", label: "Home" },
   { href: "/about", label: "About Us" },
-  { href: "/agent", label: "DIFAE AI Agent" },
+  { href: "/agent", label: "Agent" },
   { href: "/products", label: "Products" },
   { href: "/contact", label: "Contact Us" },
 ];
@@ -41,11 +41,10 @@ export default function PublicHeader() {
       <Container className="flex h-20 items-center gap-4">
         <Link href="/" className="group flex items-center gap-3">
           <span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 font-headline text-xl font-semibold text-primary transition group-hover:-translate-y-0.5 group-hover:shadow-lg group-hover:shadow-primary/20">
-            D
+            B
           </span>
           <div className="flex flex-col leading-tight">
-            <span className="text-[11px] uppercase tracking-[0.32em] text-primary">DIFAE AI</span>
-            <span className="text-base font-semibold text-foreground">Security Cloud</span>
+            <span className="text-base font-semibold text-foreground">BERRETO</span>
           </div>
         </Link>
 
@@ -81,7 +80,7 @@ export default function PublicHeader() {
             </SheetTrigger>
             <SheetContent className="flex w-full flex-col border-l border-border/60 bg-white/95 text-foreground backdrop-blur-2xl sm:max-w-md">
               <div className="border-b border-border/60 px-6 py-5">
-                <h2 className="text-lg font-headline font-semibold text-foreground">Your DIFAE Kit</h2>
+                <h2 className="text-lg font-headline font-semibold text-foreground">Your BERRETO Kit</h2>
                 <p className="text-sm text-muted-foreground">Curate the devices that keep every perimeter protected.</p>
               </div>
               {cartItems.length > 0 ? (
@@ -170,7 +169,7 @@ export default function PublicHeader() {
                   <div className="space-y-2">
                     <p className="text-base font-semibold text-foreground">Your kit is waiting</p>
                     <p className="text-sm text-muted-foreground">
-                      Add DIFAE devices to start preventing incidents before they unfold.
+                      Add BERRETO devices to start preventing incidents before they unfold.
                     </p>
                   </div>
                   <Button asChild className="rounded-full">
@@ -214,7 +213,7 @@ export default function PublicHeader() {
                     D
                   </span>
                   <span className="text-left leading-tight">
-                    <span className="block text-[11px] uppercase tracking-[0.32em] text-primary">DIFAE AI</span>
+                    <span className="block text-[11px] uppercase tracking-[0.32em] text-primary">BERRETO AI</span>
                     <span className="block text-sm text-foreground">Security Cloud</span>
                   </span>
                 </Link>
