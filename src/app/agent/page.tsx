@@ -128,7 +128,6 @@ const integrationHighlights = [
 
 export default function AgentPage() {
   const [content, setContent] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     async function fetchContent() {
@@ -137,21 +136,11 @@ export default function AgentPage() {
         setContent(pageContent);
       } catch (error) {
         console.error("Failed to fetch agent page content", error);
-      } finally {
-        setIsLoading(false);
       }
     }
 
     fetchContent();
   }, []);
-
-  if (isLoading) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-background">
-        <Loader2 className="h-16 w-16 animate-spin text-primary" />
-      </div>
-    );
-  }
 
   return (
     <div className="flex min-h-screen flex-col bg-background text-text">
