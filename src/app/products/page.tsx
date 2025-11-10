@@ -17,7 +17,6 @@ import { PageSection } from "@/components/ui/page-section";
 import { FadeIn } from "@/components/ui/fade-in";
 import { GradientHeading } from "@/components/ui/gradient-heading";
 import { Container } from "@/components/ui/container";
-import { PricingCard } from "@/components/ui/pricing-card";
 
 async function getProducts(): Promise<Product[]> {
   const productsCollection = collection(db, "products");
@@ -160,18 +159,57 @@ export default function ProductsPage() {
                 </div>
               ) : (
                 <div className="grid gap-6 lg:grid-cols-2">
-                  {subscriptionPlans.map((plan, index) => (
-                    <FadeIn key={plan.id} delay={index * 80}>
-                      <PricingCard
-                        name={plan.name}
-                        price={`Rs ${plan.price?.toLocaleString()}${plan.priceDescription || ''}`}
-                        description={plan.description || ''}
-                        features={Array.isArray(plan.features) ? plan.features : []}
-                        ctaLabel={plan.primaryActionText || 'Get started'}
-                        ctaHref="/contact"
-                      />
-                    </FadeIn>
-                  ))}
+                  {subscriptionPlans.map((plan, index) => {
+                    const primaryImage = plan.images?.[0];
+                    return (
+                      <FadeIn key={plan.id} delay={index * 80}>
+                        <Card className="flex h-full flex-col rounded-3xl border border-border/60 bg-white/80 shadow-lg shadow-primary/10">
+                          {primaryImage && (
+                            <div className="relative h-56 w-full overflow-hidden rounded-t-3xl">
+                              <Image src={primaryImage} alt={plan.name} fill className="object-cover" />
+                            </div>
+                          )}
+                          <CardHeader className="space-y-3">
+                            <div className="flex items-start justify-between gap-4">
+                              <CardTitle className="text-2xl font-semibold text-foreground">{plan.name}</CardTitle>
+                              {plan.subscription && (
+                                <span className="shrink-0 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+                                  Subscription
+                                </span>
+                              )}
+                            </div>
+                            <div>
+                              <p className="font-headline text-3xl font-semibold text-primary">
+                                Rs {plan.price?.toLocaleString()}
+                                <span className="text-base font-normal text-muted-foreground">{plan.priceDescription || ''}</span>
+                              </p>
+                              {plan.subscription && (
+                                <p className="mt-1 text-sm text-muted-foreground">{plan.subscription}</p>
+                              )}
+                            </div>
+                            <CardDescription className="text-sm text-foreground">{plan.description}</CardDescription>
+                          </CardHeader>
+                          <CardContent className="mt-auto space-y-4">
+                            {plan.features && Array.isArray(plan.features) && plan.features.length > 0 && (
+                              <ul className="space-y-2 text-sm text-foreground">
+                                {plan.features.map((feature: string) => (
+                                  <li key={feature} className="flex items-start gap-2">
+                                    <Check className="mt-1 h-4 w-4 shrink-0 text-success" />
+                                    <span>{feature}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </CardContent>
+                          <CardFooter className="mt-4">
+                            <Button asChild className="w-full rounded-full" size="lg">
+                              <Link href="/contact">{plan.primaryActionText || 'Get started'}</Link>
+                            </Button>
+                          </CardFooter>
+                        </Card>
+                      </FadeIn>
+                    );
+                  })}
                 </div>
               )}
             </FadeIn>
