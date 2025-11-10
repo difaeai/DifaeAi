@@ -97,7 +97,7 @@ export default function CheckoutPage() {
      );
   }
 
-  const handlePlaceOrder = async (e: React.FormEvent) => {
+  const handlePlaceOrder = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
     if (!user) {
@@ -122,6 +122,13 @@ export default function CheckoutPage() {
     setIsPlacingOrder(true);
     
     try {
+        const formData = new FormData(e.currentTarget);
+        const customerName = formData.get('name') as string || user.displayName || 'Unknown User';
+        const shippingAddress = formData.get('address') as string || '';
+        const shippingCity = formData.get('city') as string || '';
+        const shippingPostalCode = formData.get('zip') as string || '';
+        const customerPhone = formData.get('phone') as string || '';
+
         const timestamp = Date.now();
         const fileName = `payment-proof-${user.uid}-${timestamp}.${paymentProof.name.split('.').pop()}`;
         const storageRef = ref(storage, `payment-proofs/${fileName}`);
@@ -130,8 +137,12 @@ export default function CheckoutPage() {
         const downloadURL = await getDownloadURL(storageRef);
 
         const orderPayload: Omit<Order, 'id' | 'createdAt' | 'userId'> = {
-            customerName: user.displayName || 'Unknown User',
+            customerName,
             customerEmail: user.email || 'no-email',
+            customerPhone,
+            shippingAddress,
+            shippingCity,
+            shippingPostalCode,
             items: cartItems.map(item => `${item.quantity}x ${item.name}`).join(', '),
             total: cartTotal,
             status: 'Pending' as const,
@@ -204,19 +215,23 @@ export default function CheckoutPage() {
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2 col-span-2">
                                     <Label htmlFor="name">Full Name</Label>
-                                    <Input id="name" defaultValue={user?.displayName ?? ''} placeholder="John Doe" required />
+                                    <Input id="name" name="name" defaultValue={user?.displayName ?? ''} placeholder="John Doe" required />
                                 </div>
                                  <div className="space-y-2 col-span-2">
                                     <Label htmlFor="address">Address</Label>
-                                    <Input id="address" placeholder="123 Security Lane" required />
+                                    <Input id="address" name="address" placeholder="123 Security Lane" required />
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="city">City</Label>
-                                    <Input id="city" placeholder="Lahore" required />
+                                    <Input id="city" name="city" placeholder="Lahore" required />
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="zip">Postal Code</Label>
-                                    <Input id="zip" placeholder="54000" required />
+                                    <Input id="zip" name="zip" placeholder="54000" required />
+                                </div>
+                                <div className="space-y-2 col-span-2">
+                                    <Label htmlFor="phone">Phone Number</Label>
+                                    <Input id="phone" name="phone" type="tel" placeholder="+92 300 1234567" required />
                                 </div>
                             </div>
                         </div>

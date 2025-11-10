@@ -253,6 +253,13 @@ export default function OrdersPage() {
                   <div className="font-medium">{order.customerName}</div>
                   <div className="text-sm text-muted-foreground">{order.customerEmail}</div>
                    {order.customerPhone && <div className="text-sm text-muted-foreground">{order.customerPhone}</div>}
+                   {order.shippingAddress && (
+                     <div className="text-xs text-muted-foreground mt-1">
+                       {order.shippingAddress}
+                       {order.shippingCity && `, ${order.shippingCity}`}
+                       {order.shippingPostalCode && ` ${order.shippingPostalCode}`}
+                     </div>
+                   )}
                 </TableCell>
                 <TableCell>{order.items}</TableCell>
                 <TableCell>Rs {order.total.toLocaleString()}</TableCell>

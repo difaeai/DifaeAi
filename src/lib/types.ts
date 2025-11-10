@@ -35,6 +35,9 @@ export interface Order {
     customerName: string;
     customerEmail: string;
     customerPhone?: string;
+    shippingAddress?: string;
+    shippingCity?: string;
+    shippingPostalCode?: string;
     items: string;
     total: number;
     status: 'Pending' | 'Approved' | 'Rejected';
