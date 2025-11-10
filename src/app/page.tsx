@@ -279,6 +279,74 @@ export default function HomePage() {
           </Container>
         </section>
 
+        <PageSection background="tint">
+          <div className="grid gap-12 lg:grid-cols-[1fr,1.1fr] lg:items-center">
+            <FadeIn delay={100} className="order-2 lg:order-1">
+              <div className="relative overflow-hidden rounded-3xl border border-border/60 bg-white shadow-2xl shadow-primary/20">
+                <div className="aspect-[4/3] w-full overflow-hidden">
+                  <img 
+                    src="/attached_assets/stock_images/ai_surveillance_secu_fa89eccd.jpg" 
+                    alt="DIFAE AI Surveillance System" 
+                    className="h-full w-full object-cover"
+                  />
+                </div>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+                <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
+                  <p className="text-sm font-semibold opacity-90">AI-Powered Threat Detection</p>
+                  <p className="mt-1 text-2xl font-headline font-semibold">Real-time. Intelligent. Proactive.</p>
+                </div>
+              </div>
+            </FadeIn>
+            <FadeIn className="order-1 space-y-6 lg:order-2">
+              <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.28em] text-primary shadow-lg">
+                <Bot className="h-3.5 w-3.5" /> Introducing DIFAE AI Agent
+              </div>
+              <GradientHeading>Meet DIFAE: Your 24/7 AI Security Agent</GradientHeading>
+              <p className="text-lg text-foreground">
+                DIFAE AI is BERRETO's intelligent surveillance agent that transforms ordinary cameras into a predictive security network. It watches, learns, and protects your perimeter 24/7 by detecting threats before they escalate.
+              </p>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2 rounded-2xl border border-primary/20 bg-white p-4 shadow-lg">
+                  <div className="flex items-center gap-2 text-primary">
+                    <ShieldCheck className="h-5 w-5" />
+                    <span className="text-sm font-semibold">Threat Prediction</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground">Identifies suspicious behavior patterns and alerts you before incidents occur</p>
+                </div>
+                <div className="space-y-2 rounded-2xl border border-primary/20 bg-white p-4 shadow-lg">
+                  <div className="flex items-center gap-2 text-primary">
+                    <ScanFace className="h-5 w-5" />
+                    <span className="text-sm font-semibold">Face Recognition</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground">Instantly identifies known individuals and alerts on unauthorized access</p>
+                </div>
+                <div className="space-y-2 rounded-2xl border border-primary/20 bg-white p-4 shadow-lg">
+                  <div className="flex items-center gap-2 text-primary">
+                    <Siren className="h-5 w-5" />
+                    <span className="text-sm font-semibold">Auto Response</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground">Triggers sirens, alerts authorities, and coordinates response automatically</p>
+                </div>
+                <div className="space-y-2 rounded-2xl border border-primary/20 bg-white p-4 shadow-lg">
+                  <div className="flex items-center gap-2 text-primary">
+                    <Lock className="h-5 w-5" />
+                    <span className="text-sm font-semibold">24/7 Monitoring</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground">Never sleeps, never misses a threat—always protecting your assets</p>
+                </div>
+              </div>
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <Button asChild size="lg" className="rounded-full">
+                  <Link href="/agent">Explore DIFAE AI Capabilities</Link>
+                </Button>
+                <Button asChild size="lg" variant="secondary" className="rounded-full border border-primary/20 bg-white text-primary hover:bg-primary/10">
+                  <Link href="/contact">Request a Demo</Link>
+                </Button>
+              </div>
+            </FadeIn>
+          </div>
+        </PageSection>
+
         <PageSection className="pt-0">
           <FadeIn>
             <div className="space-y-8 text-center">
