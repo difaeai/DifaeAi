@@ -27,36 +27,6 @@ async function getProducts(): Promise<Product[]> {
   return productsSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Product));
 }
 
-const managedPlans = [
-  {
-    name: "BERRETO Launch",
-    price: "Rs 39,000/mo",
-    description: "Ideal for single-site deployments needing predictive alerts and human verification.",
-    features: [
-      "Up to 16 video feeds",
-      "Predictive threat scoring",
-      "Daily incident digest",
-      "Security architect onboarding",
-    ],
-    ctaLabel: "Start coverage",
-    ctaHref: "/checkout",
-  },
-  {
-    name: "BERRETO Scale",
-    price: "Rs 95,000/mo",
-    description: "Multi-site orchestration with autonomous playbooks and custom analytics dashboards.",
-    features: [
-      "Unlimited feeds and operators",
-      "Autonomous response playbooks",
-      "Executive intelligence reports",
-      "Dedicated customer success team",
-    ],
-    ctaLabel: "Book consultation",
-    ctaHref: "/contact",
-    featured: true,
-  },
-];
-
 const differentiators = [
   {
     icon: ShieldAlert,
@@ -80,15 +50,6 @@ const differentiators = [
   },
 ];
 
-const comparisonRows = [
-  { feature: "Predictive video analytics", launch: true, scale: true },
-  { feature: "Human-in-the-loop SOC", launch: true, scale: true },
-  { feature: "Autonomous response playbooks", launch: false, scale: true },
-  { feature: "Executive insight dashboards", launch: false, scale: true },
-  { feature: "Custom AI model tuning", launch: false, scale: true },
-  { feature: "On-site deployment support", launch: true, scale: true },
-];
-
 export default function ProductsPage() {
   const { addToCart, openCart } = useCart();
   const [products, setProducts] = useState<Product[]>([]);
@@ -109,8 +70,13 @@ export default function ProductsPage() {
     fetchProducts();
   }, []);
 
+  const subscriptionPlans = useMemo(
+    () => products.filter((product) => product.subscription && product.subscription.trim() !== ""),
+    [products],
+  );
+
   const hardwareBundles = useMemo(
-    () => products.filter((product) => !product.subscription),
+    () => products.filter((product) => !product.subscription || product.subscription.trim() === ""),
     [products],
   );
 
@@ -130,10 +96,12 @@ export default function ProductsPage() {
                 Whether you’re safeguarding a single estate or a national footprint, BERRETO combines AI, human expertise, and trusted hardware to stop incidents before they escalate.
               </p>
               <div className="flex flex-col gap-3 sm:flex-row">
-                <Button asChild size="lg" className="rounded-full">
-                  <Link href="#plans">Compare plans</Link>
-                </Button>
-                <Button asChild size="lg" variant="secondary" className="rounded-full border border-primary/20 bg-white text-primary hover:bg-primary/10">
+                {!isLoading && subscriptionPlans.length > 0 && (
+                  <Button asChild size="lg" className="rounded-full">
+                    <Link href="#plans">Compare plans</Link>
+                  </Button>
+                )}
+                <Button asChild size="lg" variant={!isLoading && subscriptionPlans.length > 0 ? "secondary" : "default"} className="rounded-full border border-primary/20 bg-white text-primary hover:bg-primary/10">
                   <Link href="/contact">Talk to sales</Link>
                 </Button>
               </div>
@@ -176,122 +144,110 @@ export default function ProductsPage() {
           </FadeIn>
         </PageSection>
 
-        <PageSection background="tint" id="plans">
-          <FadeIn className="space-y-10">
-            <div className="max-w-2xl">
-              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary">Managed plans</p>
-              <GradientHeading className="mt-4">Managed AI security tuned to your mission</GradientHeading>
-              <p className="mt-3 text-lg text-foreground">
-                Subscription plans combine BERRETO software, SOC analysts, and proactive reporting tailored to your risk profile.
-              </p>
-            </div>
-            <div className="grid gap-6 lg:grid-cols-2">
-              {managedPlans.map((plan, index) => (
-                <FadeIn key={plan.name} delay={index * 80}>
-                  <PricingCard {...plan} />
-                </FadeIn>
-              ))}
-            </div>
-          </FadeIn>
-        </PageSection>
-
-        <PageSection>
-          <FadeIn className="space-y-8">
-            <GradientHeading>Compare managed plans</GradientHeading>
-            <div className="overflow-hidden rounded-3xl border border-border/60 bg-white/80 shadow-lg shadow-primary/10">
-              <table className="w-full text-sm text-foreground/80">
-                <thead className="bg-primary/5 text-left text-xs font-semibold uppercase tracking-[0.24em] text-primary">
-                  <tr>
-                    <th className="px-6 py-4">Capabilities</th>
-                    <th className="px-6 py-4 text-center">Launch</th>
-                    <th className="px-6 py-4 text-center">Scale</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {comparisonRows.map((row) => (
-                    <tr key={row.feature} className="border-t border-border/60">
-                      <td className="px-6 py-4 text-foreground">{row.feature}</td>
-                      <td className="px-6 py-4 text-center">
-                        {row.launch ? <Check className="mx-auto h-5 w-5 text-success" /> : <span className="text-foreground/40">—</span>}
-                      </td>
-                      <td className="px-6 py-4 text-center">
-                        {row.scale ? <Check className="mx-auto h-5 w-5 text-success" /> : <span className="text-foreground/40">—</span>}
-                      </td>
-                    </tr>
+        {(isLoading || subscriptionPlans.length > 0) && (
+          <PageSection background="tint" id="plans">
+            <FadeIn className="space-y-10">
+              <div className="max-w-2xl">
+                <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary">Managed plans</p>
+                <GradientHeading className="mt-4">Managed AI security tuned to your mission</GradientHeading>
+                <p className="mt-3 text-lg text-foreground">
+                  Subscription plans combine BERRETO software, SOC analysts, and proactive reporting tailored to your risk profile.
+                </p>
+              </div>
+              {isLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                </div>
+              ) : (
+                <div className="grid gap-6 lg:grid-cols-2">
+                  {subscriptionPlans.map((plan, index) => (
+                    <FadeIn key={plan.id} delay={index * 80}>
+                      <PricingCard
+                        name={plan.name}
+                        price={`Rs ${plan.price?.toLocaleString()}${plan.priceDescription || ''}`}
+                        description={plan.description || ''}
+                        features={Array.isArray(plan.features) ? plan.features : []}
+                        ctaLabel={plan.primaryActionText || 'Get started'}
+                        ctaHref="/contact"
+                      />
+                    </FadeIn>
                   ))}
-                </tbody>
-              </table>
-            </div>
-          </FadeIn>
-        </PageSection>
+                </div>
+              )}
+            </FadeIn>
+          </PageSection>
+        )}
 
-        <PageSection background="muted">
-          <FadeIn className="space-y-10">
-            <div className="max-w-2xl">
-              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary">Hardware</p>
-              <GradientHeading className="mt-4">Precision hardware engineered for BERRETO</GradientHeading>
-              <p className="mt-3 text-lg text-foreground">
-                Pair BERRETO software with premium cameras, edge processors, and sensors purpose-built to capture critical evidence.
-              </p>
-            </div>
-            {isLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-12 w-12 animate-spin text-primary" />
+
+        {(isLoading || hardwareBundles.length > 0) && (
+          <PageSection background="muted">
+            <FadeIn className="space-y-10">
+              <div className="max-w-2xl">
+                <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary">Hardware</p>
+                <GradientHeading className="mt-4">Precision hardware engineered for BERRETO</GradientHeading>
+                <p className="mt-3 text-lg text-foreground">
+                  Pair BERRETO software with premium cameras, edge processors, and sensors purpose-built to capture critical evidence.
+                </p>
               </div>
-            ) : (
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {hardwareBundles.map((product) => {
-                  const primaryImage = product.images?.[0];
-                  return (
-                    <Card
-                      key={product.id}
-                      className="group flex h-full flex-col rounded-3xl border border-border/60 bg-white/80 shadow-lg shadow-primary/10 transition hover:-translate-y-1 hover:shadow-xl"
-                    >
-                    {primaryImage && (
-                      <div className="relative h-48 w-full overflow-hidden rounded-t-3xl">
-                        <Image src={primaryImage} alt={product.name} fill className="object-cover" />
-                      </div>
-                    )}
-                    <CardHeader className="space-y-2">
-                      <CardTitle className="text-xl font-semibold text-foreground">{product.name}</CardTitle>
-                      <CardDescription className="text-sm text-muted-foreground">{product.description}</CardDescription>
-                    </CardHeader>
-                    <CardContent className="mt-auto space-y-3 text-sm text-muted-foreground">
-                      <p className="text-lg font-headline text-primary">Rs {product.price?.toLocaleString()}</p>
-                      {product.features && Array.isArray(product.features) && (
-                        <ul className="space-y-2">
-                          {product.features.map((feature: string) => (
-                            <li key={feature} className="flex items-start gap-2">
-                              <Check className="mt-1 h-4 w-4 text-success" />
-                              <span>{feature}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </CardContent>
-                    <CardFooter className="mt-4">
-                      <Button
-                        className="w-full rounded-full"
-                        onClick={() => {
-                          addToCart({
-                            id: product.id,
-                            name: product.name,
-                            price: product.price ?? 0,
-                            image: product.images?.[0] ?? "",
-                          });
-                          openCart();
-                        }}
+              {isLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                </div>
+              ) : (
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                  {hardwareBundles.map((product) => {
+                    const primaryImage = product.images?.[0];
+                    return (
+                      <Card
+                        key={product.id}
+                        className="group flex h-full flex-col rounded-3xl border border-border/60 bg-white/80 shadow-lg shadow-primary/10 transition hover:-translate-y-1 hover:shadow-xl"
                       >
-                        Add to kit
-                      </Button>
-                    </CardFooter>
-                  </Card>
-                );
-                })}
-              </div>
-            )}
-          </FadeIn>
-        </PageSection>
+                      {primaryImage && (
+                        <div className="relative h-48 w-full overflow-hidden rounded-t-3xl">
+                          <Image src={primaryImage} alt={product.name} fill className="object-cover" />
+                        </div>
+                      )}
+                      <CardHeader className="space-y-2">
+                        <CardTitle className="text-xl font-semibold text-foreground">{product.name}</CardTitle>
+                        <CardDescription className="text-sm text-muted-foreground">{product.description}</CardDescription>
+                      </CardHeader>
+                      <CardContent className="mt-auto space-y-3 text-sm text-muted-foreground">
+                        <p className="text-lg font-headline text-primary">Rs {product.price?.toLocaleString()}</p>
+                        {product.features && Array.isArray(product.features) && (
+                          <ul className="space-y-2">
+                            {product.features.map((feature: string) => (
+                              <li key={feature} className="flex items-start gap-2">
+                                <Check className="mt-1 h-4 w-4 text-success" />
+                                <span>{feature}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </CardContent>
+                      <CardFooter className="mt-4">
+                        <Button
+                          className="w-full rounded-full"
+                          onClick={() => {
+                            addToCart({
+                              id: product.id,
+                              name: product.name,
+                              price: product.price ?? 0,
+                              image: product.images?.[0] ?? "",
+                            });
+                            openCart();
+                          }}
+                        >
+                          Add to kit
+                        </Button>
+                      </CardFooter>
+                    </Card>
+                  );
+                  })}
+                </div>
+              )}
+            </FadeIn>
+          </PageSection>
+        )}
 
         <PageSection>
           <FadeIn className="grid gap-10 lg:grid-cols-[1.1fr,1fr] lg:items-center">
