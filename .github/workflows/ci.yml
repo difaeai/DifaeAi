@@ -17,26 +17,20 @@ jobs:
         with:
           node-version: 20
 
-      - name: Enable Corepack shims
-        run: corepack enable
-
-      - name: Setup pnpm
-        run: corepack prepare pnpm@9.12.0 --activate
-
       - name: Install dependencies
-        run: pnpm install
+        run: npm install
 
       - name: Lint
-        run: pnpm lint
+        run: npm run lint
 
       - name: Typecheck
-        run: pnpm typecheck
+        run: npm run typecheck
 
       - name: Test
-        run: pnpm test -- --run
+        run: npm run test -- --run
 
       - name: Build web
-        run: pnpm --filter web build
+        run: npm run build --workspace web
 
       - name: Build admin
-        run: pnpm --filter admin build
+        run: npm run build --workspace admin
