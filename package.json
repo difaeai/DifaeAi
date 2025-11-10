@@ -10,14 +10,14 @@
     ]
   },
   "scripts": {
-    "dev": "next dev apps/web -p 5000 -H 0.0.0.0",
+    "dev": "next dev -p 5000 -H 0.0.0.0",
     "prebuild": "node scripts/prebuild.js",
-    "build": "next build apps/web && node scripts/prepare-standalone.mjs",
-    "start": "node scripts/start-standalone.cjs",
+    "build": "next build",
+    "start": "next start -p 5000 -H 0.0.0.0",
     "lint": "echo \"Linting handled in downstream pipelines\"",
     "test": "echo \"No automated tests configured\"",
-    "typecheck": "tsc --project apps/web/tsconfig.json --noEmit",
-    "format": "prettier --write \"apps/web/**/*.{ts,tsx,js,jsx,json,md,css}\""
+    "typecheck": "tsc --noEmit",
+    "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,md,css}\""
   },
   "dependencies": {
     "@genkit-ai/ai": "^1.22.0",
