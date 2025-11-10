@@ -10,14 +10,23 @@ The repository uses a monorepo structure with npm workspaces and includes shared
 
 ## Recent Changes
 
-**November 10, 2025 - Complete BERRETO Rebranding**
+**November 10, 2025 - Complete BERRETO Rebranding & Dynamic Products**
+
+**Products Page Made Fully Dynamic:**
+- Removed all hardcoded products (BERRETO Launch, BERRETO Scale subscription plans)
+- Products page now fetches all data from Firestore database
+- Products split into two categories based on subscription field:
+  - Subscription plans (products with subscription field) → Managed plans section
+  - Hardware products (products without subscription) → Hardware section
+- Both sections conditionally render: show during loading, hide when empty
+- Hero CTA "Compare plans" button only shows when subscription plans exist
+- Complete data flow: Admin panel → Firestore → Frontend products page
 
 **BERRETO Rebrand Complete:**
 - Full rebrand from "DIFAE AI Security Cloud" to "BERRETO"
 - Updated logo from "D" to "B" in both desktop and mobile navigation
 - Changed all navigation labels: "DIFAE AI Agent" → "Agent"
 - Updated all user-facing pages with BERRETO branding (homepage, contact, products, footer)
-- Changed managed plans: "DIFAE Launch" → "BERRETO Launch", "DIFAE Scale" → "BERRETO Scale"
 - Updated shopping cart: "Your DIFAE Kit" → "Your BERRETO Kit"
 - Updated admin panel: "BERRETO Agent Page"
 - Updated homepage YouTube video ID to 9KsJnCt3NVE
