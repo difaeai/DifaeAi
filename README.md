@@ -1,6 +1,6 @@
 # DIFAE AI Monorepo
 
-This Turbo + PNPM workspace contains the DIFAE AI marketing site, admin panel, and shared UI library.
+This Turbo + npm workspace contains the DIFAE AI marketing site, admin panel, and shared UI library.
 
 ## Apps
 
@@ -13,36 +13,35 @@ This Turbo + PNPM workspace contains the DIFAE AI marketing site, admin panel, a
 ### Prerequisites
 
 - Node.js 20+
-- PNPM 9 (`corepack enable pnpm`)
+- npm 10 (bundled with Node.js 20)
 
 ### Installation
 
 ```bash
-pnpm install
+npm install
 ```
 
 ### Local development
 
-Run both apps in parallel:
+Run the marketing site locally:
 
 ```bash
-pnpm dev
+npm run dev --workspace web
 ```
 
-Or run a single app:
+Run the admin console:
 
 ```bash
-pnpm dev:web
-pnpm dev:admin
+npm run dev --workspace admin
 ```
 
 ### Build & tests
 
 ```bash
-pnpm lint
-pnpm typecheck
-pnpm test
-pnpm build
+npm run lint
+npm run typecheck
+npm run test
+npm run build
 ```
 
 ## Environment variables
