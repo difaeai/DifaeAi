@@ -10,6 +10,30 @@ import { useWizard } from "../page";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 
+function LiveCameraPreview({ url }: { url: string }) {
+  const [imgSrc, setImgSrc] = useState(url + '?t=' + Date.now());
+  const [hasError, setHasError] = useState(false);
+  
+  useEffect(() => {
+    // Auto-refresh every second for snapshot URLs
+    const interval = setInterval(() => {
+      setImgSrc(url + '?t=' + Date.now());
+    }, 1000);
+    
+    return () => clearInterval(interval);
+  }, [url]);
+  
+  return (
+    <img 
+      src={imgSrc} 
+      alt="Camera Live Feed" 
+      className="w-full h-full object-cover"
+      onLoad={() => setHasError(false)}
+      onError={() => setHasError(true)}
+    />
+  );
+}
+
 interface StepFourTestProps {
   onComplete: () => void;
 }
@@ -90,27 +114,87 @@ export default function StepFourTest({ onComplete }: StepFourTestProps) {
       const autoDetectResult = await autoDetectResponse.json();
 
       if (autoDetectResult.success) {
-        // Auto-detection successful
-        dispatch({ type: "SET_CONNECTION_TESTED", payload: { 
-          tested: true, 
-          streamUrl: autoDetectResult.fullRtspUrl || autoDetectResult.httpSnapshotUrl
-        } });
-        
-        setVideoReady(true);
-        
-        const description = autoDetectResult.streamInfo 
-          ? `Found: ${autoDetectResult.detectedPath}\nResolution: ${autoDetectResult.streamInfo.width}x${autoDetectResult.streamInfo.height}\nTested ${autoDetectResult.testedPaths} path(s)`
-          : `Found: ${autoDetectResult.detectedPath}\nTested ${autoDetectResult.testedPaths} path(s)`;
-        
-        toast({
-          title: "Stream Auto-Detected!",
-          description: description,
-        });
-        
-        // Show live preview from HTTP snapshot (your browser connects directly to camera)
-        if (autoDetectResult.httpSnapshotUrl) {
-          setPreviewUrl(autoDetectResult.httpSnapshotUrl);
-          setShowPreview(true);
+        // Check if this is a local network camera (browser will test directly)
+        if (autoDetectResult.isLocalNetwork && autoDetectResult.httpSnapshotUrls) {
+          toast({
+            title: "Testing Camera Connection...",
+            description: "Your browser is testing connection to local camera...",
+          });
+          
+          // Test each HTTP URL in the browser until one works
+          let foundWorkingUrl = false;
+          for (const urlConfig of autoDetectResult.httpSnapshotUrls) {
+            try {
+              // Test if browser can load this image
+              const testImage = new Image();
+              const imageLoadPromise = new Promise<boolean>((resolve) => {
+                testImage.onload = () => resolve(true);
+                testImage.onerror = () => resolve(false);
+                setTimeout(() => resolve(false), 3000); // 3 second timeout
+              });
+              
+              testImage.src = urlConfig.url + '?t=' + Date.now();
+              const success = await imageLoadPromise;
+              
+              if (success) {
+                // Found working URL!
+                setPreviewUrl(urlConfig.url);
+                setShowPreview(true);
+                setVideoReady(true);
+                foundWorkingUrl = true;
+                
+                dispatch({ type: "SET_CONNECTION_TESTED", payload: { 
+                  tested: true, 
+                  streamUrl: urlConfig.url
+                } });
+                
+                toast({
+                  title: "Camera Connected!",
+                  description: `Live feed found: ${urlConfig.name}\nYour browser is connected directly to the camera.`,
+                });
+                
+                break; // Stop testing, we found one that works
+              }
+            } catch (error) {
+              console.log(`Failed to load ${urlConfig.name}:`, error);
+            }
+          }
+          
+          if (!foundWorkingUrl) {
+            // None of the URLs worked
+            dispatch({ type: "SET_CONNECTION_TESTED", payload: { tested: false } });
+            setVideoReady(false);
+            
+            toast({
+              variant: "destructive",
+              title: "Connection Failed",
+              description: "Could not connect to camera. Please check:\n1. Camera is powered on\n2. Username/password are correct\n3. You're on the same network as the camera",
+              duration: 10000,
+            });
+          }
+        } else {
+          // Cloud-accessible camera - use server-validated URL
+          dispatch({ type: "SET_CONNECTION_TESTED", payload: { 
+            tested: true, 
+            streamUrl: autoDetectResult.fullRtspUrl || autoDetectResult.httpSnapshotUrl
+          } });
+          
+          setVideoReady(true);
+          
+          const description = autoDetectResult.streamInfo 
+            ? `Found: ${autoDetectResult.detectedPath}\nResolution: ${autoDetectResult.streamInfo.width}x${autoDetectResult.streamInfo.height}\nTested ${autoDetectResult.testedPaths} path(s)`
+            : `Found: ${autoDetectResult.detectedPath}\nTested ${autoDetectResult.testedPaths} path(s)`;
+          
+          toast({
+            title: "Stream Auto-Detected!",
+            description: description,
+          });
+          
+          // Show live preview from HTTP snapshot
+          if (autoDetectResult.httpSnapshotUrl) {
+            setPreviewUrl(autoDetectResult.httpSnapshotUrl);
+            setShowPreview(true);
+          }
         }
       } else {
         // Auto-detection failed
@@ -214,18 +298,7 @@ export default function StepFourTest({ onComplete }: StepFourTestProps) {
             {showPreview && state.cameraType === "usb" ? (
               <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline controls />
             ) : showPreview && previewUrl ? (
-              <img 
-                src={previewUrl} 
-                alt="Camera Live Feed" 
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  // If image fails, try refreshing every second (for snapshot URLs)
-                  const img = e.target as HTMLImageElement;
-                  setTimeout(() => {
-                    img.src = previewUrl + '?t=' + Date.now();
-                  }, 1000);
-                }}
-              />
+              <LiveCameraPreview url={previewUrl} />
             ) : (
               <div className="text-center p-6">
                 <Video className="h-16 w-16 text-muted-foreground mx-auto mb-4" />

@@ -141,6 +141,24 @@ async function testHTTPSnapshot(ip: string, username: string, password: string, 
   }
 }
 
+function isLocalNetworkIP(ip: string): boolean {
+  const parts = ip.split('.').map(Number);
+  
+  // 192.168.x.x
+  if (parts[0] === 192 && parts[1] === 168) return true;
+  
+  // 10.x.x.x
+  if (parts[0] === 10) return true;
+  
+  // 172.16.x.x to 172.31.x.x
+  if (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) return true;
+  
+  // 127.x.x.x (localhost)
+  if (parts[0] === 127) return true;
+  
+  return false;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -162,6 +180,28 @@ export async function POST(req: NextRequest) {
     }
     
     console.log(`Starting auto-detection for ${ip}...`);
+    
+    // Check if this is a local network address
+    const isLocal = isLocalNetworkIP(ip);
+    
+    if (isLocal) {
+      console.log(`Detected local network IP ${ip} - returning client-side URLs for browser testing`);
+      
+      // Return all common HTTP snapshot URLs for browser to test
+      const credentials = username && password ? `${username}:${password}@` : '';
+      const httpUrls = COMMON_HTTP_PATHS.map(path => ({
+        url: `http://${credentials}${ip}:${path.port}${path.path}`,
+        name: path.name,
+        path: path.path,
+      }));
+      
+      return NextResponse.json({
+        success: true,
+        isLocalNetwork: true,
+        httpSnapshotUrls: httpUrls,
+        message: "Local network camera detected. Your browser will test connection directly.",
+      });
+    }
     
     // Step 1: Try to find HTTP snapshot/MJPEG URL for browser preview
     let httpSnapshotUrl = null;
