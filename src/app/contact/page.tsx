@@ -54,19 +54,19 @@ export default function ContactPage() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-background text-text">
+    <div className="flex min-h-screen flex-col bg-background text-foreground">
       <PublicHeader />
       <main className="flex-1">
         <section className="relative overflow-hidden pt-20">
           <div className="absolute inset-0 -z-10 bg-gradient-to-br from-primary/10 via-white to-accent/5" />
           <Container className="grid gap-12 pb-20 lg:grid-cols-[1.1fr,1fr] lg:items-center">
             <FadeIn className="space-y-6">
-              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary/70">Contact DIFAE</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary">Contact DIFAE</p>
               <h1 className="font-headline text-4xl font-semibold tracking-tight sm:text-5xl">
                 {content?.hero?.headline ?? "Let’s design a safer future together"}
               </h1>
               <p
-                className="max-w-2xl text-lg text-text/70"
+                className="max-w-2xl text-lg text-foreground"
                 dangerouslySetInnerHTML={{
                   __html:
                     content?.hero?.description ??
@@ -83,14 +83,14 @@ export default function ContactPage() {
               </div>
             </FadeIn>
             <FadeIn delay={150} className="space-y-6 rounded-3xl border border-border/60 bg-white/80 p-8 shadow-xl shadow-primary/10">
-              <h3 className="font-headline text-xl font-semibold text-text">Response time</h3>
-              <p className="text-sm text-text/70">
+              <h3 className="font-headline text-xl font-semibold text-foreground">Response time</h3>
+              <p className="text-sm text-muted-foreground">
                 {content?.details?.supportHours ?? "Support hours: Mon–Sat, 10 AM – 8 PM (PKT)"}
               </p>
               <div className="flex items-center gap-3 rounded-3xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-primary">
                 <Clock3 className="h-5 w-5" /> Our experts typically respond within 24 hours.
               </div>
-              <div className="space-y-3 text-sm text-text/70">
+              <div className="space-y-3 text-sm text-muted-foreground">
                 <div className="flex items-center gap-3">
                   <Mail className="h-5 w-5 text-primary" />
                   <a href={`mailto:${content?.details?.generalEmail ?? "info@berreto.com"}`} className="hover:text-primary hover:underline">
@@ -113,18 +113,18 @@ export default function ContactPage() {
         <PageSection>
           <FadeIn className="space-y-12">
             <div className="max-w-2xl">
-              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary/70">How we can help</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary">How we can help</p>
               <GradientHeading className="mt-4">Dedicated specialists for every request</GradientHeading>
             </div>
             <div className="grid gap-6 md:grid-cols-3">
               <Card className="rounded-3xl border border-border/60 bg-white/80 shadow-lg shadow-primary/10">
                 <CardHeader>
-                  <CardTitle className="font-headline text-xl text-text">Security strategy</CardTitle>
-                  <CardDescription className="text-sm text-text/70">
+                  <CardTitle className="font-headline text-xl text-foreground">Security strategy</CardTitle>
+                  <CardDescription className="text-sm text-muted-foreground">
                     Plan rollouts, evaluate risk, and discover how DIFAE fits your security stack.
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-3 text-sm text-text/70">
+                <CardContent className="space-y-3 text-sm text-muted-foreground">
                   <div className="flex items-center gap-2">
                     <ShieldAlert className="h-4 w-4 text-primary" /> Tailored threat modelling
                   </div>
@@ -135,12 +135,12 @@ export default function ContactPage() {
               </Card>
               <Card className="rounded-3xl border border-border/60 bg-white/80 shadow-lg shadow-primary/10">
                 <CardHeader>
-                  <CardTitle className="font-headline text-xl text-text">Enterprise sales</CardTitle>
-                  <CardDescription className="text-sm text-text/70">
+                  <CardTitle className="font-headline text-xl text-foreground">Enterprise sales</CardTitle>
+                  <CardDescription className="text-sm text-muted-foreground">
                     Explore pricing, contracts, and deployment models for your organisation.
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-3 text-sm text-text/70">
+                <CardContent className="space-y-3 text-sm text-muted-foreground">
                   <div className="flex items-center gap-2">
                     <Mail className="h-4 w-4 text-primary" /> sales@berreto.co
                   </div>
@@ -151,12 +151,12 @@ export default function ContactPage() {
               </Card>
               <Card className="rounded-3xl border border-border/60 bg-white/80 shadow-lg shadow-primary/10">
                 <CardHeader>
-                  <CardTitle className="font-headline text-xl text-text">Customer support</CardTitle>
-                  <CardDescription className="text-sm text-text/70">
+                  <CardTitle className="font-headline text-xl text-foreground">Customer support</CardTitle>
+                  <CardDescription className="text-sm text-muted-foreground">
                     Already using DIFAE? Our support team is on call 24/7.
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-3 text-sm text-text/70">
+                <CardContent className="space-y-3 text-sm text-muted-foreground">
                   <div className="flex items-center gap-2">
                     <Mail className="h-4 w-4 text-primary" /> help@berreto.com
                   </div>
@@ -174,8 +174,8 @@ export default function ContactPage() {
             <div className="lg:col-span-3">
               <Card className="rounded-3xl border border-border/60 bg-white/80 shadow-xl shadow-primary/10">
                 <CardHeader>
-                  <CardTitle className="font-headline text-2xl text-text">Send us a message</CardTitle>
-                  <CardDescription className="text-sm text-text/70">
+                  <CardTitle className="font-headline text-2xl text-foreground">Send us a message</CardTitle>
+                  <CardDescription className="text-sm text-muted-foreground">
                     We typically respond within 24 hours. For urgent incidents, call our security desk.
                   </CardDescription>
                 </CardHeader>
@@ -207,14 +207,14 @@ export default function ContactPage() {
               </Card>
             </div>
             <div className="space-y-6 rounded-3xl border border-border/60 bg-white/80 p-8 shadow-xl shadow-primary/10">
-              <h3 className="font-headline text-2xl font-semibold text-text">Visit our office</h3>
-              <p className="text-sm text-text/70">
+              <h3 className="font-headline text-2xl font-semibold text-foreground">Visit our office</h3>
+              <p className="text-sm text-muted-foreground">
                 {content?.details?.address ?? "Office 25, Islamabad, Pakistan"}
               </p>
               <div className="rounded-3xl border border-border/60 bg-primary/5 p-6 text-sm text-primary">
                 Connect your cameras to DIFAE and watch how your perimeter transforms from reactive to proactive security in days.
               </div>
-              <p className="text-sm text-text/60">
+              <p className="text-sm text-foreground/60">
                 Prefer a live walkthrough? <Link href="/products" className="text-primary underline">Explore our solutions</Link> or book a strategy session.
               </p>
             </div>

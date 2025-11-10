@@ -18,11 +18,10 @@ import { Container } from "@/components/ui/container";
 
 const NAV_LINKS = [
   { href: "/", label: "Home" },
-  { href: "/about", label: "About" },
-  { href: "/agent", label: "DIFAE Agent" },
-  { href: "/products", label: "Solutions" },
-  { href: "/pre-booking", label: "Pre-Booking" },
-  { href: "/contact", label: "Contact" },
+  { href: "/about", label: "About Us" },
+  { href: "/agent", label: "DIFAE AI Agent" },
+  { href: "/products", label: "Products" },
+  { href: "/contact", label: "Contact Us" },
 ];
 
 export default function PublicHeader() {
@@ -45,8 +44,8 @@ export default function PublicHeader() {
             D
           </span>
           <div className="flex flex-col leading-tight">
-            <span className="text-[11px] uppercase tracking-[0.32em] text-primary/70">DIFAE AI</span>
-            <span className="text-base font-semibold text-text">Security Cloud</span>
+            <span className="text-[11px] uppercase tracking-[0.32em] text-primary">DIFAE AI</span>
+            <span className="text-base font-semibold text-foreground">Security Cloud</span>
           </div>
         </Link>
 
@@ -55,7 +54,7 @@ export default function PublicHeader() {
             <Link
               key={link.href}
               href={link.href}
-              className="group relative text-sm font-medium text-text/70 transition-colors hover:text-text"
+              className="group relative text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
             >
               {link.label}
               <span className="absolute -bottom-2 left-0 h-0.5 w-full origin-left scale-x-0 rounded-full bg-gradient-to-r from-primary via-primary/70 to-accent transition-transform duration-200 group-hover:scale-x-100" />
@@ -80,10 +79,10 @@ export default function PublicHeader() {
                 <span className="sr-only">Open shopping cart</span>
               </Button>
             </SheetTrigger>
-            <SheetContent className="flex w-full flex-col border-l border-border/60 bg-white/95 text-text backdrop-blur-2xl sm:max-w-md">
+            <SheetContent className="flex w-full flex-col border-l border-border/60 bg-white/95 text-foreground backdrop-blur-2xl sm:max-w-md">
               <div className="border-b border-border/60 px-6 py-5">
-                <h2 className="text-lg font-headline font-semibold text-text">Your DIFAE Kit</h2>
-                <p className="text-sm text-text/60">Curate the devices that keep every perimeter protected.</p>
+                <h2 className="text-lg font-headline font-semibold text-foreground">Your DIFAE Kit</h2>
+                <p className="text-sm text-muted-foreground">Curate the devices that keep every perimeter protected.</p>
               </div>
               {cartItems.length > 0 ? (
                 <>
@@ -106,13 +105,13 @@ export default function PublicHeader() {
                           <div className="flex flex-1 flex-col">
                             <div className="flex items-start justify-between gap-4">
                               <div>
-                                <h3 className="font-semibold text-text">{item.name}</h3>
-                                <p className="text-sm text-text/60">Rs {item.price.toLocaleString()}</p>
+                                <h3 className="font-semibold text-foreground">{item.name}</h3>
+                                <p className="text-sm text-muted-foreground">Rs {item.price.toLocaleString()}</p>
                               </div>
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-8 w-8 rounded-full text-text/40 hover:text-destructive"
+                                className="h-8 w-8 rounded-full text-muted-foreground hover:text-destructive"
                                 onClick={() => removeFromCart(item.id)}
                               >
                                 <Trash2 className="h-4 w-4" />
@@ -120,7 +119,7 @@ export default function PublicHeader() {
                               </Button>
                             </div>
                             <div className="mt-auto flex items-center justify-between">
-                              <div className="flex items-center gap-2 rounded-full border border-border/60 bg-muted/70 px-2 py-1 text-text/80">
+                              <div className="flex items-center gap-2 rounded-full border border-border/60 bg-muted/70 px-2 py-1 text-foreground">
                                 <Button
                                   variant="ghost"
                                   size="icon"
@@ -139,7 +138,7 @@ export default function PublicHeader() {
                                   <Plus className="h-4 w-4" />
                                 </Button>
                               </div>
-                              <span className="text-sm font-medium text-text/70">
+                              <span className="text-sm font-medium text-muted-foreground">
                                 Total: Rs {(item.price * item.quantity).toLocaleString()}
                               </span>
                             </div>
@@ -151,10 +150,10 @@ export default function PublicHeader() {
                   <div className="border-t border-border/60 px-6 py-6">
                     <div className="space-y-4 rounded-3xl border border-border/60 bg-white/80 p-5 shadow-inner shadow-primary/10">
                       <div className="flex items-center justify-between text-sm">
-                        <span className="text-text/60">Subtotal</span>
-                        <span className="text-lg font-semibold text-text">Rs {cartTotal.toLocaleString()}</span>
+                        <span className="text-muted-foreground">Subtotal</span>
+                        <span className="text-lg font-semibold text-foreground">Rs {cartTotal.toLocaleString()}</span>
                       </div>
-                      <p className="text-xs text-text/60">
+                      <p className="text-xs text-muted-foreground">
                         Complimentary deployment support across Pakistan on every order.
                       </p>
                       <Button asChild className="w-full rounded-full">
@@ -169,8 +168,8 @@ export default function PublicHeader() {
                     <ShoppingCart className="h-7 w-7" />
                   </div>
                   <div className="space-y-2">
-                    <p className="text-base font-semibold text-text">Your kit is waiting</p>
-                    <p className="text-sm text-text/60">
+                    <p className="text-base font-semibold text-foreground">Your kit is waiting</p>
+                    <p className="text-sm text-muted-foreground">
                       Add DIFAE devices to start preventing incidents before they unfold.
                     </p>
                   </div>
@@ -187,7 +186,7 @@ export default function PublicHeader() {
               <UserNav />
             ) : (
               <>
-                <Button asChild variant="ghost" size="sm" className="rounded-full text-text/70 hover:text-text">
+                <Button asChild variant="ghost" size="sm" className="rounded-full text-muted-foreground hover:text-foreground">
                   <Link href="/login">Log in</Link>
                 </Button>
                 <Button asChild size="sm" className="rounded-full">
@@ -208,25 +207,25 @@ export default function PublicHeader() {
                 <span className="sr-only">Open navigation</span>
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="flex w-full flex-col border-l border-border/60 bg-white/95 text-text backdrop-blur-2xl sm:max-w-xs">
+            <SheetContent side="right" className="flex w-full flex-col border-l border-border/60 bg-white/95 text-foreground backdrop-blur-2xl sm:max-w-xs">
               <div className="flex items-center justify-between border-b border-border/60 pb-4">
                 <Link href="/" className="flex items-center gap-3 text-sm font-semibold">
                   <span className="flex h-11 w-11 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 font-headline text-lg text-primary">
                     D
                   </span>
                   <span className="text-left leading-tight">
-                    <span className="block text-[11px] uppercase tracking-[0.32em] text-primary/70">DIFAE AI</span>
-                    <span className="block text-sm text-text">Security Cloud</span>
+                    <span className="block text-[11px] uppercase tracking-[0.32em] text-primary">DIFAE AI</span>
+                    <span className="block text-sm text-foreground">Security Cloud</span>
                   </span>
                 </Link>
               </div>
               <div className="flex flex-1 flex-col gap-6 py-6">
-                <nav className="flex flex-col gap-2 text-base font-medium text-text/80">
+                <nav className="flex flex-col gap-2 text-base font-medium text-foreground">
                   {NAV_LINKS.map((link) => (
                     <SheetClose key={link.href} asChild>
                       <Link
                         href={link.href}
-                        className="rounded-2xl px-4 py-2 transition hover:bg-primary/5 hover:text-text"
+                        className="rounded-2xl px-4 py-2 transition hover:bg-primary/5 hover:text-foreground"
                       >
                         {link.label}
                       </Link>
@@ -241,7 +240,7 @@ export default function PublicHeader() {
                       <Button asChild className="w-full rounded-full">
                         <Link href="/signup">Create account</Link>
                       </Button>
-                      <Button asChild variant="ghost" className="w-full rounded-full text-text/70 hover:text-text">
+                      <Button asChild variant="ghost" className="w-full rounded-full text-muted-foreground hover:text-foreground">
                         <Link href="/login">Log in</Link>
                       </Button>
                     </>

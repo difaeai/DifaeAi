@@ -34,11 +34,11 @@ export function PricingCard({
       {...props}
     >
       <div className="mb-6">
-        <p className="text-sm font-semibold uppercase tracking-[0.25em] text-primary/70">{name}</p>
-        <h3 className="mt-4 font-headline text-4xl font-semibold text-text">{price}</h3>
-        <p className="mt-2 text-sm text-muted">{description}</p>
+        <p className="text-sm font-semibold uppercase tracking-[0.25em] text-primary">{name}</p>
+        <h3 className="mt-4 font-headline text-4xl font-semibold text-foreground">{price}</h3>
+        <p className="mt-2 text-sm text-muted-foreground">{description}</p>
       </div>
-      <ul className="space-y-3 text-sm text-text/90">
+      <ul className="space-y-3 text-sm text-foreground">
         {features.map((feature) => (
           <li key={feature} className="flex items-start gap-2">
             <Check className="mt-1 h-4 w-4 text-success" />

@@ -143,19 +143,19 @@ export default function AgentPage() {
   }, []);
 
   return (
-    <div className="flex min-h-screen flex-col bg-background text-text">
+    <div className="flex min-h-screen flex-col bg-background text-foreground">
       <PublicHeader />
       <main className="flex-1">
         <section className="relative overflow-hidden pt-20">
           <div className="absolute inset-0 -z-10 bg-gradient-to-br from-primary/10 via-white to-accent/5" />
           <Container className="grid gap-12 pb-20 lg:grid-cols-[1.1fr,1fr] lg:items-center">
             <FadeIn className="space-y-6">
-              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary/70">DIFAE AI Agent</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary">DIFAE AI Agent</p>
               <h1 className="font-headline text-4xl font-semibold tracking-tight sm:text-5xl">
                 {content?.hero?.headline ?? "The autonomous security specialist"}
               </h1>
               <p
-                className="max-w-2xl text-lg text-text/70"
+                className="max-w-2xl text-lg text-foreground"
                 dangerouslySetInnerHTML={{
                   __html:
                     content?.hero?.description ??
@@ -172,8 +172,8 @@ export default function AgentPage() {
               </div>
             </FadeIn>
             <FadeIn delay={150} className="space-y-6 rounded-3xl border border-border/60 bg-white/80 p-8 shadow-xl shadow-primary/10">
-              <h3 className="font-headline text-xl font-semibold text-text">Designed for relentless protection</h3>
-              <p className="text-sm text-text/70">
+              <h3 className="font-headline text-xl font-semibold text-foreground">Designed for relentless protection</h3>
+              <p className="text-sm text-muted-foreground">
                 Trained on millions of security incidents across retail, banking, logistics, and smart city deployments.
               </p>
               <div className="grid gap-4 sm:grid-cols-2">
@@ -187,15 +187,15 @@ export default function AgentPage() {
         <PageSection>
           <FadeIn className="space-y-12">
             <div className="max-w-2xl">
-              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary/70">Key capabilities</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary">Key capabilities</p>
               <GradientHeading className="mt-4">Every module engineered to prevent incidents</GradientHeading>
             </div>
             <div className="grid gap-6 md:grid-cols-3">
               {keyFeatures.map((feature, index) => (
                 <FadeIn key={feature.title} delay={index * 60} className="rounded-3xl border border-border/60 bg-white/80 p-6 shadow-lg shadow-primary/10">
                   <feature.icon className="h-10 w-10 text-primary" />
-                  <h3 className="mt-6 font-headline text-xl font-semibold text-text">{feature.title}</h3>
-                  <p className="mt-3 text-sm text-text/70">{feature.description}</p>
+                  <h3 className="mt-6 font-headline text-xl font-semibold text-foreground">{feature.title}</h3>
+                  <p className="mt-3 text-sm text-muted-foreground">{feature.description}</p>
                 </FadeIn>
               ))}
             </div>
@@ -205,9 +205,9 @@ export default function AgentPage() {
         <PageSection background="muted">
           <FadeIn className="space-y-10">
             <div className="max-w-2xl">
-              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary/70">Agent workflow</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary">Agent workflow</p>
               <GradientHeading className="mt-4">How DIFAE keeps you ahead of every incident</GradientHeading>
-              <p className="mt-3 text-lg text-text/70">
+              <p className="mt-3 text-lg text-foreground">
                 Each step is observable, auditable, and designed to align with your operating procedures and regulatory needs.
               </p>
             </div>
@@ -218,7 +218,7 @@ export default function AgentPage() {
         <PageSection>
           <FadeIn className="space-y-10">
             <div className="max-w-2xl">
-              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary/70">Architecture</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary">Architecture</p>
               <GradientHeading className="mt-4">Built for scale, resilience, and trust</GradientHeading>
             </div>
             <div className="grid gap-6 md:grid-cols-2">
@@ -228,8 +228,8 @@ export default function AgentPage() {
                     <CardHeader className="flex flex-row items-center gap-4">
                       <pillar.icon className="h-10 w-10 text-primary" />
                       <div>
-                        <CardTitle className="text-xl font-semibold text-text">{pillar.title}</CardTitle>
-                        <CardDescription className="text-sm text-text/70">{pillar.description}</CardDescription>
+                        <CardTitle className="text-xl font-semibold text-foreground">{pillar.title}</CardTitle>
+                        <CardDescription className="text-sm text-muted-foreground">{pillar.description}</CardDescription>
                       </div>
                     </CardHeader>
                   </Card>
@@ -243,7 +243,7 @@ export default function AgentPage() {
           <FadeIn className="grid gap-10 lg:grid-cols-[1.1fr,1fr] lg:items-center">
             <div className="space-y-6">
               <GradientHeading>Seamless integration ecosystem</GradientHeading>
-              <p className="max-w-2xl text-lg text-text/70">
+              <p className="max-w-2xl text-lg text-foreground">
                 DIFAE fits into your existing infrastructure without replacing your trusted systems. Our API-driven architecture keeps every connection secure.
               </p>
               <div className="grid gap-3 sm:grid-cols-2">
@@ -255,8 +255,8 @@ export default function AgentPage() {
               </div>
             </div>
             <div className="space-y-6 rounded-3xl border border-border/60 bg-white/80 p-8 shadow-xl shadow-primary/10">
-              <h3 className="font-headline text-2xl font-semibold text-text">Compliance without compromise</h3>
-              <p className="text-sm text-text/70">
+              <h3 className="font-headline text-2xl font-semibold text-foreground">Compliance without compromise</h3>
+              <p className="text-sm text-muted-foreground">
                 DIFAE maintains tamper-proof audit trails, encrypted data retention, and configurable privacy controls that meet the toughest standards.
               </p>
               <Button asChild className="rounded-full">

@@ -18,9 +18,9 @@ export function MetricCard({ label, value, icon, className, ...props }: MetricCa
     >
       <div className="flex items-center gap-3 text-primary">
         {icon && <span className="grid h-12 w-12 place-items-center rounded-2xl bg-primary/10 text-primary">{icon}</span>}
-        <span className="text-sm font-medium uppercase tracking-[0.18em] text-primary/70">{label}</span>
+        <span className="text-sm font-medium uppercase tracking-[0.18em] text-primary">{label}</span>
       </div>
-      <p className="mt-6 font-headline text-3xl font-semibold text-text">{value}</p>
+      <p className="mt-6 font-headline text-3xl font-semibold text-foreground">{value}</p>
     </div>
   );
 }

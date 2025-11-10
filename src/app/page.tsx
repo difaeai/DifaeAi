@@ -236,20 +236,20 @@ export default function HomePage() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-background text-text">
+    <div className="flex min-h-screen flex-col bg-background text-foreground">
       <PublicHeader />
       <main className="flex-1">
         <section className="relative overflow-hidden pt-20">
           <div className="absolute inset-0 -z-10 bg-gradient-to-br from-primary/8 via-accent/5 to-white" />
           <Container className="relative grid gap-12 pb-24 lg:grid-cols-[1.1fr,1fr] lg:items-center">
             <FadeIn className="space-y-8">
-              <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.28em] text-primary/70">
+              <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.28em] text-primary">
                 Proactive Security Cloud
               </div>
-              <h1 className="font-headline text-4xl font-semibold tracking-tight text-text sm:text-5xl lg:text-6xl">
+              <h1 className="font-headline text-4xl font-semibold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
                 Don’t Just Record Crime. Prevent It.
               </h1>
-              <p className="max-w-xl text-lg text-text/70">
+              <p className="max-w-xl text-lg text-foreground">
                 DIFAE transforms your CCTV into a proactive AI security network. Predict threats, orchestrate responses, and deliver trusted evidence before incidents escalate.
               </p>
               <div className="flex flex-col gap-4 sm:flex-row">
@@ -263,8 +263,8 @@ export default function HomePage() {
               <div className="grid gap-3 sm:grid-cols-3">
                 {heroStats.map((stat) => (
                   <div key={stat.label} className="rounded-3xl border border-border/60 bg-white/80 p-5 shadow-lg shadow-primary/10">
-                    <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary/70">{stat.label}</p>
-                    <p className="mt-3 text-2xl font-headline font-semibold text-text">{stat.value}</p>
+                    <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary">{stat.label}</p>
+                    <p className="mt-3 text-2xl font-headline font-semibold text-foreground">{stat.value}</p>
                   </div>
                 ))}
               </div>
@@ -282,7 +282,7 @@ export default function HomePage() {
         <PageSection className="pt-0">
           <FadeIn>
             <div className="space-y-8 text-center">
-              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary/70">Trusted protection</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary">Trusted protection</p>
               <GradientHeading className="mx-auto max-w-3xl">
                 Built with partners safeguarding millions of square feet every day
               </GradientHeading>
@@ -295,7 +295,7 @@ export default function HomePage() {
           <div className="grid gap-10 lg:grid-cols-[1.1fr,1fr] lg:items-center">
             <FadeIn className="space-y-6">
               <GradientHeading>Security that learns your perimeter</GradientHeading>
-              <p className="max-w-2xl text-lg text-text/70">
+              <p className="max-w-2xl text-lg text-foreground">
                 DIFAE agents orchestrate a layered defence across perception, intelligence, and action. Each module is designed to eliminate blind spots while empowering your teams to act faster and smarter.
               </p>
               <div className="grid gap-6 md:grid-cols-2">
@@ -305,8 +305,8 @@ export default function HomePage() {
               </div>
             </FadeIn>
             <FadeIn delay={120} className="space-y-6 rounded-3xl border border-border/60 bg-white/80 p-8 shadow-xl shadow-primary/10">
-              <h3 className="font-headline text-2xl font-semibold text-text">Operates across every environment</h3>
-              <p className="text-sm text-text/70">
+              <h3 className="font-headline text-2xl font-semibold text-foreground">Operates across every environment</h3>
+              <p className="text-sm text-muted-foreground">
                 From luxury residences to critical infrastructure, DIFAE adapts to your risk profile while maintaining a zero-trust security posture.
               </p>
               <ul className="grid grid-cols-2 gap-4 text-sm font-semibold text-primary">
@@ -325,11 +325,11 @@ export default function HomePage() {
           <div className="space-y-12">
             <div className="max-w-3xl">
               <FadeIn>
-                <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary/70">Intelligence layers</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary">Intelligence layers</p>
                 <GradientHeading className="mt-4">
                   From perception to action in under a minute
                 </GradientHeading>
-                <p className="mt-4 text-lg text-text/70">
+                <p className="mt-4 text-lg text-foreground">
                   Each DIFAE layer works in concert to surface only what matters and orchestrate the right response.
                 </p>
               </FadeIn>
@@ -341,11 +341,11 @@ export default function HomePage() {
                     <span className="rounded-2xl bg-primary/10 p-3 text-primary">
                       <layer.icon className="h-6 w-6" />
                     </span>
-                    <span className="text-xs font-semibold uppercase tracking-[0.24em] text-primary/70">Layer {index + 1}</span>
+                    <span className="text-xs font-semibold uppercase tracking-[0.24em] text-primary">Layer {index + 1}</span>
                   </div>
-                  <h3 className="mt-5 font-headline text-xl font-semibold text-text">{layer.title}</h3>
-                  <p className="mt-3 text-sm text-text/70">{layer.description}</p>
-                  <ul className="mt-6 space-y-3 text-sm text-text/80">
+                  <h3 className="mt-5 font-headline text-xl font-semibold text-foreground">{layer.title}</h3>
+                  <p className="mt-3 text-sm text-muted-foreground">{layer.description}</p>
+                  <ul className="mt-6 space-y-3 text-sm text-foreground">
                     {layer.points.map((point) => (
                       <li key={point} className="flex items-start gap-2">
                         <span className="mt-1 h-1.5 w-1.5 rounded-full bg-primary" />
@@ -362,11 +362,11 @@ export default function HomePage() {
         <PageSection background="muted" id="journey">
           <FadeIn className="space-y-10">
             <div className="max-w-2xl">
-              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary/70">Deployment journey</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary">Deployment journey</p>
               <GradientHeading className="mt-4">
                 Three steps to proactive incident prevention
               </GradientHeading>
-              <p className="mt-3 text-lg text-text/70">
+              <p className="mt-3 text-lg text-foreground">
                 Launch DIFAE without disrupting your existing infrastructure. Our architects guide every phase.
               </p>
             </div>
@@ -378,7 +378,7 @@ export default function HomePage() {
           <div className="grid gap-10 lg:grid-cols-[1.1fr,1fr] lg:items-center">
             <FadeIn className="space-y-6">
               <GradientHeading>Command centre that sees ahead</GradientHeading>
-              <p className="max-w-2xl text-lg text-text/70">
+              <p className="max-w-2xl text-lg text-foreground">
                 Real-time dashboards, predictive analytics, and automated audit trails keep your teams empowered and regulators satisfied.
               </p>
               <div className="grid gap-4 sm:grid-cols-3">
@@ -386,15 +386,15 @@ export default function HomePage() {
                 <MetricCard label="Incident latency" value="&lt; 60s" icon={<Waves className="h-6 w-6" />} />
                 <MetricCard label="Network uptime" value="99.99%" icon={<Radar className="h-6 w-6" />} />
               </div>
-              <p className="text-sm text-text/60">
+              <p className="text-sm text-muted-foreground">
                 Every alert is encrypted end-to-end, stored with tamper-proof logs, and ready to share securely with insurers, law enforcement, or internal stakeholders.
               </p>
             </FadeIn>
             <FadeIn delay={120} className="space-y-6 rounded-3xl border border-border/60 bg-white/80 p-8 shadow-xl shadow-primary/10">
-              <h3 className="font-headline text-2xl font-semibold text-text">Your recommended starting point</h3>
+              <h3 className="font-headline text-2xl font-semibold text-foreground">Your recommended starting point</h3>
               {featuredProduct ? (
                 <div className="space-y-4">
-                  <p className="text-sm text-text/70">
+                  <p className="text-sm text-muted-foreground">
                     {featuredProduct.description ?? "Kickstart proactive security with DIFAE’s most popular device bundle."}
                   </p>
                   <p className="text-2xl font-headline font-semibold text-primary">Rs {featuredProduct.price?.toLocaleString()}</p>
@@ -413,7 +413,7 @@ export default function HomePage() {
                   </Link>
                 </div>
               ) : (
-                <p className="text-sm text-text/60">
+                <p className="text-sm text-muted-foreground">
                   Configure your command centre with DIFAE hardware and software tuned to your perimeter.
                 </p>
               )}
@@ -424,11 +424,11 @@ export default function HomePage() {
         <PageSection background="tint" id="pricing">
           <FadeIn className="space-y-10">
             <div className="max-w-2xl">
-              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary/70">Products & Pricing</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary">Products & Pricing</p>
               <GradientHeading className="mt-4">
                 Choose the deployment that meets your mission
               </GradientHeading>
-              <p className="mt-3 text-lg text-text/70">
+              <p className="mt-3 text-lg text-foreground">
                 Every plan includes encrypted storage, operator training, and human-in-the-loop verification from our Security Operations Centre.
               </p>
             </div>
@@ -446,24 +446,24 @@ export default function HomePage() {
           <div className="grid gap-10 lg:grid-cols-[1.1fr,1fr] lg:items-center">
             <FadeIn className="space-y-6">
               <GradientHeading>Enterprise support when every second matters</GradientHeading>
-              <p className="max-w-2xl text-lg text-text/70">
+              <p className="max-w-2xl text-lg text-foreground">
                 Security architects and analysts partner with your teams to design, deploy, and continuously improve DIFAE to fit every perimeter you protect.
               </p>
               <div className="grid gap-6 sm:grid-cols-2">
                 <Card className="rounded-3xl border border-border/60 bg-white/80 shadow-lg shadow-primary/10">
                   <CardHeader>
-                    <CardTitle className="text-lg font-semibold text-text">24/7 Security Operations Centre</CardTitle>
+                    <CardTitle className="text-lg font-semibold text-foreground">24/7 Security Operations Centre</CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-2 text-sm text-text/70">
+                  <CardContent className="space-y-2 text-sm text-muted-foreground">
                     <p>Live analysts verify high-risk alerts, call authorities, and coordinate on-site teams.</p>
                     <p>Multi-channel escalation with recorded evidence and bilingual communication.</p>
                   </CardContent>
                 </Card>
                 <Card className="rounded-3xl border border-border/60 bg-white/80 shadow-lg shadow-primary/10">
                   <CardHeader>
-                    <CardTitle className="text-lg font-semibold text-text">Security architecture services</CardTitle>
+                    <CardTitle className="text-lg font-semibold text-foreground">Security architecture services</CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-2 text-sm text-text/70">
+                  <CardContent className="space-y-2 text-sm text-muted-foreground">
                     <p>Site audits, policy design, and continuous optimisation to reduce incident volume.</p>
                     <p>Integrations with access control, sirens, drones, and guard management systems.</p>
                   </CardContent>
@@ -471,8 +471,8 @@ export default function HomePage() {
               </div>
             </FadeIn>
             <FadeIn delay={120} className="rounded-3xl border border-border/60 bg-white/80 p-8 shadow-xl shadow-primary/10">
-              <h3 className="font-headline text-2xl font-semibold text-text">Ready to accelerate prevention?</h3>
-              <p className="mt-3 text-sm text-text/70">
+              <h3 className="font-headline text-2xl font-semibold text-foreground">Ready to accelerate prevention?</h3>
+              <p className="mt-3 text-sm text-muted-foreground">
                 Share your perimeter goals and receive a tailored deployment blueprint within 48 hours.
               </p>
               <div className="mt-6 flex flex-col gap-3">

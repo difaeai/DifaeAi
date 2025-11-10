@@ -115,18 +115,18 @@ export default function ProductsPage() {
   );
 
   return (
-    <div className="flex min-h-screen flex-col bg-background text-text">
+    <div className="flex min-h-screen flex-col bg-background text-foreground">
       <PublicHeader />
       <main className="flex-1">
         <section className="relative overflow-hidden pt-20">
           <div className="absolute inset-0 -z-10 bg-gradient-to-br from-primary/10 via-white to-accent/5" />
           <Container className="grid gap-12 pb-20 lg:grid-cols-[1.1fr,1fr] lg:items-center">
             <FadeIn className="space-y-6">
-              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary/70">Products & Pricing</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary">Products & Pricing</p>
               <h1 className="font-headline text-4xl font-semibold tracking-tight sm:text-5xl">
                 Choose the DIFAE deployment built for your perimeter
               </h1>
-              <p className="max-w-2xl text-lg text-text/70">
+              <p className="max-w-2xl text-lg text-foreground">
                 Whether you’re safeguarding a single estate or a national footprint, DIFAE combines AI, human expertise, and trusted hardware to stop incidents before they escalate.
               </p>
               <div className="flex flex-col gap-3 sm:flex-row">
@@ -139,8 +139,8 @@ export default function ProductsPage() {
               </div>
             </FadeIn>
             <FadeIn delay={150} className="rounded-3xl border border-border/60 bg-white/80 p-8 shadow-xl shadow-primary/10">
-              <h3 className="font-headline text-xl font-semibold text-text">Every plan includes</h3>
-              <ul className="mt-6 space-y-3 text-sm text-text/70">
+              <h3 className="font-headline text-xl font-semibold text-foreground">Every plan includes</h3>
+              <ul className="mt-6 space-y-3 text-sm text-muted-foreground">
                 <li className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-success" /> Predictive analytics tuned to your sites
                 </li>
@@ -161,15 +161,15 @@ export default function ProductsPage() {
         <PageSection>
           <FadeIn className="space-y-12">
             <div className="max-w-2xl">
-              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary/70">Why teams choose DIFAE</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary">Why teams choose DIFAE</p>
               <GradientHeading className="mt-4">Premium technology backed by human expertise</GradientHeading>
             </div>
             <div className="grid gap-6 md:grid-cols-2">
               {differentiators.map((item, index) => (
                 <FadeIn key={item.title} delay={index * 80} className="rounded-3xl border border-border/60 bg-white/80 p-6 shadow-lg shadow-primary/10">
                   <item.icon className="h-10 w-10 text-primary" />
-                  <h3 className="mt-6 font-headline text-xl font-semibold text-text">{item.title}</h3>
-                  <p className="mt-3 text-sm text-text/70">{item.description}</p>
+                  <h3 className="mt-6 font-headline text-xl font-semibold text-foreground">{item.title}</h3>
+                  <p className="mt-3 text-sm text-muted-foreground">{item.description}</p>
                 </FadeIn>
               ))}
             </div>
@@ -179,9 +179,9 @@ export default function ProductsPage() {
         <PageSection background="tint" id="plans">
           <FadeIn className="space-y-10">
             <div className="max-w-2xl">
-              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary/70">Managed plans</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary">Managed plans</p>
               <GradientHeading className="mt-4">Managed AI security tuned to your mission</GradientHeading>
-              <p className="mt-3 text-lg text-text/70">
+              <p className="mt-3 text-lg text-foreground">
                 Subscription plans combine DIFAE software, SOC analysts, and proactive reporting tailored to your risk profile.
               </p>
             </div>
@@ -199,8 +199,8 @@ export default function ProductsPage() {
           <FadeIn className="space-y-8">
             <GradientHeading>Compare managed plans</GradientHeading>
             <div className="overflow-hidden rounded-3xl border border-border/60 bg-white/80 shadow-lg shadow-primary/10">
-              <table className="w-full text-sm text-text/80">
-                <thead className="bg-primary/5 text-left text-xs font-semibold uppercase tracking-[0.24em] text-primary/70">
+              <table className="w-full text-sm text-foreground/80">
+                <thead className="bg-primary/5 text-left text-xs font-semibold uppercase tracking-[0.24em] text-primary">
                   <tr>
                     <th className="px-6 py-4">Capabilities</th>
                     <th className="px-6 py-4 text-center">Launch</th>
@@ -210,12 +210,12 @@ export default function ProductsPage() {
                 <tbody>
                   {comparisonRows.map((row) => (
                     <tr key={row.feature} className="border-t border-border/60">
-                      <td className="px-6 py-4 text-text">{row.feature}</td>
+                      <td className="px-6 py-4 text-foreground">{row.feature}</td>
                       <td className="px-6 py-4 text-center">
-                        {row.launch ? <Check className="mx-auto h-5 w-5 text-success" /> : <span className="text-text/40">—</span>}
+                        {row.launch ? <Check className="mx-auto h-5 w-5 text-success" /> : <span className="text-foreground/40">—</span>}
                       </td>
                       <td className="px-6 py-4 text-center">
-                        {row.scale ? <Check className="mx-auto h-5 w-5 text-success" /> : <span className="text-text/40">—</span>}
+                        {row.scale ? <Check className="mx-auto h-5 w-5 text-success" /> : <span className="text-foreground/40">—</span>}
                       </td>
                     </tr>
                   ))}
@@ -228,9 +228,9 @@ export default function ProductsPage() {
         <PageSection background="muted">
           <FadeIn className="space-y-10">
             <div className="max-w-2xl">
-              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary/70">Hardware</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary">Hardware</p>
               <GradientHeading className="mt-4">Precision hardware engineered for DIFAE</GradientHeading>
-              <p className="mt-3 text-lg text-text/70">
+              <p className="mt-3 text-lg text-foreground">
                 Pair DIFAE software with premium cameras, edge processors, and sensors purpose-built to capture critical evidence.
               </p>
             </div>
@@ -253,10 +253,10 @@ export default function ProductsPage() {
                       </div>
                     )}
                     <CardHeader className="space-y-2">
-                      <CardTitle className="text-xl font-semibold text-text">{product.name}</CardTitle>
-                      <CardDescription className="text-sm text-text/70">{product.description}</CardDescription>
+                      <CardTitle className="text-xl font-semibold text-foreground">{product.name}</CardTitle>
+                      <CardDescription className="text-sm text-muted-foreground">{product.description}</CardDescription>
                     </CardHeader>
-                    <CardContent className="mt-auto space-y-3 text-sm text-text/70">
+                    <CardContent className="mt-auto space-y-3 text-sm text-muted-foreground">
                       <p className="text-lg font-headline text-primary">Rs {product.price?.toLocaleString()}</p>
                       {product.features && Array.isArray(product.features) && (
                         <ul className="space-y-2">
@@ -297,7 +297,7 @@ export default function ProductsPage() {
           <FadeIn className="grid gap-10 lg:grid-cols-[1.1fr,1fr] lg:items-center">
             <div className="space-y-6">
               <GradientHeading>Let’s design your security blueprint</GradientHeading>
-              <p className="max-w-2xl text-lg text-text/70">
+              <p className="max-w-2xl text-lg text-foreground">
                 Our architects will evaluate your perimeter and recommend the right blend of AI, human operations, and hardware to meet your mission goals.
               </p>
               <div className="flex flex-col gap-3 sm:flex-row">
@@ -310,8 +310,8 @@ export default function ProductsPage() {
               </div>
             </div>
             <div className="space-y-6 rounded-3xl border border-border/60 bg-white/80 p-8 shadow-xl shadow-primary/10">
-              <h3 className="font-headline text-2xl font-semibold text-text">Need help choosing?</h3>
-              <p className="text-sm text-text/70">
+              <h3 className="font-headline text-2xl font-semibold text-foreground">Need help choosing?</h3>
+              <p className="text-sm text-muted-foreground">
                 Email <Link href="mailto:hello@berreto.co" className="text-primary underline">hello@berreto.co</Link> and our team will respond within one business day.
               </p>
             </div>
