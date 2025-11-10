@@ -10,6 +10,34 @@ The repository uses a monorepo structure with npm workspaces and includes shared
 
 ## Recent Changes
 
+**November 10, 2025 - DIFAE AI Product Landing Page Redesign**
+
+**Complete Frontend Redesign as Product Landing Page:**
+- Redesigned entire frontend to position DIFAE AI as the flagship product and BERRETO as the company
+- Added prominent DIFAE AI Agent showcase section on homepage immediately after hero ("Don't Just Record Crime. Prevent It")
+- Updated About Us page: New hero emphasizing "Building the Future of Predictive Security" with DIFAE AI focus
+- Redesigned Agent page: "Your AI-Powered Security Specialist" with enhanced product positioning
+- All pages now feature professional stock images for AI surveillance, security monitoring, and technology
+
+**Visual Assets & Images:**
+- Downloaded 9 stock images: AI surveillance cameras, security control rooms, monitoring dashboards, AI technology
+- Moved all images to `public/images/` directory for Next.js production serving
+- Added images to homepage DIFAE showcase, About hero, Agent hero with proper gradients and overlays
+- All image paths use `/images/` for production compatibility
+
+**Product Messaging Updates:**
+- Homepage CTA buttons: "Explore DIFAE AI Capabilities" and "Request a Demo"
+- About page CTAs: "Discover DIFAE AI" and "Talk to our team"
+- Agent page positioning: Emphasizes threat prediction, 24/7 monitoring, and AI-powered intelligence
+- Consistent BERRETO = company, DIFAE AI = product messaging across all pages
+
+**Landing Page Design Elements:**
+- Modern card-based layouts with rounded corners and shadows
+- Gradient overlays on images for text readability
+- Badge components highlighting "DIFAE AI Agent" and "Introducing DIFAE AI Agent"
+- Metric cards showing "Threat prediction accuracy: 99.1%" and "Incident reduction: -68%"
+- Consistent CTA design with primary and secondary buttons
+
 **November 10, 2025 - Complete BERRETO Rebranding & Dynamic Products**
 
 **Products Page Made Fully Dynamic:**
