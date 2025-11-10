@@ -16,8 +16,9 @@ import { Banknote, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from "@/hooks/use-auth";
-import { db } from "@/lib/firebase";
+import { db, storage } from "@/lib/firebase";
 import { collection, addDoc, Timestamp } from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import type { Order } from "@/lib/types";
 
 // This function now ONLY writes to the global /orders collection.
@@ -109,7 +110,7 @@ export default function CheckoutPage() {
         return;
     }
 
-    if (!paymentProof || !paymentProofPreview) {
+    if (!paymentProof) {
         toast({
             variant: "destructive",
             title: "Payment Proof Required",
@@ -121,13 +122,20 @@ export default function CheckoutPage() {
     setIsPlacingOrder(true);
     
     try {
+        const timestamp = Date.now();
+        const fileName = `payment-proof-${user.uid}-${timestamp}.${paymentProof.name.split('.').pop()}`;
+        const storageRef = ref(storage, `payment-proofs/${fileName}`);
+        
+        await uploadBytes(storageRef, paymentProof);
+        const downloadURL = await getDownloadURL(storageRef);
+
         const orderPayload: Omit<Order, 'id' | 'createdAt' | 'userId'> = {
             customerName: user.displayName || 'Unknown User',
             customerEmail: user.email || 'no-email',
             items: cartItems.map(item => `${item.quantity}x ${item.name}`).join(', '),
             total: cartTotal,
             status: 'Pending' as const,
-            paymentProofUrl: paymentProofPreview, // Save the base64 data URI directly
+            paymentProofUrl: downloadURL,
         };
 
         await addOrderToFirestore(user.uid, orderPayload);
