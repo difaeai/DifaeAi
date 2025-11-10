@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Info, Bridge } from "lucide-react";
+import { Info, Network } from "lucide-react";
 import { useWizard } from "../page";
 import { useToast } from "@/hooks/use-toast";
 
@@ -168,7 +168,7 @@ export default function StepThreeConnection() {
                 onCheckedChange={(checked) => dispatch({ type: "SET_CONNECTION_DETAILS", payload: { useBridge: Boolean(checked) } })}
               />
               <Label htmlFor="use-bridge" className="text-sm font-medium cursor-pointer flex items-center gap-2">
-                <Bridge className="h-4 w-4" />
+                <Network className="h-4 w-4" />
                 Use Camera Bridge (for cloud-hosted app)
               </Label>
             </div>
