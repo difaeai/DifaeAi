@@ -29,7 +29,7 @@ async function getProducts(): Promise<Product[]> {
 
 const managedPlans = [
   {
-    name: "DIFAE Launch",
+    name: "BERRETO Launch",
     price: "Rs 39,000/mo",
     description: "Ideal for single-site deployments needing predictive alerts and human verification.",
     features: [
@@ -42,7 +42,7 @@ const managedPlans = [
     ctaHref: "/checkout",
   },
   {
-    name: "DIFAE Scale",
+    name: "BERRETO Scale",
     price: "Rs 95,000/mo",
     description: "Multi-site orchestration with autonomous playbooks and custom analytics dashboards.",
     features: [
@@ -76,7 +76,7 @@ const differentiators = [
   {
     icon: Clock3,
     title: "Rapid deployment",
-    description: "Activate DIFAE within days using existing cameras, no rewiring required.",
+    description: "Activate BERRETO within days using existing cameras, no rewiring required.",
   },
 ];
 
@@ -124,10 +124,10 @@ export default function ProductsPage() {
             <FadeIn className="space-y-6">
               <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary">Products & Pricing</p>
               <h1 className="font-headline text-4xl font-semibold tracking-tight sm:text-5xl">
-                Choose the DIFAE deployment built for your perimeter
+                Choose the BERRETO deployment built for your perimeter
               </h1>
               <p className="max-w-2xl text-lg text-foreground">
-                Whether you’re safeguarding a single estate or a national footprint, DIFAE combines AI, human expertise, and trusted hardware to stop incidents before they escalate.
+                Whether you’re safeguarding a single estate or a national footprint, BERRETO combines AI, human expertise, and trusted hardware to stop incidents before they escalate.
               </p>
               <div className="flex flex-col gap-3 sm:flex-row">
                 <Button asChild size="lg" className="rounded-full">
@@ -161,7 +161,7 @@ export default function ProductsPage() {
         <PageSection>
           <FadeIn className="space-y-12">
             <div className="max-w-2xl">
-              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary">Why teams choose DIFAE</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary">Why teams choose BERRETO</p>
               <GradientHeading className="mt-4">Premium technology backed by human expertise</GradientHeading>
             </div>
             <div className="grid gap-6 md:grid-cols-2">
@@ -182,7 +182,7 @@ export default function ProductsPage() {
               <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary">Managed plans</p>
               <GradientHeading className="mt-4">Managed AI security tuned to your mission</GradientHeading>
               <p className="mt-3 text-lg text-foreground">
-                Subscription plans combine DIFAE software, SOC analysts, and proactive reporting tailored to your risk profile.
+                Subscription plans combine BERRETO software, SOC analysts, and proactive reporting tailored to your risk profile.
               </p>
             </div>
             <div className="grid gap-6 lg:grid-cols-2">
@@ -229,9 +229,9 @@ export default function ProductsPage() {
           <FadeIn className="space-y-10">
             <div className="max-w-2xl">
               <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary">Hardware</p>
-              <GradientHeading className="mt-4">Precision hardware engineered for DIFAE</GradientHeading>
+              <GradientHeading className="mt-4">Precision hardware engineered for BERRETO</GradientHeading>
               <p className="mt-3 text-lg text-foreground">
-                Pair DIFAE software with premium cameras, edge processors, and sensors purpose-built to capture critical evidence.
+                Pair BERRETO software with premium cameras, edge processors, and sensors purpose-built to capture critical evidence.
               </p>
             </div>
             {isLoading ? (
@@ -305,7 +305,7 @@ export default function ProductsPage() {
                   <Link href="/contact">Book a demo</Link>
                 </Button>
                 <Button asChild variant="secondary" className="rounded-full border border-primary/20 bg-white text-primary hover:bg-primary/10">
-                  <Link href="/pre-booking">Pre-book DIFAE hardware</Link>
+                  <Link href="/pre-booking">Pre-book BERRETO hardware</Link>
                 </Button>
               </div>
             </div>

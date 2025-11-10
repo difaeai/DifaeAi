@@ -30,7 +30,7 @@ const highlightMetrics = [
 const platformLinks = [
   { label: "Home", href: "/" },
   { label: "About", href: "/about" },
-  { label: "DIFAE Agent", href: "/agent" },
+  { label: "Agent", href: "/agent" },
   { label: "Contact", href: "/contact" },
 ];
 

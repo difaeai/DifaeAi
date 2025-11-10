@@ -271,7 +271,7 @@ export default function HomePage() {
             </FadeIn>
             <FadeIn delay={150}>
               <VideoFrame
-                videoId={content?.hero?.videoId ?? "l0q0VW2l4pI"}
+                videoId={content?.hero?.videoId ?? "9KsJnCt3NVE"}
                 title="BERRETO Security Cloud overview"
                 className="shadow-2xl"
               />

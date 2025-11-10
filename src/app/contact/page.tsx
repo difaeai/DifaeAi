@@ -61,7 +61,7 @@ export default function ContactPage() {
           <div className="absolute inset-0 -z-10 bg-gradient-to-br from-primary/10 via-white to-accent/5" />
           <Container className="grid gap-12 pb-20 lg:grid-cols-[1.1fr,1fr] lg:items-center">
             <FadeIn className="space-y-6">
-              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary">Contact DIFAE</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary">Contact BERRETO</p>
               <h1 className="font-headline text-4xl font-semibold tracking-tight sm:text-5xl">
                 {content?.hero?.headline ?? "Let’s design a safer future together"}
               </h1>
@@ -121,7 +121,7 @@ export default function ContactPage() {
                 <CardHeader>
                   <CardTitle className="font-headline text-xl text-foreground">Security strategy</CardTitle>
                   <CardDescription className="text-sm text-muted-foreground">
-                    Plan rollouts, evaluate risk, and discover how DIFAE fits your security stack.
+                    Plan rollouts, evaluate risk, and discover how BERRETO fits your security stack.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3 text-sm text-muted-foreground">
@@ -153,7 +153,7 @@ export default function ContactPage() {
                 <CardHeader>
                   <CardTitle className="font-headline text-xl text-foreground">Customer support</CardTitle>
                   <CardDescription className="text-sm text-muted-foreground">
-                    Already using DIFAE? Our support team is on call 24/7.
+                    Already using BERRETO? Our support team is on call 24/7.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3 text-sm text-muted-foreground">
@@ -212,7 +212,7 @@ export default function ContactPage() {
                 {content?.details?.address ?? "Office 25, Islamabad, Pakistan"}
               </p>
               <div className="rounded-3xl border border-border/60 bg-primary/5 p-6 text-sm text-primary">
-                Connect your cameras to DIFAE and watch how your perimeter transforms from reactive to proactive security in days.
+                Connect your cameras to BERRETO and watch how your perimeter transforms from reactive to proactive security in days.
               </div>
               <p className="text-sm text-foreground/60">
                 Prefer a live walkthrough? <Link href="/products" className="text-primary underline">Explore our solutions</Link> or book a strategy session.

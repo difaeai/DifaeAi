@@ -210,11 +210,10 @@ export default function PublicHeader() {
               <div className="flex items-center justify-between border-b border-border/60 pb-4">
                 <Link href="/" className="flex items-center gap-3 text-sm font-semibold">
                   <span className="flex h-11 w-11 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 font-headline text-lg text-primary">
-                    D
+                    B
                   </span>
                   <span className="text-left leading-tight">
-                    <span className="block text-[11px] uppercase tracking-[0.32em] text-primary">BERRETO AI</span>
-                    <span className="block text-sm text-foreground">Security Cloud</span>
+                    <span className="block text-base text-foreground">BERRETO</span>
                   </span>
                 </Link>
               </div>
