@@ -91,25 +91,29 @@ export default function StepFourTest({ onComplete }: StepFourTestProps) {
       const result = await response.json();
 
       if (result.success) {
-        // Connection successful
+        // Connection successful - FFmpeg verified RTSP stream
+        dispatch({ type: "SET_CONNECTION_TESTED", payload: { tested: true, streamUrl: result.streamUrl } });
+        
+        // For IP/DVR cameras, FFmpeg probe validation is sufficient
+        // Video preview will be available after HLS transcoding is deployed
+        setVideoReady(true);
+        
+        toast({
+          title: "Connection Verified!",
+          description: result.streamInfo 
+            ? `Camera validated: ${result.streamInfo.width}x${result.streamInfo.height}`
+            : "Camera connection successful.",
+        });
+
+        // Optionally attempt video preview (if streaming endpoint exists)
         const streamUrl = result.streamUrl || result.hlsUrl;
-        if (streamUrl) {
+        if (streamUrl && result.hlsUrl) {
           setPreviewUrl(streamUrl);
           setShowPreview(true);
-          dispatch({ type: "SET_CONNECTION_TESTED", payload: { tested: true, streamUrl } });
-          toast({
-            title: "Connection Verified!",
-            description: "Live preview should appear below.",
-          });
 
           // Load video if HLS
           if (result.hlsUrl && videoRef.current) {
             const video = videoRef.current;
-            
-            // Set up video ready listener
-            video.onloadeddata = () => {
-              setVideoReady(true);
-            };
             
             // Load HLS stream
             if (video.canPlayType("application/vnd.apple.mpegurl")) {
@@ -120,9 +124,6 @@ export default function StepFourTest({ onComplete }: StepFourTestProps) {
                 const hls = new Hls();
                 hls.loadSource(result.hlsUrl);
                 hls.attachMedia(video);
-                hls.on(Hls.Events.MANIFEST_PARSED, () => {
-                  setVideoReady(true);
-                });
               }
             }
           }
@@ -169,9 +170,9 @@ export default function StepFourTest({ onComplete }: StepFourTestProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="font-headline">Step 4: Test Connection</CardTitle>
+        <CardTitle className="font-headline">Step 4: Test Connection & Validate</CardTitle>
         <CardDescription>
-          Verify that BERRETO can connect to your camera before adding it. A live preview must appear to proceed.
+          Verify that BERRETO can connect to your camera and validate the video stream before adding it.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -248,7 +249,7 @@ export default function StepFourTest({ onComplete }: StepFourTestProps) {
               <AlertTriangle className="h-4 w-4" />
               <AlertTitle>Connection Not Tested</AlertTitle>
               <AlertDescription>
-                Please test the connection before adding the camera. A live preview must appear to proceed.
+                Please test the connection to validate the camera stream before adding it to the system.
               </AlertDescription>
             </Alert>
           )

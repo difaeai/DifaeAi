@@ -80,7 +80,13 @@ export default function NetworkScannerDialog({
             Network Scanner
           </DialogTitle>
           <DialogDescription>
-            Scanning your local network for IP cameras. This may take a few seconds...
+            <div className="space-y-2">
+              <p>Network scanning requires local deployment to access your cameras.</p>
+              <p className="text-xs text-muted-foreground">
+                This cloud-hosted version cannot scan your home/office network. 
+                Please enter your camera's IP address manually, or deploy locally for network scanning.
+              </p>
+            </div>
           </DialogDescription>
         </DialogHeader>
 
@@ -91,12 +97,20 @@ export default function NetworkScannerDialog({
                 <Wifi className="h-8 w-8 text-muted-foreground" />
               </div>
               <div>
-                <p className="font-medium">Ready to Scan</p>
+                <p className="font-medium">Ready to Scan Network</p>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Click the button below to scan your network for IP cameras.
+                  Click below to scan for IP cameras on the network.
+                </p>
+                <p className="text-xs text-yellow-600 mt-2">
+                  Note: Cloud deployment scans server network. For local cameras, deploy app locally or enter IP manually.
                 </p>
               </div>
-              <Button onClick={handleStartScan}>Start Network Scan</Button>
+              <div className="flex gap-2">
+                <Button onClick={handleStartScan}>Start Network Scan</Button>
+                <Button onClick={() => onOpenChange(false)} variant="outline">
+                  Enter IP Manually
+                </Button>
+              </div>
             </div>
           )}
 

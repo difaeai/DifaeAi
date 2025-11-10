@@ -1,7 +1,123 @@
 import { NextRequest, NextResponse } from "next/server";
+import { execFile } from "child_process";
+import { promisify } from "util";
+
+const execFileAsync = promisify(execFile);
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+async function testRTSPConnection(rtspUrl: string): Promise<{
+  success: boolean;
+  error?: string;
+  streamInfo?: any;
+}> {
+  try {
+    console.log(`Testing RTSP connection: ${rtspUrl.replace(/:[^:@]+@/, ':****@')}`);
+    
+    // Validate RTSP URL format to prevent injection
+    if (!rtspUrl.startsWith('rtsp://') && !rtspUrl.startsWith('rtsps://')) {
+      return {
+        success: false,
+        error: 'Invalid RTSP URL format. Must start with rtsp:// or rtsps://',
+      };
+    }
+    
+    // Use execFile with argument array (no shell interpolation - prevents command injection)
+    const { stdout, stderr } = await execFileAsync('ffprobe', [
+      '-v', 'error',
+      '-show_entries', 'stream=codec_type,width,height,r_frame_rate',
+      '-of', 'json',
+      '-rtsp_transport', 'tcp',
+      '-timeout', '5000000',
+      rtspUrl
+    ], {
+      timeout: 10000,
+    });
+    
+    if (stderr && stderr.toLowerCase().includes('error')) {
+      console.error(`FFprobe stderr: ${stderr}`);
+      
+      if (stderr.includes('401') || stderr.includes('Unauthorized')) {
+        return {
+          success: false,
+          error: 'Authentication failed. Please check username and password.',
+        };
+      }
+      
+      if (stderr.includes('Connection refused') || stderr.includes('Could not connect')) {
+        return {
+          success: false,
+          error: 'Connection refused. Check IP address and port.',
+        };
+      }
+      
+      if (stderr.includes('timed out') || stderr.includes('timeout')) {
+        return {
+          success: false,
+          error: 'Connection timed out. Camera may be offline or unreachable.',
+        };
+      }
+      
+      return {
+        success: false,
+        error: 'Failed to connect to camera stream.',
+      };
+    }
+    
+    let streamInfo;
+    try {
+      streamInfo = JSON.parse(stdout);
+    } catch {
+      return {
+        success: false,
+        error: 'Invalid stream format. Camera may not support RTSP.',
+      };
+    }
+    
+    if (!streamInfo.streams || streamInfo.streams.length === 0) {
+      return {
+        success: false,
+        error: 'No video stream found. Check RTSP URL path.',
+      };
+    }
+    
+    const videoStream = streamInfo.streams.find((s: any) => s.codec_type === 'video');
+    
+    if (!videoStream) {
+      return {
+        success: false,
+        error: 'No video stream detected in camera feed.',
+      };
+    }
+    
+    console.log(`RTSP connection successful. Video: ${videoStream.width}x${videoStream.height}`);
+    
+    return {
+      success: true,
+      streamInfo: {
+        width: videoStream.width,
+        height: videoStream.height,
+        fps: videoStream.r_frame_rate,
+        codec: videoStream.codec_name,
+      },
+    };
+  } catch (error: any) {
+    console.error(`RTSP test error:`, error.message);
+    
+    if (error.killed || error.signal === 'SIGTERM') {
+      return {
+        success: false,
+        error: 'Connection timed out. Camera may be offline.',
+      };
+    }
+    
+    return {
+      success: false,
+      error: 'Failed to connect to camera. Verify RTSP URL, credentials, and network access.',
+    };
+  }
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -10,7 +126,6 @@ export async function POST(req: NextRequest) {
 
     console.log(`Testing ${cameraType} camera connection:`, streamUrl);
 
-    // For RTSP/IP cameras, validate the URL format
     if (cameraType === "ip" || cameraType === "dvr") {
       if (!streamUrl) {
         return NextResponse.json({
@@ -19,22 +134,32 @@ export async function POST(req: NextRequest) {
         });
       }
 
-      // Basic RTSP URL validation
-      if (!streamUrl.startsWith("rtsp://")) {
+      if (!streamUrl.startsWith("rtsp://") && !streamUrl.startsWith("rtsps://")) {
         return NextResponse.json({
           success: false,
-          message: "Invalid RTSP URL. Must start with rtsp://",
+          message: "Invalid RTSP URL. Must start with rtsp:// or rtsps://",
         });
       }
 
-      // In production, this would:
-      // 1. Test RTSP connection using FFmpeg or node-rtsp-stream
-      // 2. Convert RTSP to HLS using FFmpeg
-      // 3. Return HLS URL for playback
+      let fullRtspUrl = streamUrl;
+      
+      if (username && password && !streamUrl.includes('@')) {
+        const urlObj = new URL(streamUrl);
+        urlObj.username = username;
+        urlObj.password = password;
+        fullRtspUrl = urlObj.toString();
+      }
 
-      // For now, return success with demo HLS URL
-      // The actual implementation would require FFmpeg server-side
-      const hlsUrl = `/api/stream/${encodeURIComponent(streamUrl)}`;
+      const result = await testRTSPConnection(fullRtspUrl);
+
+      if (!result.success) {
+        return NextResponse.json({
+          success: false,
+          message: result.error || "Connection test failed",
+        });
+      }
+
+      const hlsUrl = `/api/stream/${encodeURIComponent(fullRtspUrl)}`;
 
       return NextResponse.json({
         success: true,
@@ -42,11 +167,10 @@ export async function POST(req: NextRequest) {
         streamUrl: streamUrl,
         hlsUrl: hlsUrl,
         connectionType: "RTSP",
-        note: "In production, FFmpeg would convert RTSP to HLS for browser playback",
+        streamInfo: result.streamInfo,
       });
     }
 
-    // For cloud cameras
     if (cameraType === "cloud") {
       return NextResponse.json({
         success: true,
@@ -55,7 +179,6 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // For mobile cameras
     if (cameraType === "mobile") {
       return NextResponse.json({
         success: true,
@@ -64,7 +187,6 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // For USB webcams (handled client-side)
     if (cameraType === "usb") {
       return NextResponse.json({
         success: true,
