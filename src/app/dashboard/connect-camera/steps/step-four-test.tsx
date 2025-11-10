@@ -22,6 +22,7 @@ export default function StepFourTest({ onComplete }: StepFourTestProps) {
   const [isAdding, setIsAdding] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string>("");
   const [showPreview, setShowPreview] = useState(false);
+  const [videoReady, setVideoReady] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
@@ -34,9 +35,13 @@ export default function StepFourTest({ onComplete }: StepFourTestProps) {
           streamRef.current = stream;
           if (videoRef.current) {
             videoRef.current.srcObject = stream;
+            // Wait for video to be ready
+            videoRef.current.onloadeddata = () => {
+              setVideoReady(true);
+              dispatch({ type: "SET_CONNECTION_TESTED", payload: { tested: true } });
+              setShowPreview(true);
+            };
           }
-          dispatch({ type: "SET_CONNECTION_TESTED", payload: { tested: true } });
-          setShowPreview(true);
         } catch (error) {
           console.error("Webcam error:", error);
           toast({
@@ -44,6 +49,7 @@ export default function StepFourTest({ onComplete }: StepFourTestProps) {
             title: "Webcam Access Denied",
             description: "Please enable camera permissions in your browser.",
           });
+          dispatch({ type: "SET_CONNECTION_TESTED", payload: { tested: false } });
         }
       };
       getWebcamStream();
@@ -98,26 +104,41 @@ export default function StepFourTest({ onComplete }: StepFourTestProps) {
 
           // Load video if HLS
           if (result.hlsUrl && videoRef.current) {
-            if (videoRef.current.canPlayType("application/vnd.apple.mpegurl")) {
-              videoRef.current.src = result.hlsUrl;
+            const video = videoRef.current;
+            
+            // Set up video ready listener
+            video.onloadeddata = () => {
+              setVideoReady(true);
+            };
+            
+            // Load HLS stream
+            if (video.canPlayType("application/vnd.apple.mpegurl")) {
+              video.src = result.hlsUrl;
             } else if (typeof window !== "undefined" && (window as any).Hls) {
               const Hls = (window as any).Hls;
               if (Hls.isSupported()) {
                 const hls = new Hls();
                 hls.loadSource(result.hlsUrl);
-                hls.attachMedia(videoRef.current);
+                hls.attachMedia(video);
+                hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                  setVideoReady(true);
+                });
               }
             }
           }
         } else {
+          // For cloud/mobile cameras without video preview
           dispatch({ type: "SET_CONNECTION_TESTED", payload: { tested: true } });
+          setVideoReady(true);
           toast({
             title: "Connection Verified!",
             description: result.message || "Camera connected successfully.",
           });
         }
       } else {
+        // Connection failed
         dispatch({ type: "SET_CONNECTION_TESTED", payload: { tested: false } });
+        setVideoReady(false);
         toast({
           variant: "destructive",
           title: "Connection Failed",
@@ -127,20 +148,23 @@ export default function StepFourTest({ onComplete }: StepFourTestProps) {
     } catch (error) {
       console.error("Connection test error:", error);
       
-      // DEMO MODE: For testing without real backend, auto-approve the connection
-      toast({
-        title: "Demo Mode: Connection Approved",
-        description: "In production, this would test the real camera connection. Proceeding for testing.",
-      });
-      dispatch({ type: "SET_CONNECTION_TESTED", payload: { tested: true } });
-      setShowPreview(true);
+      // STRICT ERROR HANDLING: Do not auto-approve failures
+      dispatch({ type: "SET_CONNECTION_TESTED", payload: { tested: false } });
+      setShowPreview(false);
+      setVideoReady(false);
       
+      toast({
+        variant: "destructive",
+        title: "Connection Test Failed",
+        description: "Could not connect to camera. Please check the IP address and credentials, then try again.",
+      });
     } finally {
       setIsTesting(false);
     }
   }, [state, toast, dispatch]);
 
-  const isReadyToAdd = state.isConnectionTested && (state.cameraType === "usb" || state.cameraType === "cloud" || showPreview || state.cameraType === "mobile");
+  // Gate camera addition on both connection tested AND video ready
+  const isReadyToAdd = state.isConnectionTested && videoReady;
 
   return (
     <Card>
