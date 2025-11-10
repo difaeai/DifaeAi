@@ -431,8 +431,14 @@ export default function HomePage() {
               <h3 className="font-headline text-2xl font-semibold text-foreground">Your recommended starting point</h3>
               {featuredProduct ? (
                 <div className="space-y-4">
+                  <div className="overflow-hidden rounded-2xl bg-gradient-to-br from-gray-50 to-gray-100 p-8">
+                    <img 
+                      src="/images/difae-pro-camera.jpg" 
+                      alt="DIFAE Pro Camera" 
+                      className="w-full h-auto object-contain"
+                    />
+                  </div>
                   <p className="text-sm text-muted-foreground">
-                    {featuredProduct.description ?? "Kickstart proactive security with BERRETO’s most popular device bundle."}
                   </p>
                   <p className="text-2xl font-headline font-semibold text-primary">Rs {featuredProduct.price?.toLocaleString()}</p>
                   <Button
