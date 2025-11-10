@@ -58,12 +58,18 @@ export async function POST(req: NextRequest) {
     }
 
     const bridgeUrl = bridgeData.url;
+    const bridgeApiKey = bridgeData.apiKey;
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (bridgeApiKey) {
+      headers['Authorization'] = `Bearer ${bridgeApiKey}`;
+    }
 
     const addCameraResponse = await fetch(`${bridgeUrl}/api/cameras/add`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       body: JSON.stringify({
         ip: cameraIp,
         username: username || '',

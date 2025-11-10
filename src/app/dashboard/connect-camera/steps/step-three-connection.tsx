@@ -177,16 +177,62 @@ export default function StepThreeConnection() {
             </p>
             
             {state.useBridge && (
-              <div className="ml-6 space-y-2">
-                <Label htmlFor="bridge-url" className="text-xs">Bridge URL</Label>
-                <Input 
-                  id="bridge-url"
-                  placeholder="http://localhost:8080"
-                  value={state.bridgeUrl || ""}
-                  onChange={(e) => dispatch({ type: "SET_CONNECTION_DETAILS", payload: { bridgeUrl: e.target.value } })}
-                />
-                <p className="text-xs text-muted-foreground">
-                  Enter your Camera Bridge URL. <a href="/docs/bridge-setup" className="text-primary hover:underline">Setup guide</a>
+              <div className="ml-6 space-y-3">
+                <Alert className="bg-blue-50/50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800">
+                  <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                  <AlertTitle className="text-blue-900 dark:text-blue-100">Bridge Configuration Required</AlertTitle>
+                  <AlertDescription className="text-blue-800 dark:text-blue-200 text-xs">
+                    These settings must match your running Camera Bridge. Check your bridge's startup logs or configuration file for the correct values.
+                  </AlertDescription>
+                </Alert>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="bridge-id" className="text-xs font-medium">Bridge ID *</Label>
+                  <Input 
+                    id="bridge-id"
+                    placeholder="my-home-bridge"
+                    value={state.bridgeId || ""}
+                    onChange={(e) => dispatch({ type: "SET_CONNECTION_DETAILS", payload: { bridgeId: e.target.value } })}
+                  />
+                  <p className="text-xs text-muted-foreground">Must match BRIDGE_ID in your bridge configuration</p>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="bridge-url" className="text-xs font-medium">Bridge URL *</Label>
+                  <Input 
+                    id="bridge-url"
+                    placeholder="http://192.168.1.100:8080"
+                    value={state.bridgeUrl || ""}
+                    onChange={(e) => dispatch({ type: "SET_CONNECTION_DETAILS", payload: { bridgeUrl: e.target.value } })}
+                  />
+                  <p className="text-xs text-muted-foreground">Use localhost:8080 if bridge is on this computer, or IP:8080 if on another device</p>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="bridge-name" className="text-xs font-medium">Bridge Name *</Label>
+                  <Input 
+                    id="bridge-name"
+                    placeholder="My Home Bridge"
+                    value={state.bridgeName || ""}
+                    onChange={(e) => dispatch({ type: "SET_CONNECTION_DETAILS", payload: { bridgeName: e.target.value } })}
+                  />
+                  <p className="text-xs text-muted-foreground">Friendly name to help you identify this bridge</p>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="bridge-api-key" className="text-xs font-medium">Bridge API Key (if required)</Label>
+                  <Input 
+                    id="bridge-api-key"
+                    type="password"
+                    placeholder="Leave blank if not using authentication"
+                    value={state.bridgeApiKey || ""}
+                    onChange={(e) => dispatch({ type: "SET_CONNECTION_DETAILS", payload: { bridgeApiKey: e.target.value } })}
+                  />
+                  <p className="text-xs text-muted-foreground">Only needed if you set API_KEY in your bridge configuration</p>
+                </div>
+                
+                <p className="text-xs text-muted-foreground pt-2 border-t">
+                  Don't have a bridge yet? <a href="/docs/bridge-setup" target="_blank" className="text-primary hover:underline font-medium">Quick Setup Guide →</a>
                 </p>
               </div>
             )}

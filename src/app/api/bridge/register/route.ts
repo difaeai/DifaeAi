@@ -65,6 +65,7 @@ export async function POST(req: NextRequest) {
         id: bridgeId,
         name: bridgeName,
         url: bridgeUrl,
+        apiKey: apiKey || null,
         status: 'online',
         version: healthData.version || 'unknown',
         capabilities: healthData.capabilities || [],
