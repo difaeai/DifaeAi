@@ -33,9 +33,21 @@ export default function StepThreeConnection() {
 
   const handleNext = () => {
     if (!state.selectedIp && state.cameraType === "ip") {
-      toast({ variant: "destructive", title: "No IP Selected", description: "Please select or enter an IP address." });
+      toast({ variant: "destructive", title: "No IP Address", description: "Please enter your camera's IP address." });
       return;
     }
+
+    if (state.useBridge) {
+      if (!state.bridgeId || !state.bridgeUrl || !state.bridgeName) {
+        toast({ 
+          variant: "destructive", 
+          title: "Bridge Configuration Incomplete", 
+          description: "Please fill in Bridge ID, Bridge URL, and Bridge Name to continue." 
+        });
+        return;
+      }
+    }
+
     dispatch({ type: "NEXT_STEP" });
   };
 
@@ -101,82 +113,154 @@ export default function StepThreeConnection() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="font-headline">Step 3: Enter Camera IP Address</CardTitle>
-        <CardDescription>Enter your camera's IP address and credentials.</CardDescription>
+        <CardTitle className="font-headline">Step 3: Choose Connection Method</CardTitle>
+        <CardDescription>Select how you want to connect your camera to BERRETO.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <Alert>
           <Info className="h-4 w-4" />
-          <AlertTitle>IP Camera Setup</AlertTitle>
+          <AlertTitle>Connection Method</AlertTitle>
           <AlertDescription>
-            Enter your camera's IP address. The system will automatically detect the correct RTSP stream path and test the connection.
+            Choose Manual IP Entry for direct connections, or Camera Bridge for cloud-hosted apps that need to access local network cameras.
           </AlertDescription>
         </Alert>
 
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="ip-address">Camera IP Address</Label>
-            <div className="flex gap-2">
-              <Input
-                id="ip-address"
-                type="text"
-                placeholder="192.168.1.100"
-                value={manualIp || state.selectedIp || ""}
-                onChange={(e) => setManualIp(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleManualIpSubmit()}
-              />
-              <Button type="button" onClick={handleManualIpSubmit}>
-                Use
-              </Button>
+        {/* Connection Method Selection */}
+        <div className="space-y-3">
+          <Label className="text-base font-semibold">Select Connection Method:</Label>
+          
+          <div className="grid gap-3">
+            {/* Option 1: Manual IP Entry */}
+            <div 
+              className={`relative cursor-pointer rounded-lg border-2 p-4 transition-all ${
+                !state.useBridge 
+                  ? "border-primary bg-primary/5" 
+                  : "border-muted hover:border-primary/50"
+              }`}
+              onClick={() => dispatch({ type: "SET_CONNECTION_DETAILS", payload: { useBridge: false } })}
+            >
+              <div className="flex items-start gap-3">
+                <Checkbox 
+                  id="manual-ip"
+                  checked={!state.useBridge}
+                  onCheckedChange={(checked) => dispatch({ type: "SET_CONNECTION_DETAILS", payload: { useBridge: !checked } })}
+                  className="mt-1"
+                />
+                <div className="flex-1">
+                  <Label htmlFor="manual-ip" className="text-base font-semibold cursor-pointer">
+                    Manual IP Entry (Direct Connection)
+                  </Label>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Connect directly to the camera using its IP address, username, and password. Works when this app can reach the camera directly.
+                  </p>
+                  <div className="mt-2 text-xs text-muted-foreground">
+                    ✓ Best for: Apps on the same network as camera
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Option 2: Camera Bridge */}
+            <div 
+              className={`relative cursor-pointer rounded-lg border-2 p-4 transition-all ${
+                state.useBridge 
+                  ? "border-primary bg-primary/5" 
+                  : "border-muted hover:border-primary/50"
+              }`}
+              onClick={() => dispatch({ type: "SET_CONNECTION_DETAILS", payload: { useBridge: true } })}
+            >
+              <div className="flex items-start gap-3">
+                <Checkbox 
+                  id="use-bridge"
+                  checked={state.useBridge}
+                  onCheckedChange={(checked) => dispatch({ type: "SET_CONNECTION_DETAILS", payload: { useBridge: Boolean(checked) } })}
+                  className="mt-1"
+                />
+                <div className="flex-1">
+                  <Label htmlFor="use-bridge" className="text-base font-semibold cursor-pointer flex items-center gap-2">
+                    <Network className="h-4 w-4" />
+                    Camera Bridge (For Cloud-Hosted App)
+                  </Label>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Stream cameras from your local network via a bridge. Only requires camera IP address - port auto-detected.
+                  </p>
+                  <div className="mt-2 text-xs text-muted-foreground">
+                    ✓ Best for: Cloud-hosted BERRETO accessing local network cameras
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-
-          {state.selectedIp && (
-            <div className="rounded-md border bg-muted/40 px-4 py-3">
-              <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Current IP Address</p>
-              <p className="font-mono text-sm font-medium">{state.selectedIp}</p>
-            </div>
-          )}
         </div>
 
-        {/* Credentials (only shown in direct mode, not bridge mode) */}
-        {state.selectedIp && !state.useBridge && (
-          <div className="space-y-3">
-            <Label>Camera Credentials (if required)</Label>
-            <Input 
-              placeholder="Username"
-              value={state.streamUser || ""}
-              onChange={(e) => dispatch({ type: "SET_CONNECTION_DETAILS", payload: { streamUser: e.target.value } })} 
-            />
-            <Input
-              type="password"
-              placeholder="Password"
-              value={state.streamPass || ""}
-              onChange={(e) => dispatch({ type: "SET_CONNECTION_DETAILS", payload: { streamPass: e.target.value } })}
-            />
-            <p className="text-xs text-muted-foreground">Leave blank if your camera doesn't require authentication.</p>
+        {/* Manual IP Entry Fields */}
+        {!state.useBridge && (
+          <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
+            <h3 className="font-semibold text-sm">Manual IP Connection Details</h3>
+            
+            <div className="space-y-2">
+              <Label htmlFor="ip-address">Camera IP Address *</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="ip-address"
+                  type="text"
+                  placeholder="192.168.1.100"
+                  value={manualIp || state.selectedIp || ""}
+                  onChange={(e) => setManualIp(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleManualIpSubmit()}
+                />
+                <Button type="button" onClick={handleManualIpSubmit}>
+                  Set IP
+                </Button>
+              </div>
+            </div>
+
+            {state.selectedIp && (
+              <div className="rounded-md border bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800 px-4 py-3">
+                <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">✓ Current IP Address</p>
+                <p className="font-mono text-sm font-medium">{state.selectedIp}</p>
+              </div>
+            )}
+
+            {state.selectedIp && (
+              <div className="space-y-3">
+                <Label>Camera Credentials (if required)</Label>
+                <Input 
+                  placeholder="Username"
+                  value={state.streamUser || ""}
+                  onChange={(e) => dispatch({ type: "SET_CONNECTION_DETAILS", payload: { streamUser: e.target.value } })} 
+                />
+                <Input
+                  type="password"
+                  placeholder="Password"
+                  value={state.streamPass || ""}
+                  onChange={(e) => dispatch({ type: "SET_CONNECTION_DETAILS", payload: { streamPass: e.target.value } })}
+                />
+                <p className="text-xs text-muted-foreground">Leave blank if your camera doesn't require authentication.</p>
+              </div>
+            )}
           </div>
         )}
 
-        {/* Bridge Option */}
-        {state.selectedIp && (
-          <div className="space-y-3 rounded-md border bg-blue-50 dark:bg-blue-950/30 p-4">
-            <div className="flex items-center space-x-2">
-              <Checkbox 
-                id="use-bridge"
-                checked={state.useBridge}
-                onCheckedChange={(checked) => dispatch({ type: "SET_CONNECTION_DETAILS", payload: { useBridge: Boolean(checked) } })}
-              />
-              <Label htmlFor="use-bridge" className="text-sm font-medium cursor-pointer flex items-center gap-2">
-                <Network className="h-4 w-4" />
-                Use Camera Bridge (for cloud-hosted app)
-              </Label>
-            </div>
-            <p className="text-xs text-muted-foreground ml-6">
-              Enable this if you're accessing BERRETO from the cloud and need to stream cameras from your local network. Bridge mode only requires the camera IP address - port will be auto-detected.
-            </p>
+        {/* Camera Bridge Fields */}
+        {state.useBridge && (
+          <div className="space-y-4 p-4 border rounded-lg bg-blue-50/50 dark:bg-blue-950/30">
+            <h3 className="font-semibold text-sm">Camera Bridge Connection Details</h3>
             
-            {state.useBridge && (
+            {/* Camera IP for Bridge Mode */}
+            <div className="space-y-2">
+              <Label htmlFor="bridge-camera-ip">Camera IP Address *</Label>
+              <Input
+                id="bridge-camera-ip"
+                type="text"
+                placeholder="192.168.1.100"
+                value={state.selectedIp || ""}
+                onChange={(e) => dispatch({ type: "SET_CONNECTION_DETAILS", payload: { selectedIp: e.target.value } })}
+              />
+              <p className="text-xs text-muted-foreground">Enter your camera's local network IP address. Port will be auto-detected.</p>
+            </div>
+
+            {state.selectedIp && (
               <div className="ml-6 space-y-4">
                 <Alert className="bg-blue-50/50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800">
                   <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
