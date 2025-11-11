@@ -4,7 +4,11 @@ This monorepo houses two primary applications: **BERRETO Security Cloud**, a Nex
 
 # Recent Changes
 
-**November 11, 2025**: Enhanced camera setup wizard with Bridge Creation Wizard. Step 3 now presents two clear connection method options (Manual IP vs Camera Bridge) at the start. Added a 3-step wizard that auto-generates secure bridge configuration values (Bridge ID, Name, API Key using Web Crypto API), provides Docker/npm installation commands, and auto-fills form fields. The wizard is always accessible (can be reopened to regenerate values), all fields are editable, and Bridge URL includes quick-preset buttons. This significantly improves UX for non-technical users confused about where to find bridge values.
+**November 11, 2025**: 
+- Enhanced camera setup wizard with Bridge Creation Wizard. Step 3 presents two connection method options (Manual IP vs Camera Bridge).
+- Added 3-step Bridge Creation Wizard that auto-generates secure configuration values (Bridge ID, Name, API Key using Web Crypto API).
+- **Implemented automatic camera discovery system** (`/api/camera/discover`) that automatically detects camera RTSP streams by testing multiple ports (554, 8554, 8000, 80, 88, 7447, 10554) and common RTSP paths for Ezviz, Hikvision, and generic IP cameras. Uses FFprobe for stream validation.
+- Manual IP Entry mode now requires only IP address and credentials - auto-detects port and RTSP path automatically, eliminating guesswork for non-technical users.
 
 # User Preferences
 
