@@ -7,14 +7,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Info, Network } from "lucide-react";
+import { Info, Network, Sparkles, CheckCircle } from "lucide-react";
 import { useWizard } from "../wizard-context";
 import { useToast } from "@/hooks/use-toast";
+import { BridgeCreationWizard } from "./bridge-creation-wizard";
 
 export default function StepThreeConnection() {
   const { state, dispatch } = useWizard();
   const { toast } = useToast();
   const [manualIp, setManualIp] = useState("");
+  const [showBridgeWizard, setShowBridgeWizard] = useState(false);
 
   const handleManualIpSubmit = () => {
     if (!manualIp.trim()) return;
@@ -29,6 +31,27 @@ export default function StepThreeConnection() {
     });
     setManualIp("");
     toast({ title: "IP Address Set", description: `Camera IP set to ${ip}` });
+  };
+
+  const handleBridgeWizardComplete = (bridgeConfig: {
+    bridgeId: string;
+    bridgeUrl: string;
+    bridgeName: string;
+    bridgeApiKey?: string;
+  }) => {
+    dispatch({
+      type: "SET_CONNECTION_DETAILS",
+      payload: {
+        bridgeId: bridgeConfig.bridgeId,
+        bridgeUrl: bridgeConfig.bridgeUrl,
+        bridgeName: bridgeConfig.bridgeName,
+        bridgeApiKey: bridgeConfig.bridgeApiKey || "",
+      },
+    });
+    toast({
+      title: "Bridge Configuration Loaded",
+      description: "Bridge values have been auto-filled. Make sure to install and start the bridge before testing.",
+    });
   };
 
   const handleNext = () => {
@@ -245,7 +268,31 @@ export default function StepThreeConnection() {
         {/* Camera Bridge Fields */}
         {state.useBridge && (
           <div className="space-y-4 p-4 border rounded-lg bg-blue-50/50 dark:bg-blue-950/30">
-            <h3 className="font-semibold text-sm">Camera Bridge Connection Details</h3>
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-sm">Camera Bridge Connection Details</h3>
+              
+              {/* Create/Reopen Bridge Button - Always visible */}
+              <Button
+                type="button"
+                variant="default"
+                size="sm"
+                onClick={() => setShowBridgeWizard(true)}
+                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+              >
+                <Sparkles className="h-4 w-4 mr-2" />
+                {state.bridgeId ? "Reopen Bridge Wizard" : "Create Bridge"}
+              </Button>
+            </div>
+
+            {!state.bridgeId && (
+              <Alert className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 border-blue-200 dark:border-blue-800">
+                <Sparkles className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                <AlertTitle className="text-blue-900 dark:text-blue-100">Don't have a bridge yet?</AlertTitle>
+                <AlertDescription className="text-blue-800 dark:text-blue-200 text-xs">
+                  Click <strong>"Create Bridge"</strong> above to generate configuration values and get installation instructions. The wizard will auto-fill these fields for you.
+                </AlertDescription>
+              </Alert>
+            )}
             
             {/* Camera IP for Bridge Mode */}
             <div className="space-y-2">
@@ -260,15 +307,19 @@ export default function StepThreeConnection() {
               <p className="text-xs text-muted-foreground">Enter your camera's local network IP address. Port will be auto-detected.</p>
             </div>
 
-            {state.selectedIp && (
-              <div className="ml-6 space-y-4">
-                <Alert className="bg-blue-50/50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800">
-                  <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                  <AlertTitle className="text-blue-900 dark:text-blue-100">Bridge Configuration Required</AlertTitle>
-                  <AlertDescription className="text-blue-800 dark:text-blue-200 text-xs">
-                    These settings must match your running Camera Bridge. Check your bridge's startup logs or configuration file for the correct values.
-                  </AlertDescription>
-                </Alert>
+            {state.bridgeId && (
+              <Alert className="bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800">
+                <CheckCircle className="h-4 w-4 text-green-600" />
+                <AlertTitle className="text-green-900 dark:text-green-100">Bridge Configured</AlertTitle>
+                <AlertDescription className="text-green-800 dark:text-green-200 text-xs">
+                  Bridge configuration loaded. Make sure your bridge is running before testing the connection.
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Show bridge field guidance regardless of IP entry - always visible */}
+            {state.bridgeId && (
+              <div className="space-y-4">
 
                 <div className="space-y-2 p-3 border rounded-md bg-white dark:bg-gray-900">
                   <div className="flex items-center gap-2 mb-2">
@@ -386,6 +437,13 @@ export default function StepThreeConnection() {
           Continue to Test Connection
         </Button>
       </CardFooter>
+
+      {/* Bridge Creation Wizard Dialog */}
+      <BridgeCreationWizard
+        open={showBridgeWizard}
+        onClose={() => setShowBridgeWizard(false)}
+        onComplete={handleBridgeWizardComplete}
+      />
     </Card>
   );
 }

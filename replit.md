@@ -2,6 +2,10 @@
 
 This monorepo houses two primary applications: **BERRETO Security Cloud**, a Next.js-based marketing and admin platform for an AI-powered CCTV security system with full e-commerce capabilities, and **Universal Camera Bridge**, a production-ready system for converting RTSP/ONVIF/P2P camera feeds into WebRTC and HLS for secure, live streaming. The project leverages AI features via Google Genkit and Firebase for backend services. BERRETO aims to provide real-time threat detection, smart alerts, visual search, and automated reporting, positioning itself as a leader in predictive security.
 
+# Recent Changes
+
+**November 11, 2025**: Enhanced camera setup wizard with Bridge Creation Wizard. Step 3 now presents two clear connection method options (Manual IP vs Camera Bridge) at the start. Added a 3-step wizard that auto-generates secure bridge configuration values (Bridge ID, Name, API Key using Web Crypto API), provides Docker/npm installation commands, and auto-fills form fields. The wizard is always accessible (can be reopened to regenerate values), all fields are editable, and Bridge URL includes quick-preset buttons. This significantly improves UX for non-technical users confused about where to find bridge values.
+
 # User Preferences
 
 Preferred communication style: Simple, everyday language.
