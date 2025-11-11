@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Info, Network, Sparkles, CheckCircle } from "lucide-react";
+import { Info, Network, Sparkles, CheckCircle, Cloud, AlertTriangle } from "lucide-react";
 import { useWizard } from "../wizard-context";
 import { useToast } from "@/hooks/use-toast";
 import { BridgeCreationWizard } from "./bridge-creation-wizard";
@@ -174,10 +174,10 @@ export default function StepThreeConnection() {
                     Manual IP Entry (Direct Connection)
                   </Label>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Connect directly to the camera using its IP address, username, and password. Works when this app can reach the camera directly.
+                    Connect directly to the camera using its IP address, username, and password. <strong>Only works when app and camera are on the same local network.</strong>
                   </p>
                   <div className="mt-2 text-xs text-muted-foreground">
-                    ✓ Best for: Apps on the same network as camera
+                    ✓ Best for: Self-hosted/local BERRETO installations
                   </div>
                 </div>
               </div>
