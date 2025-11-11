@@ -1,0 +1,58 @@
+Windows PowerShell
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+Install the latest PowerShell for new features and improvements! https://aka.ms/PSWindows
+
+PS C:\Users\DELL> docker run -d \
+docker: invalid reference format
+
+Run 'docker run --help' for more information
+PS C:\Users\DELL>   --name berreto-bridge \
+At line:1 char:5
++   --name berreto-bridge \
++     ~
+Missing expression after unary operator '--'.
+At line:1 char:5
++   --name berreto-bridge \
++     ~~~~
+Unexpected token 'name' in expression or statement.
+    + CategoryInfo          : ParserError: (:) [], ParentContainsErrorRecordException
+    + FullyQualifiedErrorId : MissingExpressionAfterOperator
+
+PS C:\Users\DELL>   -p 8080:8080 \
+-p : The term '-p' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the
+spelling of the name, or if a path was included, verify that the path is correct and try again.
+At line:1 char:3
++   -p 8080:8080 \
++   ~~
+    + CategoryInfo          : ObjectNotFound: (-p:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+
+PS C:\Users\DELL>   -e BRIDGE_ID=bridge-6z3j2yj6i6p2 \
+-e : The term '-e' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the
+spelling of the name, or if a path was included, verify that the path is correct and try again.
+At line:1 char:3
++   -e BRIDGE_ID=bridge-6z3j2yj6i6p2 \
++   ~~
+    + CategoryInfo          : ObjectNotFound: (-e:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+
+PS C:\Users\DELL>   -e BRIDGE_NAME="My Home Bridge" \
+-e : The term '-e' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the
+spelling of the name, or if a path was included, verify that the path is correct and try again.
+At line:1 char:3
++   -e BRIDGE_NAME="My Home Bridge" \
++   ~~
+    + CategoryInfo          : ObjectNotFound: (-e:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+
+PS C:\Users\DELL>   -e API_KEY=key-2ba6q6r4df6mw331e3k4es6c \
+-e : The term '-e' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the
+spelling of the name, or if a path was included, verify that the path is correct and try again.
+At line:1 char:3
++   -e API_KEY=key-2ba6q6r4df6mw331e3k4es6c \
++   ~~
+    + CategoryInfo          : ObjectNotFound: (-e:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+
+PS C:\Users\DELL>   berreto/camera-bridge:latest
