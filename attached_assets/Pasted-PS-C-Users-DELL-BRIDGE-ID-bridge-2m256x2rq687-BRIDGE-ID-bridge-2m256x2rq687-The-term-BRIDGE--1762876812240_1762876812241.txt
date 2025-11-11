@@ -1,0 +1,42 @@
+PS C:\Users\DELL> BRIDGE_ID=bridge-2m256x2rq687 \
+BRIDGE_ID=bridge-2m256x2rq687 : The term 'BRIDGE_ID=bridge-2m256x2rq687' is not recognized as the name of a cmdlet,
+function, script file, or operable program. Check the spelling of the name, or if a path was included, verify that the
+path is correct and try again.
+At line:1 char:1
++ BRIDGE_ID=bridge-2m256x2rq687 \
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (BRIDGE_ID=bridge-2m256x2rq687:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+
+PS C:\Users\DELL> BRIDGE_NAME="My Home Bridge" \
+BRIDGE_NAME=My Home Bridge : The term 'BRIDGE_NAME=My Home Bridge' is not recognized as the name of a cmdlet,
+function, script file, or operable program. Check the spelling of the name, or if a path was included, verify that the
+path is correct and try again.
+At line:1 char:1
++ BRIDGE_NAME="My Home Bridge" \
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (BRIDGE_NAME=My Home Bridge:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+
+PS C:\Users\DELL> API_KEY=key-5g1jy5d3hv4g735j232ri4i5 \
+API_KEY=key-5g1jy5d3hv4g735j232ri4i5 : The term 'API_KEY=key-5g1jy5d3hv4g735j232ri4i5' is not recognized as the name
+of a cmdlet, function, script file, or operable program. Check the spelling of the name, or if a path was included,
+verify that the path is correct and try again.
+At line:1 char:1
++ API_KEY=key-5g1jy5d3hv4g735j232ri4i5 \
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (API_KEY=key-5g1jy5d3hv4g735j232ri4i5:String) [], CommandNotFoundExcepti
+   on
+    + FullyQualifiedErrorId : CommandNotFoundException
+
+PS C:\Users\DELL> berreto-bridge start
+berreto-bridge : The term 'berreto-bridge' is not recognized as the name of a cmdlet, function, script file, or
+operable program. Check the spelling of the name, or if a path was included, verify that the path is correct and try
+again.
+At line:1 char:1
++ berreto-bridge start
++ ~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (berreto-bridge:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+
+PS C:\Users\DELL>
