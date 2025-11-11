@@ -6,6 +6,23 @@ export type CameraType = "" | "ip" | "dvr" | "mobile" | "usb" | "cloud";
 
 export type WizardStep = 1 | 2 | 3 | 4;
 
+export type ConnectionMethod = "manual" | "bridge" | "ezviz";
+
+export interface EzvizDevice {
+  deviceSerial: string;
+  deviceName: string;
+  status: number;
+  deviceType: string;
+  localIp?: string;
+  verifyCode?: string;
+}
+
+export interface EzvizSession {
+  sessionId: string;
+  expiry: number;
+  region: string;
+}
+
 export interface WizardState {
   currentStep: WizardStep;
   activationId: string;
@@ -24,6 +41,11 @@ export interface WizardState {
   bridgeName: string;
   bridgeUrl: string;
   bridgeApiKey: string;
+  // Ezviz Cloud integration
+  connectionMethod: ConnectionMethod;
+  ezvizSession: EzvizSession | null;
+  ezvizDevices: EzvizDevice[];
+  selectedEzvizDevice: EzvizDevice | null;
 }
 
 export type WizardAction =
@@ -48,6 +70,13 @@ export type WizardAction =
       };
     }
   | { type: "SET_CONNECTION_TESTED"; payload: { tested: boolean; streamUrl?: string } }
+  | { type: "SET_CONNECTION_METHOD"; payload: ConnectionMethod }
+  | { 
+      type: "SET_EZVIZ_SESSION"; 
+      payload: { session: EzvizSession; devices: EzvizDevice[] } 
+    }
+  | { type: "SELECT_EZVIZ_DEVICE"; payload: EzvizDevice }
+  | { type: "CLEAR_EZVIZ_SESSION" }
   | { type: "RESET" };
 
 export const WizardContext = createContext<{

@@ -37,6 +37,11 @@ const initialState: WizardState = {
   bridgeName: "",
   bridgeUrl: "",
   bridgeApiKey: "",
+  // Ezviz Cloud
+  connectionMethod: "manual",
+  ezvizSession: null,
+  ezvizDevices: [],
+  selectedEzvizDevice: null,
 };
 
 function wizardReducer(state: WizardState, action: WizardAction): WizardState {
@@ -64,6 +69,23 @@ function wizardReducer(state: WizardState, action: WizardAction): WizardState {
         ...state,
         isConnectionTested: action.payload.tested,
         detectedStreamUrl: action.payload.streamUrl || state.detectedStreamUrl,
+      };
+    case "SET_CONNECTION_METHOD":
+      return { ...state, connectionMethod: action.payload };
+    case "SET_EZVIZ_SESSION":
+      return {
+        ...state,
+        ezvizSession: action.payload.session,
+        ezvizDevices: action.payload.devices,
+      };
+    case "SELECT_EZVIZ_DEVICE":
+      return { ...state, selectedEzvizDevice: action.payload };
+    case "CLEAR_EZVIZ_SESSION":
+      return {
+        ...state,
+        ezvizSession: null,
+        ezvizDevices: [],
+        selectedEzvizDevice: null,
       };
     case "RESET":
       return initialState;

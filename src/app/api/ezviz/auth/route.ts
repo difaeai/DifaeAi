@@ -10,9 +10,59 @@ interface EzvizDevice {
   deviceSerial: string;
   deviceName: string;
   status: number;
-  category: string;
+  deviceType: string;
   localIp?: string;
   localRtspPort?: number;
+  verifyCode?: string;
+}
+
+async function loginToEzviz(email: string, password: string, region: string) {
+  // Ezviz login endpoint (reverse-engineered from pyEzviz)
+  const loginUrl = `https://${region}/v3/users/login/v5`;
+  
+  const response = await fetch(loginUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'User-Agent': 'EZVIZ/5.0.0 (iPhone; iOS 14.0; Scale/3.00)',
+    },
+    body: new URLSearchParams({
+      account: email,
+      password: password,
+      featureCode: 'DEFAULT',
+      msgType: '0',
+      cuName: 'Default',
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Login failed: ${response.status} ${response.statusText}`);
+  }
+
+  return await response.json();
+}
+
+async function getDeviceList(sessionId: string, region: string) {
+  const devicesUrl = `https://${region}/v3/devices/list`;
+  
+  const response = await fetch(devicesUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'sessionId': sessionId,
+      'User-Agent': 'EZVIZ/5.0.0 (iPhone; iOS 14.0; Scale/3.00)',
+    },
+    body: new URLSearchParams({
+      limit: '50',
+      offset: '0',
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to get devices: ${response.status}`);
+  }
+
+  return await response.json();
 }
 
 export async function POST(request: NextRequest) {
@@ -29,25 +79,55 @@ export async function POST(request: NextRequest) {
 
     console.log(`Authenticating with Ezviz Cloud (${region})...`);
 
-    // Note: The actual Ezviz API requires a registered app with AppKey/AppSecret
-    // For now, we'll guide the user to use the official Ezviz integration
-    // In production, you would:
-    // 1. Register at https://open.ezviz.com to get AppKey/AppSecret
-    // 2. Use OAuth flow or direct token endpoint
-    // 3. Store tokens securely
+    // Login to Ezviz
+    const loginResult = await loginToEzviz(email, password, region);
+    
+    if (loginResult.resultCode !== '0' || !loginResult.sessionId) {
+      return NextResponse.json({
+        success: false,
+        error: loginResult.resultMsg || 'Login failed',
+      }, { status: 401 });
+    }
 
-    // Placeholder response - will implement full auth after getting API keys
+    const sessionId = loginResult.sessionId;
+    console.log('✓ Ezviz login successful');
+
+    // Get device list
+    const devicesResult = await getDeviceList(sessionId, region);
+    
+    if (devicesResult.resultCode !== '0') {
+      return NextResponse.json({
+        success: false,
+        error: 'Failed to retrieve camera list',
+      }, { status: 500 });
+    }
+
+    const devices: EzvizDevice[] = (devicesResult.deviceInfos || []).map((device: any) => ({
+      deviceSerial: device.deviceSerial,
+      deviceName: device.deviceName,
+      status: device.status,
+      deviceType: device.deviceType,
+      localIp: device.netInfo?.localIp,
+      localRtspPort: device.netInfo?.localRtspPort || 554,
+      verifyCode: device.deviceVerifyCode,
+    }));
+
+    console.log(`✓ Found ${devices.length} Ezviz cameras`);
+
     return NextResponse.json({
-      success: false,
-      error: 'Ezviz Cloud integration requires API credentials. Please visit https://open.ezviz.com to register for developer access, or use the Camera Bridge method instead.',
-      requiresSetup: true,
-      setupUrl: 'https://open.ezviz.com',
-    }, { status: 501 });
+      success: true,
+      sessionId,
+      devices,
+      region,
+    });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Ezviz auth error:', error);
     return NextResponse.json(
-      { success: false, error: 'Authentication failed' },
+      { 
+        success: false, 
+        error: error.message || 'Authentication failed. Please check your Ezviz account credentials.',
+      },
       { status: 500 }
     );
   }
