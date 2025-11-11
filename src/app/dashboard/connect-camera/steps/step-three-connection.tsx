@@ -177,7 +177,7 @@ export default function StepThreeConnection() {
             </p>
             
             {state.useBridge && (
-              <div className="ml-6 space-y-3">
+              <div className="ml-6 space-y-4">
                 <Alert className="bg-blue-50/50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800">
                   <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                   <AlertTitle className="text-blue-900 dark:text-blue-100">Bridge Configuration Required</AlertTitle>
@@ -185,42 +185,81 @@ export default function StepThreeConnection() {
                     These settings must match your running Camera Bridge. Check your bridge's startup logs or configuration file for the correct values.
                   </AlertDescription>
                 </Alert>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="bridge-id" className="text-xs font-medium">Bridge ID *</Label>
+
+                <div className="space-y-2 p-3 border rounded-md bg-white dark:bg-gray-900">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-bold">1</div>
+                    <Label htmlFor="bridge-id" className="text-sm font-semibold">Bridge ID *</Label>
+                  </div>
                   <Input 
                     id="bridge-id"
                     placeholder="my-home-bridge"
                     value={state.bridgeId || ""}
                     onChange={(e) => dispatch({ type: "SET_CONNECTION_DETAILS", payload: { bridgeId: e.target.value } })}
                   />
-                  <p className="text-xs text-muted-foreground">Must match BRIDGE_ID in your bridge configuration</p>
+                  <div className="text-xs space-y-1">
+                    <p className="font-medium text-foreground">Where to find this:</p>
+                    <div className="bg-muted rounded p-2 font-mono text-xs">
+                      <p className="text-muted-foreground mb-1">Docker:</p>
+                      <code>-e BRIDGE_ID=<span className="text-primary">my-home-bridge</span></code>
+                    </div>
+                    <p className="text-muted-foreground mt-2">📋 Copy the value after <code className="bg-muted px-1 rounded">BRIDGE_ID=</code> from your bridge startup command</p>
+                  </div>
                 </div>
                 
-                <div className="space-y-2">
-                  <Label htmlFor="bridge-url" className="text-xs font-medium">Bridge URL *</Label>
+                <div className="space-y-2 p-3 border rounded-md bg-white dark:bg-gray-900">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-bold">2</div>
+                    <Label htmlFor="bridge-url" className="text-sm font-semibold">Bridge URL *</Label>
+                  </div>
                   <Input 
                     id="bridge-url"
                     placeholder="http://192.168.1.100:8080"
                     value={state.bridgeUrl || ""}
                     onChange={(e) => dispatch({ type: "SET_CONNECTION_DETAILS", payload: { bridgeUrl: e.target.value } })}
                   />
-                  <p className="text-xs text-muted-foreground">Use localhost:8080 if bridge is on this computer, or IP:8080 if on another device</p>
+                  <div className="text-xs space-y-1">
+                    <p className="font-medium text-foreground">Choose based on where your bridge is running:</p>
+                    <div className="space-y-2 mt-2">
+                      <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded p-2">
+                        <p className="font-mono text-xs">http://localhost:8080</p>
+                        <p className="text-muted-foreground mt-1">✓ If bridge is on THIS computer</p>
+                      </div>
+                      <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded p-2">
+                        <p className="font-mono text-xs">http://192.168.1.100:8080</p>
+                        <p className="text-muted-foreground mt-1">✓ If bridge is on another device (replace with device's IP)</p>
+                      </div>
+                    </div>
+                    <p className="text-muted-foreground mt-2">💡 Find your device IP: Run <code className="bg-muted px-1 rounded">ipconfig</code> (Windows) or <code className="bg-muted px-1 rounded">ifconfig</code> (Mac/Linux)</p>
+                  </div>
                 </div>
                 
-                <div className="space-y-2">
-                  <Label htmlFor="bridge-name" className="text-xs font-medium">Bridge Name *</Label>
+                <div className="space-y-2 p-3 border rounded-md bg-white dark:bg-gray-900">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-bold">3</div>
+                    <Label htmlFor="bridge-name" className="text-sm font-semibold">Bridge Name *</Label>
+                  </div>
                   <Input 
                     id="bridge-name"
                     placeholder="My Home Bridge"
                     value={state.bridgeName || ""}
                     onChange={(e) => dispatch({ type: "SET_CONNECTION_DETAILS", payload: { bridgeName: e.target.value } })}
                   />
-                  <p className="text-xs text-muted-foreground">Friendly name to help you identify this bridge</p>
+                  <div className="text-xs space-y-1">
+                    <p className="font-medium text-foreground">Where to find this:</p>
+                    <div className="bg-muted rounded p-2 font-mono text-xs">
+                      <p className="text-muted-foreground mb-1">Docker:</p>
+                      <code>-e BRIDGE_NAME=<span className="text-primary">"My Home Bridge"</span></code>
+                    </div>
+                    <p className="text-muted-foreground mt-2">📝 This is the friendly name you chose when starting the bridge</p>
+                  </div>
                 </div>
                 
-                <div className="space-y-2">
-                  <Label htmlFor="bridge-api-key" className="text-xs font-medium">Bridge API Key (if required)</Label>
+                <div className="space-y-2 p-3 border rounded-md bg-white dark:bg-gray-900">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="flex items-center justify-center w-6 h-6 rounded-full bg-gray-400 text-white text-xs font-bold">4</div>
+                    <Label htmlFor="bridge-api-key" className="text-sm font-semibold">Bridge API Key <span className="text-muted-foreground font-normal">(Optional)</span></Label>
+                  </div>
                   <Input 
                     id="bridge-api-key"
                     type="password"
@@ -228,12 +267,28 @@ export default function StepThreeConnection() {
                     value={state.bridgeApiKey || ""}
                     onChange={(e) => dispatch({ type: "SET_CONNECTION_DETAILS", payload: { bridgeApiKey: e.target.value } })}
                   />
-                  <p className="text-xs text-muted-foreground">Only needed if you set API_KEY in your bridge configuration</p>
+                  <div className="text-xs space-y-1">
+                    <p className="font-medium text-foreground">Only needed if you enabled authentication:</p>
+                    <div className="bg-muted rounded p-2 font-mono text-xs">
+                      <p className="text-muted-foreground mb-1">Docker:</p>
+                      <code>-e API_KEY=<span className="text-primary">your-secret-api-key</span></code>
+                    </div>
+                    <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded p-2 mt-2">
+                      <p className="text-blue-800 dark:text-blue-200">ℹ️ If you didn't set an API_KEY when starting the bridge, leave this field blank</p>
+                    </div>
+                  </div>
                 </div>
                 
-                <p className="text-xs text-muted-foreground pt-2 border-t">
-                  Don't have a bridge yet? <a href="/docs/bridge-setup" target="_blank" className="text-primary hover:underline font-medium">Quick Setup Guide →</a>
-                </p>
+                <div className="pt-2 border-t space-y-2">
+                  <p className="text-xs font-medium text-foreground">Need help setting up a bridge?</p>
+                  <a 
+                    href="/docs/bridge-setup" 
+                    target="_blank" 
+                    className="inline-flex items-center gap-1 text-xs text-primary hover:underline font-medium"
+                  >
+                    📖 Open Full Setup Guide (with installation instructions) →
+                  </a>
+                </div>
               </div>
             )}
           </div>
