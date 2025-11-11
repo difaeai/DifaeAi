@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Info, Network } from "lucide-react";
-import { useWizard } from "../page";
+import { useWizard } from "../wizard-context";
 import { useToast } from "@/hooks/use-toast";
 
 export default function StepThreeConnection() {

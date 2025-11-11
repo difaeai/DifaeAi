@@ -1,47 +1,23 @@
 "use client";
 
-import { useState, useReducer, createContext, useContext } from "react";
+import { useReducer } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import {
+  WizardContext,
+  type WizardState,
+  type WizardAction,
+} from "./wizard-context";
 
-// Wizard State Management
-type CameraType = "" | "ip" | "dvr" | "mobile" | "usb" | "cloud";
-
-type WizardStep = 1 | 2 | 3 | 4;
-
-interface WizardState {
-  currentStep: WizardStep;
-  activationId: string;
-  cameraName: string;
-  location: string;
-  cameraType: CameraType;
-  selectedIp: string;
-  selectedHostname: string;
-  streamUrl: string;
-  streamUser: string;
-  streamPass: string;
-  isConnectionTested: boolean;
-  detectedStreamUrl: string;
-  useBridge: boolean;
-  bridgeId: string;
-  bridgeName: string;
-  bridgeUrl: string;
-  bridgeApiKey: string;
-}
-
-type WizardAction =
-  | { type: "NEXT_STEP" }
-  | { type: "PREV_STEP" }
-  | { type: "GO_TO_STEP"; payload: WizardStep }
-  | { type: "SET_CAMERA_DETAILS"; payload: { activationId: string; cameraName: string; location: string } }
-  | { type: "SET_CAMERA_TYPE"; payload: CameraType }
-  | { type: "SET_CONNECTION_DETAILS"; payload: { selectedIp?: string; selectedHostname?: string; streamUrl?: string; streamUser?: string; streamPass?: string; useBridge?: boolean; bridgeId?: string; bridgeName?: string; bridgeUrl?: string; bridgeApiKey?: string } }
-  | { type: "SET_CONNECTION_TESTED"; payload: { tested: boolean; streamUrl?: string } }
-  | { type: "RESET" };
+// Step Components
+import StepOneDetails from "./steps/step-one-details";
+import StepTwoType from "./steps/step-two-type";
+import StepThreeConnection from "./steps/step-three-connection";
+import StepFourTest from "./steps/step-four-test";
 
 const initialState: WizardState = {
   currentStep: 1,
@@ -67,12 +43,12 @@ function wizardReducer(state: WizardState, action: WizardAction): WizardState {
   switch (action.type) {
     case "NEXT_STEP":
       if (state.currentStep < 4) {
-        return { ...state, currentStep: (state.currentStep + 1) as WizardStep };
+        return { ...state, currentStep: (state.currentStep + 1) as 1 | 2 | 3 | 4 };
       }
       return state;
     case "PREV_STEP":
       if (state.currentStep > 1) {
-        return { ...state, currentStep: (state.currentStep - 1) as WizardStep };
+        return { ...state, currentStep: (state.currentStep - 1) as 1 | 2 | 3 | 4 };
       }
       return state;
     case "GO_TO_STEP":
@@ -95,26 +71,6 @@ function wizardReducer(state: WizardState, action: WizardAction): WizardState {
       return state;
   }
 }
-
-// Context
-const WizardContext = createContext<{
-  state: WizardState;
-  dispatch: React.Dispatch<WizardAction>;
-} | null>(null);
-
-function useWizard() {
-  const context = useContext(WizardContext);
-  if (!context) {
-    throw new Error("useWizard must be used within WizardProvider");
-  }
-  return context;
-}
-
-// Step Components
-import StepOneDetails from "./steps/step-one-details";
-import StepTwoType from "./steps/step-two-type";
-import StepThreeConnection from "./steps/step-three-connection";
-import StepFourTest from "./steps/step-four-test";
 
 export default function ConnectCameraPage() {
   const router = useRouter();
@@ -141,7 +97,6 @@ export default function ConnectCameraPage() {
       return;
     }
 
-    // Import and save camera
     const { db } = await import("@/lib/firebase");
     const { collection, addDoc } = await import("firebase/firestore");
 
@@ -195,7 +150,6 @@ export default function ConnectCameraPage() {
           <p className="text-muted-foreground">Follow the steps to add and activate a new camera in your system.</p>
         </div>
 
-        {/* Step Indicator */}
         <div className="mb-8">
           <div className="flex items-center justify-between">
             {[1, 2, 3, 4].map((step) => (
@@ -237,7 +191,6 @@ export default function ConnectCameraPage() {
           </div>
         </div>
 
-        {/* Step Content */}
         <div className="mb-8">
           {state.currentStep === 1 && <StepOneDetails />}
           {state.currentStep === 2 && <StepTwoType />}
@@ -248,5 +201,3 @@ export default function ConnectCameraPage() {
     </WizardContext.Provider>
   );
 }
-
-export { useWizard };
