@@ -107,13 +107,94 @@ export default function StepFourTest({ onComplete }: StepFourTestProps) {
 
     setIsTesting(true);
     setShowPreview(false);
-    toast({ 
-      title: "Auto-detecting RTSP stream...", 
-      description: "Testing common camera paths. This may take up to 30 seconds." 
-    });
-
+    
     try {
-      // Step 1: Auto-detect RTSP URL from IP address
+      // BRIDGE MODE: Use Camera Bridge for local network cameras
+      if (state.useBridge) {
+        if (!user) {
+          toast({
+            variant: "destructive",
+            title: "Authentication Required",
+            description: "You must be logged in to use the Camera Bridge.",
+          });
+          setIsTesting(false);
+          return;
+        }
+
+        toast({ 
+          title: "Connecting via Camera Bridge...", 
+          description: "Auto-detecting camera port and stream path on your local network." 
+        });
+
+        const authToken = await user.getIdToken();
+        const bridgeResponse = await fetch("/api/bridge/add-camera", {
+          method: "POST",
+          headers: { 
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${authToken}`
+          },
+          body: JSON.stringify({
+            bridgeId: state.bridgeId,
+            cameraIp: state.selectedIp,
+            username: '',
+            password: '',
+            autoDetect: true,
+          }),
+        });
+
+        if (!bridgeResponse.ok) {
+          const errorData = await bridgeResponse.json().catch(() => ({ error: 'Network error' }));
+          dispatch({ type: "SET_CONNECTION_TESTED", payload: { tested: false } });
+          setVideoReady(false);
+          setIsTesting(false);
+
+          toast({
+            variant: "destructive",
+            title: "Bridge Connection Failed",
+            description: errorData.error || `Bridge returned error (${bridgeResponse.status}). Please check:\n1. Bridge is running and accessible\n2. Camera is powered on\n3. IP address is correct\n4. You're on the same network`,
+            duration: 10000,
+          });
+          return;
+        }
+
+        const bridgeResult = await bridgeResponse.json();
+
+        if (bridgeResult.success && bridgeResult.camera) {
+          dispatch({ type: "SET_CONNECTION_TESTED", payload: { 
+            tested: true, 
+            streamUrl: bridgeResult.camera.streamUrl
+          }});
+
+          setPreviewUrl(bridgeResult.camera.streamUrl);
+          setShowPreview(true);
+          setVideoReady(true);
+
+          toast({
+            title: "Camera Connected via Bridge!",
+            description: `Camera detected: ${bridgeResult.camera.manufacturer} ${bridgeResult.camera.model}\nLive preview available when on same network.`,
+          });
+        } else {
+          dispatch({ type: "SET_CONNECTION_TESTED", payload: { tested: false } });
+          setVideoReady(false);
+
+          toast({
+            variant: "destructive",
+            title: "Bridge Connection Failed",
+            description: bridgeResult.error || "Could not connect to camera via bridge. Please check:\n1. Camera is powered on\n2. IP address is correct\n3. You're on the same network as the camera\n4. Bridge is running and accessible",
+            duration: 10000,
+          });
+        }
+        
+        setIsTesting(false);
+        return;
+      }
+
+      // DIRECT MODE: Auto-detect RTSP URL from IP address
+      toast({ 
+        title: "Auto-detecting RTSP stream...", 
+        description: "Testing common camera paths. This may take up to 30 seconds." 
+      });
+
       const autoDetectResponse = await fetch("/api/auto-detect-rtsp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

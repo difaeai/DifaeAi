@@ -139,8 +139,8 @@ export default function StepThreeConnection() {
           )}
         </div>
 
-        {/* Credentials (if needed) */}
-        {state.selectedIp && (
+        {/* Credentials (only shown in direct mode, not bridge mode) */}
+        {state.selectedIp && !state.useBridge && (
           <div className="space-y-3">
             <Label>Camera Credentials (if required)</Label>
             <Input 
@@ -173,7 +173,7 @@ export default function StepThreeConnection() {
               </Label>
             </div>
             <p className="text-xs text-muted-foreground ml-6">
-              Enable this if you're accessing BERRETO from the cloud and need to stream cameras from your local network.
+              Enable this if you're accessing BERRETO from the cloud and need to stream cameras from your local network. Bridge mode only requires the camera IP address - port will be auto-detected.
             </p>
             
             {state.useBridge && (
