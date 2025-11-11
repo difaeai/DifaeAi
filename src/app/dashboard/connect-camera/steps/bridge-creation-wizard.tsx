@@ -243,7 +243,7 @@ ${useApiKey ? `API_KEY=${bridgeApiKey} \\\n` : ''}berreto-bridge start`;
             <Tabs defaultValue="docker" className="w-full">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="docker">🐳 Docker (Recommended)</TabsTrigger>
-                <TabsTrigger value="npm">📦 npm/Node.js</TabsTrigger>
+                <TabsTrigger value="npm">📦 npm/Node.js (Coming Soon)</TabsTrigger>
               </TabsList>
 
               <TabsContent value="docker" className="space-y-3">
@@ -282,38 +282,21 @@ ${useApiKey ? `API_KEY=${bridgeApiKey} \\\n` : ''}berreto-bridge start`;
               </TabsContent>
 
               <TabsContent value="npm" className="space-y-3">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label>npm Command</Label>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => copyToClipboard(npmCommand, "npm command")}
-                    >
-                      {copied === "npm command" ? (
-                        <>
-                          <CheckCircle className="h-4 w-4 mr-2" />
-                          Copied!
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="h-4 w-4 mr-2" />
-                          Copy Command
-                        </>
-                      )}
-                    </Button>
-                  </div>
+                <Alert className="bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800">
+                  <Info className="h-4 w-4 text-amber-600" />
+                  <AlertTitle className="text-amber-900 dark:text-amber-100">npm Package Not Yet Available</AlertTitle>
+                  <AlertDescription className="text-amber-800 dark:text-amber-200 text-xs">
+                    The bridge is currently in development and hasn't been published to npm yet. Please use the Docker option instead, or deploy the bridge manually from the source code.
+                  </AlertDescription>
+                </Alert>
+
+                <div className="space-y-2 opacity-50">
+                  <Label>npm Command (Coming Soon)</Label>
                   <pre className="bg-gray-900 text-green-400 p-4 rounded-md text-xs overflow-x-auto font-mono">
                     {npmCommand}
                   </pre>
+                  <p className="text-xs text-muted-foreground">This will be available once the bridge package is published.</p>
                 </div>
-
-                <Alert className="bg-blue-50 dark:bg-blue-950/30">
-                  <Info className="h-4 w-4" />
-                  <AlertDescription className="text-xs">
-                    Requires Node.js 18+ and npm. Visit <a href="https://nodejs.org/" target="_blank" className="underline">nodejs.org</a> if you need to install it.
-                  </AlertDescription>
-                </Alert>
               </TabsContent>
             </Tabs>
 
