@@ -7,8 +7,13 @@ This monorepo houses two primary applications: **BERRETO Security Cloud**, a Nex
 **November 11, 2025**: 
 - Enhanced camera setup wizard with Bridge Creation Wizard. Step 3 presents two connection method options (Manual IP vs Camera Bridge).
 - Added 3-step Bridge Creation Wizard that auto-generates secure configuration values (Bridge ID, Name, API Key using Web Crypto API).
-- **Implemented automatic camera discovery system** (`/api/camera/discover`) that automatically detects camera RTSP streams by testing multiple ports (554, 8554, 8000, 80, 88, 7447, 10554) and common RTSP paths for Ezviz, Hikvision, and generic IP cameras. Uses FFprobe for stream validation.
-- Manual IP Entry mode now requires only IP address and credentials - auto-detects port and RTSP path automatically, eliminating guesswork for non-technical users.
+- **Implemented automatic camera discovery system** (`/api/camera/discover`) with intelligent pre-flight checks:
+  - **Network Compatibility Detection**: Uses ipaddr.js to detect if camera is on private network (192.168.x.x, 10.x.x.x) and if server can reach it
+  - **Fast-Fail Pre-Flight Checks**: TCP connectivity test (2s timeout) before expensive RTSP probing
+  - **45-Second Global Timeout**: Prevents 9+ minute hangs, returns helpful error messages
+  - **Smart Error Messages**: Distinguishes between "cloud/local network mismatch", "camera unreachable", and "RTSP not supported"
+  - Tests multiple ports (554, 8554, 8000, 80, 88, 7447, 10554) and common RTSP paths for Ezviz, Hikvision, and generic IP cameras
+- Manual IP Entry mode auto-detects port and RTSP path from IP + credentials, eliminating guesswork for non-technical users.
 
 # User Preferences
 
