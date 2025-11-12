@@ -7,8 +7,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Info, Network, Sparkles, CheckCircle, Cloud, AlertTriangle } from "lucide-react";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Info, Network, Sparkles, CheckCircle, Cloud, AlertTriangle, Loader2 } from "lucide-react";
 import { useWizard } from "../wizard-context";
+import type { EzvizDevice } from "../wizard-context";
 import { useToast } from "@/hooks/use-toast";
 import { BridgeCreationWizard } from "./bridge-creation-wizard";
 
@@ -17,6 +20,13 @@ export default function StepThreeConnection() {
   const { toast } = useToast();
   const [manualIp, setManualIp] = useState("");
   const [showBridgeWizard, setShowBridgeWizard] = useState(false);
+  
+  // Ezviz Cloud state
+  const [ezvizEmail, setEzvizEmail] = useState("");
+  const [ezvizPassword, setEzvizPassword] = useState("");
+  const [ezvizRegion, setEzvizRegion] = useState("apiius.ezvizlife.com");
+  const [isEzvizLoading, setIsEzvizLoading] = useState(false);
+  const [ezvizError, setEzvizError] = useState("");
 
   const handleManualIpSubmit = () => {
     if (!manualIp.trim()) return;
@@ -54,18 +64,81 @@ export default function StepThreeConnection() {
     });
   };
 
-  const handleNext = () => {
-    if (!state.selectedIp && state.cameraType === "ip") {
-      toast({ variant: "destructive", title: "No IP Address", description: "Please enter your camera's IP address." });
+  const handleEzvizLogin = async () => {
+    if (!ezvizEmail || !ezvizPassword) {
+      setEzvizError("Please enter your Ezviz email and password");
       return;
     }
 
-    if (state.useBridge) {
+    setIsEzvizLoading(true);
+    setEzvizError("");
+
+    try {
+      const response = await fetch("/api/ezviz/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: ezvizEmail,
+          password: ezvizPassword,
+          region: ezvizRegion,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!data.success) {
+        setEzvizError(data.error || "Login failed");
+        return;
+      }
+
+      // Session expires in 24 hours (estimate)
+      const expiry = Date.now() + 24 * 60 * 60 * 1000;
+
+      dispatch({
+        type: "SET_EZVIZ_SESSION",
+        payload: {
+          session: {
+            sessionId: data.sessionId,
+            expiry,
+            region: ezvizRegion,
+          },
+          devices: data.devices || [],
+        },
+      });
+
+      toast({
+        title: "✓ Connected to Ezviz Cloud",
+        description: `Found ${data.devices?.length || 0} camera(s) in your account`,
+      });
+    } catch (error: any) {
+      setEzvizError(error.message || "Failed to connect to Ezviz Cloud");
+    } finally {
+      setIsEzvizLoading(false);
+    }
+  };
+
+  const handleNext = () => {
+    // Validate based on connection method
+    if (state.connectionMethod === "manual") {
+      if (!state.selectedIp && state.cameraType === "ip") {
+        toast({ variant: "destructive", title: "No IP Address", description: "Please enter your camera's IP address." });
+        return;
+      }
+    } else if (state.connectionMethod === "bridge") {
       if (!state.bridgeId || !state.bridgeUrl || !state.bridgeName) {
         toast({ 
           variant: "destructive", 
           title: "Bridge Configuration Incomplete", 
           description: "Please fill in Bridge ID, Bridge URL, and Bridge Name to continue." 
+        });
+        return;
+      }
+    } else if (state.connectionMethod === "ezviz") {
+      if (!state.ezvizSession || !state.selectedEzvizDevice) {
+        toast({ 
+          variant: "destructive", 
+          title: "Ezviz Setup Incomplete", 
+          description: "Please log in to Ezviz and select a camera to continue." 
         });
         return;
       }
@@ -149,26 +222,25 @@ export default function StepThreeConnection() {
         </Alert>
 
         {/* Connection Method Selection */}
-        <div className="space-y-3">
+        <RadioGroup
+          value={state.connectionMethod}
+          onValueChange={(value) => dispatch({ type: "SET_CONNECTION_METHOD", payload: value as "manual" | "bridge" | "ezviz" })}
+          className="space-y-3"
+        >
           <Label className="text-base font-semibold">Select Connection Method:</Label>
           
           <div className="grid gap-3">
             {/* Option 1: Manual IP Entry */}
             <div 
               className={`relative cursor-pointer rounded-lg border-2 p-4 transition-all ${
-                !state.useBridge 
+                state.connectionMethod === "manual"
                   ? "border-primary bg-primary/5" 
                   : "border-muted hover:border-primary/50"
               }`}
-              onClick={() => dispatch({ type: "SET_CONNECTION_DETAILS", payload: { useBridge: false } })}
+              onClick={() => dispatch({ type: "SET_CONNECTION_METHOD", payload: "manual" })}
             >
               <div className="flex items-start gap-3">
-                <Checkbox 
-                  id="manual-ip"
-                  checked={!state.useBridge}
-                  onCheckedChange={(checked) => dispatch({ type: "SET_CONNECTION_DETAILS", payload: { useBridge: !checked } })}
-                  className="mt-1"
-                />
+                <RadioGroupItem value="manual" id="manual-ip" className="mt-1" />
                 <div className="flex-1">
                   <Label htmlFor="manual-ip" className="text-base font-semibold cursor-pointer">
                     Manual IP Entry (Direct Connection)
@@ -186,19 +258,14 @@ export default function StepThreeConnection() {
             {/* Option 2: Camera Bridge */}
             <div 
               className={`relative cursor-pointer rounded-lg border-2 p-4 transition-all ${
-                state.useBridge 
+                state.connectionMethod === "bridge"
                   ? "border-primary bg-primary/5" 
                   : "border-muted hover:border-primary/50"
               }`}
-              onClick={() => dispatch({ type: "SET_CONNECTION_DETAILS", payload: { useBridge: true } })}
+              onClick={() => dispatch({ type: "SET_CONNECTION_METHOD", payload: "bridge" })}
             >
               <div className="flex items-start gap-3">
-                <Checkbox 
-                  id="use-bridge"
-                  checked={state.useBridge}
-                  onCheckedChange={(checked) => dispatch({ type: "SET_CONNECTION_DETAILS", payload: { useBridge: Boolean(checked) } })}
-                  className="mt-1"
-                />
+                <RadioGroupItem value="bridge" id="use-bridge" className="mt-1" />
                 <div className="flex-1">
                   <Label htmlFor="use-bridge" className="text-base font-semibold cursor-pointer flex items-center gap-2">
                     <Network className="h-4 w-4" />
@@ -213,11 +280,37 @@ export default function StepThreeConnection() {
                 </div>
               </div>
             </div>
+
+            {/* Option 3: Ezviz Cloud */}
+            <div 
+              className={`relative cursor-pointer rounded-lg border-2 p-4 transition-all ${
+                state.connectionMethod === "ezviz"
+                  ? "border-primary bg-primary/5" 
+                  : "border-muted hover:border-primary/50"
+              }`}
+              onClick={() => dispatch({ type: "SET_CONNECTION_METHOD", payload: "ezviz" })}
+            >
+              <div className="flex items-start gap-3">
+                <RadioGroupItem value="ezviz" id="ezviz-cloud" className="mt-1" />
+                <div className="flex-1">
+                  <Label htmlFor="ezviz-cloud" className="text-base font-semibold cursor-pointer flex items-center gap-2">
+                    <Cloud className="h-4 w-4" />
+                    Ezviz Cloud (For Ezviz Cameras)
+                  </Label>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Access your Ezviz cameras from anywhere in the world using your Ezviz account. <strong>Works exactly like the Ezviz mobile app.</strong>
+                  </p>
+                  <div className="mt-2 text-xs text-muted-foreground">
+                    ✓ Best for: Ezviz camera owners who want cloud access
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
+        </RadioGroup>
 
         {/* Manual IP Entry Fields */}
-        {!state.useBridge && (
+        {state.connectionMethod === "manual" && (
           <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
             <h3 className="font-semibold text-sm">Manual IP Connection Details</h3>
             
@@ -266,7 +359,7 @@ export default function StepThreeConnection() {
         )}
 
         {/* Camera Bridge Fields */}
-        {state.useBridge && (
+        {state.connectionMethod === "bridge" && (
           <div className="space-y-4 p-4 border rounded-lg bg-blue-50/50 dark:bg-blue-950/30">
             <div className="flex items-center justify-between">
               <h3 className="font-semibold text-sm">Camera Bridge Connection Details</h3>
@@ -428,12 +521,173 @@ export default function StepThreeConnection() {
             )}
           </div>
         )}
+
+        {/* Ezviz Cloud Fields */}
+        {state.connectionMethod === "ezviz" && (
+          <div className="space-y-4 p-4 border rounded-lg bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-950/30 dark:to-blue-950/30">
+            <h3 className="font-semibold text-sm flex items-center gap-2">
+              <Cloud className="h-4 w-4" />
+              Ezviz Cloud Connection
+            </h3>
+
+            {!state.ezvizSession ? (
+              <>
+                <Alert>
+                  <Info className="h-4 w-4" />
+                  <AlertTitle>Sign in to Ezviz Cloud</AlertTitle>
+                  <AlertDescription>
+                    Enter your Ezviz account credentials to access your cameras from anywhere in the world.
+                  </AlertDescription>
+                </Alert>
+
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="ezviz-email">Ezviz Email *</Label>
+                    <Input
+                      id="ezviz-email"
+                      type="email"
+                      placeholder="your@email.com"
+                      value={ezvizEmail}
+                      onChange={(e) => setEzvizEmail(e.target.value)}
+                      disabled={isEzvizLoading}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="ezviz-password">Ezviz Password *</Label>
+                    <Input
+                      id="ezviz-password"
+                      type="password"
+                      placeholder="Your Ezviz password"
+                      value={ezvizPassword}
+                      onChange={(e) => setEzvizPassword(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && handleEzvizLogin()}
+                      disabled={isEzvizLoading}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="ezviz-region">Region</Label>
+                    <Select value={ezvizRegion} onValueChange={setEzvizRegion} disabled={isEzvizLoading}>
+                      <SelectTrigger id="ezviz-region">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="apiius.ezvizlife.com">🇺🇸 United States</SelectItem>
+                        <SelectItem value="apieu.ezvizlife.com">🇪🇺 Europe</SelectItem>
+                        <SelectItem value="apiruspro.ezvizru.com">🇷🇺 Russia</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {ezvizError && (
+                    <Alert variant="destructive">
+                      <AlertTriangle className="h-4 w-4" />
+                      <AlertTitle>Login Failed</AlertTitle>
+                      <AlertDescription>{ezvizError}</AlertDescription>
+                    </Alert>
+                  )}
+
+                  <Button 
+                    onClick={handleEzvizLogin} 
+                    disabled={isEzvizLoading}
+                    className="w-full"
+                  >
+                    {isEzvizLoading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Connecting to Ezviz Cloud...
+                      </>
+                    ) : (
+                      "Sign In to Ezviz"
+                    )}
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <>
+                <Alert className="bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800">
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                  <AlertTitle className="text-green-900 dark:text-green-100">Connected to Ezviz Cloud</AlertTitle>
+                  <AlertDescription className="text-green-800 dark:text-green-200 text-xs">
+                    Found {state.ezvizDevices.length} camera(s) in your account
+                  </AlertDescription>
+                </Alert>
+
+                {state.ezvizDevices.length > 0 ? (
+                  <div className="space-y-3">
+                    <Label>Select Camera *</Label>
+                    <RadioGroup
+                      value={state.selectedEzvizDevice?.deviceSerial || ""}
+                      onValueChange={(serial) => {
+                        const device = state.ezvizDevices.find(d => d.deviceSerial === serial);
+                        if (device) {
+                          dispatch({ type: "SELECT_EZVIZ_DEVICE", payload: device });
+                        }
+                      }}
+                      className="space-y-2"
+                    >
+                      {state.ezvizDevices.map((device) => (
+                        <div
+                          key={device.deviceSerial}
+                          className={`flex items-start gap-3 rounded-lg border-2 p-3 cursor-pointer transition-all ${
+                            state.selectedEzvizDevice?.deviceSerial === device.deviceSerial
+                              ? "border-primary bg-primary/5"
+                              : "border-muted hover:border-primary/50"
+                          }`}
+                          onClick={() => dispatch({ type: "SELECT_EZVIZ_DEVICE", payload: device })}
+                        >
+                          <RadioGroupItem value={device.deviceSerial} id={device.deviceSerial} className="mt-1" />
+                          <div className="flex-1">
+                            <Label htmlFor={device.deviceSerial} className="font-semibold cursor-pointer">
+                              {device.deviceName}
+                            </Label>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Serial: {device.deviceSerial}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              Status: <span className={device.status === 1 ? "text-green-600" : "text-gray-500"}>
+                                {device.status === 1 ? "Online" : "Offline"}
+                              </span>
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </RadioGroup>
+                  </div>
+                ) : (
+                  <Alert variant="destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>No Cameras Found</AlertTitle>
+                    <AlertDescription>
+                      No cameras found in your Ezviz account. Please add cameras to your Ezviz app first.
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => {
+                    dispatch({ type: "CLEAR_EZVIZ_SESSION" });
+                    setEzvizEmail("");
+                    setEzvizPassword("");
+                    setEzvizError("");
+                  }}
+                  className="w-full"
+                >
+                  Sign Out & Switch Account
+                </Button>
+              </>
+            )}
+          </div>
+        )}
       </CardContent>
       <CardFooter className="flex justify-between">
         <Button variant="outline" onClick={() => dispatch({ type: "PREV_STEP" })}>
           Back
         </Button>
-        <Button onClick={handleNext} disabled={!state.selectedIp && state.cameraType === "ip"}>
+        <Button onClick={handleNext}>
           Continue to Test Connection
         </Button>
       </CardFooter>
