@@ -9,6 +9,91 @@ import { Video, Loader2, CheckCircle, AlertTriangle } from "lucide-react";
 import { useWizard } from "../wizard-context";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
+import Hls from "hls.js";
+
+function HLSPlayer({ url }: { url: string }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!videoRef.current || !url) return;
+
+    const video = videoRef.current;
+    setLoading(true);
+    setError(null);
+
+    if (Hls.isSupported()) {
+      const hls = new Hls({
+        enableWorker: true,
+        lowLatencyMode: true,
+        maxBufferSize: 30,
+      });
+
+      hls.loadSource(url);
+      hls.attachMedia(video);
+
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        setLoading(false);
+        video.play().catch((err) => {
+          console.warn("Autoplay prevented:", err);
+        });
+      });
+
+      hls.on(Hls.Events.ERROR, (_event, data) => {
+        if (data.fatal) {
+          setError(`Stream error: ${data.type}`);
+          setLoading(false);
+        }
+      });
+
+      return () => {
+        hls.destroy();
+      };
+    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      // Native HLS support (Safari)
+      video.src = url;
+      video.addEventListener('loadedmetadata', () => {
+        setLoading(false);
+        video.play().catch((err) => {
+          console.warn("Autoplay prevented:", err);
+        });
+      });
+      video.addEventListener('error', () => {
+        setError('Failed to load stream');
+        setLoading(false);
+      });
+    } else {
+      setError('HLS not supported in this browser');
+      setLoading(false);
+    }
+  }, [url]);
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-full bg-muted">
+        <p className="text-sm text-destructive">{error}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative w-full h-full">
+      {loading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-muted z-10">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      )}
+      <video 
+        ref={videoRef} 
+        className="w-full h-full object-cover" 
+        controls 
+        playsInline 
+        muted
+      />
+    </div>
+  );
+}
 
 function LiveCameraPreview({ url }: { url: string }) {
   const [imgSrc, setImgSrc] = useState('');
@@ -109,8 +194,67 @@ export default function StepFourTest({ onComplete }: StepFourTestProps) {
     setShowPreview(false);
     
     try {
+      // EZVIZ CLOUD MODE: Get HLS stream from Ezviz Cloud
+      if (state.connectionMethod === "ezviz") {
+        if (!state.ezvizSession || !state.selectedEzvizDevice) {
+          toast({
+            variant: "destructive",
+            title: "Ezviz Setup Incomplete",
+            description: "Please log in to Ezviz and select a camera first.",
+          });
+          setIsTesting(false);
+          return;
+        }
+
+        toast({ 
+          title: "Connecting to Ezviz Cloud...", 
+          description: "Getting live stream URL for your camera." 
+        });
+
+        const streamResponse = await fetch("/api/ezviz/stream", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            sessionId: state.ezvizSession.sessionId,
+            deviceSerial: state.selectedEzvizDevice.deviceSerial,
+            region: state.ezvizSession.region,
+          }),
+        });
+
+        const streamResult = await streamResponse.json();
+
+        if (streamResult.success && streamResult.streamUrl) {
+          dispatch({ type: "SET_CONNECTION_TESTED", payload: { 
+            tested: true, 
+            streamUrl: streamResult.streamUrl
+          }});
+
+          setPreviewUrl(streamResult.streamUrl);
+          setShowPreview(true);
+          setVideoReady(true);
+
+          toast({
+            title: "✓ Connected to Ezviz Camera!",
+            description: `Streaming ${state.selectedEzvizDevice.deviceName} via cloud`,
+          });
+        } else {
+          dispatch({ type: "SET_CONNECTION_TESTED", payload: { tested: false } });
+          setVideoReady(false);
+
+          toast({
+            variant: "destructive",
+            title: "Ezviz Stream Failed",
+            description: streamResult.error || "Could not get stream URL. The camera may be offline or the session may have expired.",
+            duration: 10000,
+          });
+        }
+        
+        setIsTesting(false);
+        return;
+      }
+
       // BRIDGE MODE: Use Camera Bridge for local network cameras
-      if (state.useBridge) {
+      if (state.connectionMethod === "bridge") {
         if (!user) {
           toast({
             variant: "destructive",
@@ -325,6 +469,8 @@ export default function StepFourTest({ onComplete }: StepFourTestProps) {
           <div className="aspect-video w-full bg-muted rounded-lg overflow-hidden border-2 border-dashed flex items-center justify-center">
             {showPreview && state.cameraType === "usb" ? (
               <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline controls />
+            ) : showPreview && previewUrl && state.connectionMethod === "ezviz" ? (
+              <HLSPlayer url={previewUrl} />
             ) : showPreview && previewUrl ? (
               <LiveCameraPreview url={previewUrl} />
             ) : (
@@ -333,9 +479,16 @@ export default function StepFourTest({ onComplete }: StepFourTestProps) {
                 <p className="text-sm text-muted-foreground">
                   {state.cameraType === "usb"
                     ? "Webcam preview should appear here"
+                    : state.connectionMethod === "ezviz"
+                    ? "Live preview will appear here after connecting to Ezviz Cloud."
                     : "Live preview will appear here after a successful test."}
                 </p>
-                {state.cameraType !== "usb" && (
+                {state.connectionMethod === "ezviz" && (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Ezviz streams work from anywhere in the world via cloud.
+                  </p>
+                )}
+                {state.cameraType !== "usb" && state.connectionMethod !== "ezviz" && (
                   <p className="text-xs text-muted-foreground mt-2">
                     Your browser will connect directly to the camera on your local network.
                   </p>
