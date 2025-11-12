@@ -56,6 +56,9 @@ async function loginToEzviz(email: string, password: string, region: string) {
 
   const result = await response.json();
   
+  // Debug: Log the full API response
+  console.log('Ezviz API response:', JSON.stringify(result, null, 2));
+  
   // Check for API-level errors (Ezviz returns retcode for errors)
   if (result.retcode && result.retcode !== '0') {
     const errorMessages: Record<string, string> = {
@@ -67,6 +70,7 @@ async function loginToEzviz(email: string, password: string, region: string) {
       '1100': 'Wrong region selected',
     };
     const errorMsg = errorMessages[result.retcode] || `Login failed (code: ${result.retcode})`;
+    console.log(`Ezviz login failed: retcode=${result.retcode}, message="${errorMsg}"`);
     throw new Error(errorMsg);
   }
   
