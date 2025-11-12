@@ -59,19 +59,36 @@ async function loginToEzviz(email: string, password: string, region: string) {
   // Debug: Log the full API response
   console.log('Ezviz API response:', JSON.stringify(result, null, 2));
   
-  // Check for API-level errors (Ezviz returns retcode for errors)
-  if (result.retcode && result.retcode !== '0') {
-    const errorMessages: Record<string, string> = {
-      '1001': 'Invalid credentials. Check if your account was created with Google/Facebook login (not supported by API).',
-      '1007': 'Invalid email or password. Please verify:\n1. Email is correct\n2. Password is correct\n3. Two-Factor Authentication is DISABLED\n4. Account was NOT created using Google/Facebook/TikTok login',
-      '1012': 'Invalid verification code',
-      '1013': 'Incorrect email address',
-      '1014': 'Incorrect password',
-      '1100': 'Wrong region selected. Please check if your account is actually in the Europe region.',
+  // Check for API-level errors (Ezviz uses meta.code for new API format)
+  if (result.meta && result.meta.code !== 200) {
+    const code = result.meta.code;
+    const message = result.meta.message || 'Unknown error';
+    
+    // Check if it's a region redirect (code 1100)
+    if (code === 1100 && result.loginArea?.apiDomain) {
+      console.log(`Region redirect: Server suggests using ${result.loginArea.apiDomain}`);
+      throw new Error(`Wrong region. Please try again with a different region. Suggested: ${result.loginArea.apiDomain}`);
+    }
+    
+    const errorMessages: Record<number, string> = {
+      400: 'Invalid request parameters. Please check your credentials.',
+      1001: 'Invalid credentials.',
+      1007: 'Invalid email or password.',
+      1012: 'Invalid verification code',
+      1013: 'Incorrect email address',
+      1014: 'Incorrect password',
+      1100: 'Wrong region selected.',
     };
-    const errorMsg = errorMessages[result.retcode] || `Login failed (code: ${result.retcode})`;
-    console.log(`Ezviz login failed: retcode=${result.retcode}, message="${errorMsg}"`);
+    
+    const errorMsg = errorMessages[code] || `Login failed: ${message} (code: ${code})`;
+    console.log(`Ezviz login failed: code=${code}, message="${message}"`);
     throw new Error(errorMsg);
+  }
+  
+  // Also check old API format for compatibility
+  if (result.retcode && result.retcode !== '0') {
+    console.log(`Ezviz login failed (old format): retcode=${result.retcode}`);
+    throw new Error(`Login failed (code: ${result.retcode})`);
   }
   
   return result;
@@ -124,14 +141,15 @@ export async function POST(request: NextRequest) {
     // Login to Ezviz
     const loginResult = await loginToEzviz(email, password, region);
     
-    // Extract session info from login response
-    const sessionId = loginResult.sessionInfo?.sessionId;
+    // Extract session info from login response (supports both old and new API formats)
+    const sessionId = loginResult.loginSession?.sessionId || loginResult.sessionInfo?.sessionId;
     const apiDomain = loginResult.loginArea?.apiDomain || region;
     
     if (!sessionId) {
+      console.error('No session ID in response:', JSON.stringify(loginResult, null, 2));
       return NextResponse.json({
         success: false,
-        error: 'Login failed: No session ID returned',
+        error: 'Login failed: No session ID returned. Please verify your credentials and region.',
       }, { status: 401 });
     }
     
