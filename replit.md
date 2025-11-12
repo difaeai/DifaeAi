@@ -4,6 +4,15 @@ This monorepo houses two primary applications: **BERRETO Security Cloud**, a Nex
 
 # Recent Changes
 
+**November 12, 2025**:
+- **Implemented Ezviz Cloud API integration** for worldwide camera access (like the Ezviz mobile app):
+  - **Three-Way Connection Method**: Camera wizard now supports Manual IP Entry, Camera Bridge, AND Ezviz Cloud connection options
+  - **Reverse-Engineered Ezviz API**: Created `/api/ezviz/auth` (login + device list) and `/api/ezviz/stream` (HLS stream URL) endpoints using reverse-engineered Ezviz Cloud API (similar to pyEzviz/Home Assistant approach)
+  - **Refactored State Management**: Migrated from boolean `useBridge` to `connectionMethod` enum ("manual" | "bridge" | "ezviz") for cleaner three-way selection logic
+  - **Step 3 Enhancements**: Added Ezviz Cloud login form (email/password/region), device picker showing all user's cameras with online/offline status, and session management with 24-hour expiry tracking
+  - **Step 4 HLS Player**: Integrated HLS.js for live preview of Ezviz cloud streams, supporting both browser-native HLS (Safari) and HLS.js for other browsers
+  - **Worldwide Access**: Ezviz cameras now accessible from anywhere via cloud, eliminating local network requirements
+
 **November 11, 2025**: 
 - Enhanced camera setup wizard with Bridge Creation Wizard. Step 3 presents two connection method options (Manual IP vs Camera Bridge).
 - Added 3-step Bridge Creation Wizard that auto-generates secure configuration values (Bridge ID, Name, API Key using Web Crypto API).
@@ -35,7 +44,7 @@ Integrated via Google Genkit, AI capabilities include real-time threat detection
 
 ## Design Patterns
 
-The project uses a monorepo structure with npm workspaces, sharing a `@difae/ui` package and a custom Tailwind PostCSS package. State management varies, using React Context for global app state, Zustand for camera bridge, and TanStack Query for server state. Authentication relies on Firebase for frontend users and JWT (RS256) for camera stream authorization. Video streaming prioritizes WebRTC (Janus) for low latency, with HLS (nginx-rtmp) as a fallback, supporting RTSP, ONVIF, and P2P cameras.
+The project uses a monorepo structure with npm workspaces, sharing a `@difae/ui` package and a custom Tailwind PostCSS package. State management varies, using React Context for global app state, Zustand for camera bridge, and TanStack Query for server state. Authentication relies on Firebase for frontend users and JWT (RS256) for camera stream authorization. Video streaming prioritizes WebRTC (Janus) for low latency, with HLS (nginx-rtmp and Ezviz Cloud HLS) as a fallback, supporting RTSP, ONVIF, P2P cameras, and cloud-based Ezviz cameras.
 
 # External Dependencies
 
@@ -43,6 +52,7 @@ The project uses a monorepo structure with npm workspaces, sharing a `@difae/ui`
 
 **Firebase (Google Cloud)**: Used for Authentication, Firestore (database for users, orders, cameras), Cloud Storage (images, media), and Hosting.
 **Google AI (Genkit)**: Integrates Gemini 2.0 Flash and Vertex AI for all AI-powered features.
+**Ezviz Cloud API**: Reverse-engineered API integration for worldwide Ezviz camera access via HLS streams (similar to pyEzviz/Home Assistant approach).
 
 ## Media Infrastructure
 
