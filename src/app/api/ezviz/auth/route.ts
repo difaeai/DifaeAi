@@ -97,27 +97,30 @@ export async function POST(request: NextRequest) {
     // Login to Ezviz
     const loginResult = await loginToEzviz(email, password, region);
     
-    if (loginResult.resultCode !== '0' || !loginResult.sessionId) {
+    // Check for successful login (Ezviz uses meta.code 200 for success)
+    if (loginResult.meta?.code !== 200 || !loginResult.loginSession?.sessionId) {
       return NextResponse.json({
         success: false,
-        error: loginResult.resultMsg || 'Login failed',
+        error: loginResult.meta?.message || 'Login failed',
       }, { status: 401 });
     }
 
-    const sessionId = loginResult.sessionId;
-    console.log('✓ Ezviz login successful');
+    const sessionId = loginResult.loginSession.sessionId;
+    // Use the API domain returned from login response (important for EU region)
+    const apiDomain = loginResult.loginArea?.apiDomain || region;
+    console.log(`✓ Ezviz login successful, API domain: ${apiDomain}`);
 
-    // Get device list
-    const devicesResult = await getDeviceList(sessionId, region);
+    // Get device list using the correct API domain
+    const devicesResult = await getDeviceList(sessionId, apiDomain);
     
-    if (devicesResult.resultCode !== '0') {
+    if (devicesResult.meta?.code !== 200) {
       return NextResponse.json({
         success: false,
         error: 'Failed to retrieve camera list',
       }, { status: 500 });
     }
 
-    const devices: EzvizDevice[] = (devicesResult.deviceInfos || []).map((device: any) => ({
+    const devices: EzvizDevice[] = (devicesResult.data || []).map((device: any) => ({
       deviceSerial: device.deviceSerial,
       deviceName: device.deviceName,
       status: device.status,
@@ -132,6 +135,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       sessionId,
+      apiDomain,
       devices,
       region,
     });
