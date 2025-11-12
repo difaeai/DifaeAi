@@ -29,7 +29,7 @@ function md5Hash(text: string): string {
 
 async function loginToEzviz(email: string, password: string, region: string) {
   // Ezviz login endpoint (reverse-engineered from pyEzviz)
-  const loginUrl = `https://${region}/v3/users/login/v5`;
+  const loginUrl = `https://${region}/doLogin`;
   
   // Hash password with MD5 (as required by Ezviz API)
   const hashedPassword = md5Hash(password);
@@ -54,22 +54,38 @@ async function loginToEzviz(email: string, password: string, region: string) {
     throw new Error(`Login failed: ${response.status} ${response.statusText}`);
   }
 
-  return await response.json();
+  const result = await response.json();
+  
+  // Check for API-level errors (Ezviz returns retcode for errors)
+  if (result.retcode && result.retcode !== '0') {
+    const errorMessages: Record<string, string> = {
+      '1001': 'Invalid credentials',
+      '1007': 'Invalid account or password',
+      '1012': 'Invalid MFA code',
+      '1013': 'Incorrect username',
+      '1014': 'Incorrect password',
+      '1100': 'Wrong region selected',
+    };
+    const errorMsg = errorMessages[result.retcode] || `Login failed (code: ${result.retcode})`;
+    throw new Error(errorMsg);
+  }
+  
+  return result;
 }
 
 async function getDeviceList(sessionId: string, region: string) {
-  const devicesUrl = `https://${region}/v3/devices/list`;
+  const devicesUrl = `https://${region}/api/cloud/v2/device/query`;
   
   const response = await fetch(devicesUrl, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
-      'sessionId': sessionId,
+      'Cookie': `SESSION=${sessionId}`,
       'User-Agent': 'EZVIZ/5.0.0 (iPhone; iOS 14.0; Scale/3.00)',
     },
     body: new URLSearchParams({
-      limit: '50',
-      offset: '0',
+      pageSize: '50',
+      pageNo: '1',
     }),
   });
 
@@ -77,7 +93,14 @@ async function getDeviceList(sessionId: string, region: string) {
     throw new Error(`Failed to get devices: ${response.status}`);
   }
 
-  return await response.json();
+  const result = await response.json();
+  
+  // Check for API-level errors
+  if (result.retcode && result.retcode !== '0') {
+    throw new Error(`Failed to get device list (code: ${result.retcode})`);
+  }
+  
+  return result;
 }
 
 export async function POST(request: NextRequest) {
@@ -97,30 +120,23 @@ export async function POST(request: NextRequest) {
     // Login to Ezviz
     const loginResult = await loginToEzviz(email, password, region);
     
-    // Check for successful login (Ezviz uses meta.code 200 for success)
-    if (loginResult.meta?.code !== 200 || !loginResult.loginSession?.sessionId) {
+    // Extract session info from login response
+    const sessionId = loginResult.sessionInfo?.sessionId;
+    const apiDomain = loginResult.loginArea?.apiDomain || region;
+    
+    if (!sessionId) {
       return NextResponse.json({
         success: false,
-        error: loginResult.meta?.message || 'Login failed',
+        error: 'Login failed: No session ID returned',
       }, { status: 401 });
     }
-
-    const sessionId = loginResult.loginSession.sessionId;
-    // Use the API domain returned from login response (important for EU region)
-    const apiDomain = loginResult.loginArea?.apiDomain || region;
-    console.log(`✓ Ezviz login successful, API domain: ${apiDomain}`);
+    
+    console.log(`✓ Ezviz login successful, session ID: ${sessionId.substring(0, 10)}..., API domain: ${apiDomain}`);
 
     // Get device list using the correct API domain
     const devicesResult = await getDeviceList(sessionId, apiDomain);
-    
-    if (devicesResult.meta?.code !== 200) {
-      return NextResponse.json({
-        success: false,
-        error: 'Failed to retrieve camera list',
-      }, { status: 500 });
-    }
 
-    const devices: EzvizDevice[] = (devicesResult.data || []).map((device: any) => ({
+    const devices: EzvizDevice[] = (devicesResult.deviceInfos || []).map((device: any) => ({
       deviceSerial: device.deviceSerial,
       deviceName: device.deviceName,
       status: device.status,
