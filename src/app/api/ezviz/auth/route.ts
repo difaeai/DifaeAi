@@ -46,7 +46,9 @@ async function loginToEzviz(email: string, password: string, region: string) {
       password: hashedPassword,
       featureCode: featureCode,
       msgType: '0',
+      bizType: '',  // Empty string when no SMS code
       cuName: 'SGFzc2lv', // Base64 for "Hassio"
+      smsCode: '',  // Empty when no SMS verification
     }),
   });
 
