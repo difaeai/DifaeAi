@@ -3,6 +3,9 @@ import sensible from "@fastify/sensible";
 import cors from "@fastify/cors";
 import swagger from "@fastify/swagger";
 import swaggerUi from "@fastify/swagger-ui";
+import websocket from "@fastify/websocket";
+import fastifyStatic from "@fastify/static";
+import path from "path";
 import pino from "pino";
 import fastifyJwt from "@fastify/jwt";
 import type { SignOptions } from "@fastify/jwt";
@@ -18,6 +21,7 @@ import { devicesRoutes } from "./routes/devices";
 import { discoveryRoutes } from "./routes/discovery";
 import { streamRoutes } from "./routes/streams";
 import { healthRoutes } from "./routes/health";
+import { bridgeConnectionRoutes } from "./routes/bridge-connection";
 import { deviceStore } from "./store";
 import { ingestClient } from "./services/ingest-client";
 
@@ -29,6 +33,11 @@ async function buildServer() {
   });
 
   await app.register(sensible);
+  await app.register(websocket);
+  await app.register(fastifyStatic, {
+    root: path.join(process.cwd(), "storage"),
+    prefix: "/storage/",
+  });
   await app.register(cors, {
     origin: process.env.CORS_ALLOWED_ORIGINS?.split(",") ?? ["http://localhost:3000"],
     credentials: true,
@@ -63,6 +72,7 @@ async function buildServer() {
   await app.register(discoveryRoutes);
   await app.register(streamRoutes);
   await app.register(healthRoutes);
+  await app.register(bridgeConnectionRoutes);
 
   app.post("/webhooks/device-offline", async (request, reply) => {
     const payload = request.body as { deviceId: string; error?: string };
