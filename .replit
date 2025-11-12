@@ -18,6 +18,10 @@ author = "agent"
 task = "workflow.run"
 args = "dev"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "bridge-api"
+
 [[workflows.workflow]]
 name = "dev"
 author = "agent"
@@ -29,6 +33,18 @@ waitForPort = 5000
 
 [workflows.workflow.metadata]
 outputType = "webview"
+
+[[workflows.workflow]]
+name = "bridge-api"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd bridge-api && npm run dev"
+waitForPort = 8080
+
+[workflows.workflow.metadata]
+outputType = "console"
 
 [[ports]]
 localPort = 5000
@@ -43,8 +59,8 @@ localPort = 36423
 externalPort = 3001
 
 [[ports]]
-localPort = 44649
-externalPort = 3002
+localPort = 8080
+externalPort = 8080
 
 [deployment]
 deploymentTarget = "autoscale"
