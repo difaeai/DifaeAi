@@ -35,21 +35,22 @@ async function loginToEzviz(email: string, password: string, region: string) {
   const hashedPassword = md5Hash(password);
   const featureCode = generateFeatureCode();
   
+  // Build params object (only include smsCode and bizType if they have values)
+  const params: Record<string, string> = {
+    account: email,
+    password: hashedPassword,
+    featureCode: featureCode,
+    msgType: '0',
+    cuName: 'SGFzc2lv', // Base64 for "Hassio"
+  };
+  
   const response = await fetch(loginUrl, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
       'User-Agent': 'EZVIZ/5.0.0 (iPhone; iOS 14.0; Scale/3.00)',
     },
-    body: new URLSearchParams({
-      account: email,
-      password: hashedPassword,
-      featureCode: featureCode,
-      msgType: '0',
-      bizType: '',  // Empty string when no SMS code
-      cuName: 'SGFzc2lv', // Base64 for "Hassio"
-      smsCode: '',  // Empty when no SMS verification
-    }),
+    body: new URLSearchParams(params),
   });
 
   if (!response.ok) {
