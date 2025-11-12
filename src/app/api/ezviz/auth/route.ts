@@ -62,12 +62,12 @@ async function loginToEzviz(email: string, password: string, region: string) {
   // Check for API-level errors (Ezviz returns retcode for errors)
   if (result.retcode && result.retcode !== '0') {
     const errorMessages: Record<string, string> = {
-      '1001': 'Invalid credentials',
-      '1007': 'Invalid account or password',
-      '1012': 'Invalid MFA code',
-      '1013': 'Incorrect username',
+      '1001': 'Invalid credentials. Check if your account was created with Google/Facebook login (not supported by API).',
+      '1007': 'Invalid email or password. Please verify:\n1. Email is correct\n2. Password is correct\n3. Two-Factor Authentication is DISABLED\n4. Account was NOT created using Google/Facebook/TikTok login',
+      '1012': 'Invalid verification code',
+      '1013': 'Incorrect email address',
       '1014': 'Incorrect password',
-      '1100': 'Wrong region selected',
+      '1100': 'Wrong region selected. Please check if your account is actually in the Europe region.',
     };
     const errorMsg = errorMessages[result.retcode] || `Login failed (code: ${result.retcode})`;
     console.log(`Ezviz login failed: retcode=${result.retcode}, message="${errorMsg}"`);
