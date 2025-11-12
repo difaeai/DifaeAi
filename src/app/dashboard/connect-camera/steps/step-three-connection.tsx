@@ -24,7 +24,7 @@ export default function StepThreeConnection() {
   // Ezviz Cloud state
   const [ezvizEmail, setEzvizEmail] = useState("");
   const [ezvizPassword, setEzvizPassword] = useState("");
-  const [ezvizRegion, setEzvizRegion] = useState("apieu.ezvizlife.com"); // Default to Europe since user is in EU
+  const [ezvizRegion, setEzvizRegion] = useState("euauth.ezvizlife.com"); // Default to Europe since user is in EU
   const [isEzvizLoading, setIsEzvizLoading] = useState(false);
   const [ezvizError, setEzvizError] = useState("");
 
@@ -574,8 +574,8 @@ export default function StepThreeConnection() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="apiius.ezvizlife.com">🇺🇸 United States</SelectItem>
-                        <SelectItem value="apieu.ezvizlife.com">🇪🇺 Europe</SelectItem>
-                        <SelectItem value="apiruspro.ezvizru.com">🇷🇺 Russia</SelectItem>
+                        <SelectItem value="euauth.ezvizlife.com">🇪🇺 Europe</SelectItem>
+                        <SelectItem value="ruauth.ezvizlife.com">🇷🇺 Russia</SelectItem>
                       </SelectContent>
                     </Select>
                     <p className="text-xs text-muted-foreground">

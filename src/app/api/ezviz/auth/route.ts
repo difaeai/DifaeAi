@@ -83,7 +83,7 @@ async function getDeviceList(sessionId: string, region: string) {
 export async function POST(request: NextRequest) {
   try {
     const body: EzvizAuthRequest = await request.json();
-    const { email, password, region = 'apiius.ezvizlife.com' } = body;
+    const { email, password, region = 'euauth.ezvizlife.com' } = body;
 
     if (!email || !password) {
       return NextResponse.json(
