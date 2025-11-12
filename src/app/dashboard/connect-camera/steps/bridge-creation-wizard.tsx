@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Copy, CheckCircle, Terminal, Download, Info } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -37,15 +38,15 @@ export function BridgeCreationWizard({ open, onClose, onComplete }: BridgeCreati
   const [bridgeId, setBridgeId] = useState(() => generateSecureId("bridge", 12));
   const [bridgeName, setBridgeName] = useState("My Home Bridge");
   const [bridgeUrl, setBridgeUrl] = useState("http://localhost:8080");
-  const [useApiKey, setUseApiKey] = useState(false);
-  const [bridgeApiKey, setBridgeApiKey] = useState("");
+  const [useApiKey, setUseApiKey] = useState(true); // Enabled by default (recommended)
+  const [bridgeApiKey, setBridgeApiKey] = useState(() => generateSecureId("key", 24)); // Auto-generate on load
   
   const [copied, setCopied] = useState<string | null>(null);
 
   // Generate API key when user enables authentication
-  const handleApiKeyToggle = (enabled: boolean) => {
-    setUseApiKey(enabled);
-    if (enabled && !bridgeApiKey) {
+  const handleApiKeyToggle = (checked: boolean) => {
+    setUseApiKey(checked);
+    if (checked && !bridgeApiKey) {
       setBridgeApiKey(generateSecureId("key", 24));
     }
   };
@@ -179,12 +180,10 @@ ${useApiKey ? `API_KEY=${bridgeApiKey} \\\n` : ''}berreto-bridge start`;
               </div>
 
               <div className="flex items-center space-x-2 p-3 border rounded-md">
-                <input
-                  type="checkbox"
+                <Checkbox
                   id="use-api-key-wizard"
                   checked={useApiKey}
-                  onChange={(e) => handleApiKeyToggle(e.target.checked)}
-                  className="h-4 w-4"
+                  onCheckedChange={handleApiKeyToggle}
                 />
                 <Label htmlFor="use-api-key-wizard" className="cursor-pointer">
                   Enable API Key Authentication (Recommended)
