@@ -29,7 +29,7 @@ function md5Hash(text: string): string {
 
 async function loginToEzviz(email: string, password: string, region: string) {
   // Ezviz login endpoint (reverse-engineered from pyEzviz)
-  const loginUrl = `https://${region}/doLogin`;
+  const loginUrl = `https://${region}/v3/users/login/v5`;
   
   // Hash password with MD5 (as required by Ezviz API)
   const hashedPassword = md5Hash(password);
@@ -110,7 +110,7 @@ async function getDeviceList(sessionId: string, region: string) {
 export async function POST(request: NextRequest) {
   try {
     const body: EzvizAuthRequest = await request.json();
-    const { email, password, region = 'euauth.ezvizlife.com' } = body;
+    const { email, password, region = 'apiieu.ezvizlife.com' } = body;
 
     if (!email || !password) {
       return NextResponse.json(
