@@ -182,49 +182,69 @@ export async function POST(request: NextRequest) {
 
     if (!ip) {
       return NextResponse.json(
-        { success: false, error: 'IP address is required' },
+        { success: false, error: 'IP address or hostname is required' },
         { status: 400 }
       );
     }
 
-    // Validate IP format
+    // Parse hostname:port format (for ngrok, external tunnels)
+    let host = ip;
+    let port = 554; // Default RTSP port
+    
+    if (ip.includes(':')) {
+      const parts = ip.split(':');
+      host = parts[0];
+      port = parseInt(parts[1], 10) || 554;
+    }
+
+    // Validate format (IP address OR hostname)
     const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/;
-    if (!ipRegex.test(ip)) {
+    const hostnameRegex = /^[a-zA-Z0-9][a-zA-Z0-9-_.]*[a-zA-Z0-9]$/;
+    
+    const isIPAddress = ipRegex.test(host);
+    const isHostname = hostnameRegex.test(host);
+    
+    if (!isIPAddress && !isHostname) {
       return NextResponse.json(
-        { success: false, error: 'Invalid IP address format' },
+        { success: false, error: 'Invalid IP address or hostname format' },
         { status: 400 }
       );
     }
 
-    console.log(`Starting camera discovery for ${ip}...`);
+    console.log(`Starting camera discovery for ${host}:${port} (${isIPAddress ? 'IP' : 'hostname'})...`);
 
-    // PRE-FLIGHT CHECKS: Detect network incompatibility early
-    const isPrivate = isPrivateIP(ip);
-    const onSameNetwork = isServerOnSameNetwork(ip);
-    
-    console.log(`IP ${ip} - Private: ${isPrivate}, Same Network: ${onSameNetwork}`);
-    
-    if (isPrivate && !onSameNetwork) {
-      console.log(`⚠ Cannot reach private IP ${ip} from this server`);
-      return NextResponse.json({
-        success: false,
-        error: `Cannot reach camera at ${ip} - this appears to be a local network address. Cloud servers cannot access cameras on your local network (192.168.x.x, 10.x.x.x, etc.). Solutions: 1. Deploy this app on your local network 2. Use a cloud-accessible camera 3. Set up port forwarding on your router`,
-      }, { status: 400 });
+    // PRE-FLIGHT CHECKS: Only for IP addresses (skip for hostnames like ngrok)
+    if (isIPAddress) {
+      const isPrivate = isPrivateIP(host);
+      const onSameNetwork = isServerOnSameNetwork(host);
+      
+      console.log(`IP ${host} - Private: ${isPrivate}, Same Network: ${onSameNetwork}`);
+      
+      if (isPrivate && !onSameNetwork) {
+        console.log(`⚠ Cannot reach private IP ${host} from this server`);
+        return NextResponse.json({
+          success: false,
+          error: `Cannot reach camera at ${host} - this appears to be a local network address. Cloud servers cannot access cameras on your local network (192.168.x.x, 10.x.x.x, etc.). Solutions: 1. Use ngrok tunnel (recommended) 2. Deploy this app on your local network 3. Set up port forwarding on your router`,
+        }, { status: 400 });
+      }
+
+      // Quick TCP connectivity test before expensive RTSP probing
+      console.log(`Testing TCP connectivity to ${host}:${port}...`);
+      const tcpReachable = await testTCPConnection(host, port, 2000);
+      
+      if (!tcpReachable) {
+        console.log(`⚠ TCP connection to ${host}:${port} failed`);
+        return NextResponse.json({
+          success: false,
+          error: `Camera at ${host}:${port} is not reachable. Please check: 1. Camera is powered on 2. IP address is correct 3. Camera is on the same network 4. Firewall allows RTSP connections`,
+        }, { status: 404 });
+      }
+
+      console.log(`✓ TCP connection successful, starting RTSP discovery...`);
+    } else {
+      // For hostnames (ngrok, etc.), skip network checks and go straight to RTSP testing
+      console.log(`✓ Hostname detected (external tunnel), skipping network checks...`);
     }
-
-    // Quick TCP connectivity test before expensive RTSP probing
-    console.log(`Testing TCP connectivity to ${ip}:554...`);
-    const tcpReachable = await testTCPConnection(ip, 554, 2000);
-    
-    if (!tcpReachable) {
-      console.log(`⚠ TCP connection to ${ip}:554 failed`);
-      return NextResponse.json({
-        success: false,
-        error: `Camera at ${ip} is not reachable. Please check: 1. Camera is powered on 2. IP address is correct 3. Camera is on the same network 4. Firewall allows RTSP connections`,
-      }, { status: 404 });
-    }
-
-    console.log(`✓ TCP connection successful, starting RTSP discovery...`);
 
     // Build credential string
     const credentials = username ? `${username}:${password}@` : '';
@@ -232,9 +252,13 @@ export async function POST(request: NextRequest) {
     // Implement 45-second global timeout
     const DISCOVERY_TIMEOUT = 45000;
     const discoveryPromise = (async () => {
-      for (const port of COMMON_PORTS) {
+      // For hostnames (ngrok), only test the specified port
+      // For IP addresses, test common ports
+      const portsToTest = isHostname ? [port] : COMMON_PORTS;
+      
+      for (const testPort of portsToTest) {
         for (const path of COMMON_RTSP_PATHS) {
-          const rtspUrl = `rtsp://${credentials}${ip}:${port}${path}`;
+          const rtspUrl = `rtsp://${credentials}${host}:${testPort}${path}`;
           
           const works = await testRTSPUrl(rtspUrl);
           
@@ -243,7 +267,7 @@ export async function POST(request: NextRequest) {
             return {
               success: true,
               rtspUrl,
-              port,
+              port: testPort,
               path,
               protocol: 'rtsp',
               method: 'auto-discovery',
