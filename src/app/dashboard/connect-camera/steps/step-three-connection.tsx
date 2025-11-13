@@ -17,7 +17,55 @@ export default function StepThreeConnection() {
   const { toast } = useToast();
   const [manualIp, setManualIp] = useState("");
   const [showBridgeWizard, setShowBridgeWizard] = useState(false);
-  
+
+  const handleManualIpSubmit = () => {
+    const ip = (manualIp || state.selectedIp || "").trim();
+
+    if (!ip) {
+      toast({
+        variant: "destructive",
+        title: "IP Address Required",
+        description: "Enter your camera's IP address to continue with manual setup.",
+      });
+      return;
+    }
+
+    dispatch({ type: "SET_CONNECTION_DETAILS", payload: { selectedIp: ip } });
+    setManualIp("");
+
+    toast({
+      title: "IP Address Saved",
+      description: `Camera IP set to ${ip}. Continue filling in credentials below if required.`,
+    });
+  };
+
+  const handleBridgeWizardComplete = (config: {
+    bridgeId: string;
+    bridgeUrl: string;
+    bridgeName: string;
+    bridgeApiKey?: string;
+  }) => {
+    dispatch({
+      type: "SET_CONNECTION_METHOD",
+      payload: "bridge",
+    });
+
+    dispatch({
+      type: "SET_CONNECTION_DETAILS",
+      payload: {
+        bridgeId: config.bridgeId,
+        bridgeUrl: config.bridgeUrl,
+        bridgeName: config.bridgeName,
+        bridgeApiKey: config.bridgeApiKey ?? "",
+      },
+    });
+
+    toast({
+      title: "Bridge Configuration Loaded",
+      description: "Bridge details have been applied. Make sure the bridge is running before continuing.",
+    });
+  };
+
   const handleNext = () => {
     // Validate based on connection method
     if (state.connectionMethod === "manual") {

@@ -108,9 +108,6 @@ export default function StepFourTest({ onComplete }: StepFourTestProps) {
     setShowPreview(false);
     
     try {
-      // EZVIZ CLOUD MODE: Get HLS stream from Ezviz Cloud
-      }
-
       // BRIDGE MODE: Use Camera Bridge for local network cameras
       if (state.connectionMethod === "bridge") {
         if (!user) {
