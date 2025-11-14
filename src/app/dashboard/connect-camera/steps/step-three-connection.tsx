@@ -481,7 +481,7 @@ async function fetchPublicIpViaStun(): Promise<string | null> {
         return;
       }
 
-      const match = candidate.candidate.match(/candidate:\\S+ \d+ \\S+ \d+ ([0-9.]+) \d+ typ (\\S+)/);
+      const match = candidate.candidate.match(/candidate:\S+ \d+ \S+ \d+ ([0-9.]+) \d+ typ (\S+)/);
       if (!match) {
         return;
       }
