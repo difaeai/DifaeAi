@@ -44,8 +44,14 @@ export default function StepThreeConnection() {
     const password = state.streamPass?.trim();
     const port = state.streamPort?.trim() || "554";
 
-    const encodedUser = username ? encodeURIComponent(username) : "";
-    const encodedPass = password ? encodeURIComponent(password) : "";
+    const preserveAtSymbol = (value: string) => value.replace(/%40/g, "@");
+
+    const encodedUser = username
+      ? preserveAtSymbol(encodeURIComponent(username))
+      : "";
+    const encodedPass = password
+      ? preserveAtSymbol(encodeURIComponent(password))
+      : "";
 
     let credentials = "";
     if (encodedUser) {
