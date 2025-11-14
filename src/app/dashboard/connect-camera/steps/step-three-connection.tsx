@@ -78,11 +78,38 @@ export default function StepThreeConnection() {
   useEffect(() => {
     if (state.connectionHostType === "public" && !state.publicIp && state.localIp) {
       dispatch({ type: "SET_CONNECTION_DETAILS", payload: { connectionHostType: "local" } });
+      return;
     }
     if (state.connectionHostType === "local" && !state.localIp && state.publicIp) {
       dispatch({ type: "SET_CONNECTION_DETAILS", payload: { connectionHostType: "public" } });
+      return;
     }
-  }, [dispatch, state.connectionHostType, state.localIp, state.publicIp]);
+
+    const selectedHost =
+      state.connectionHostType === "public"
+        ? state.publicIp?.trim()
+        : state.localIp?.trim();
+
+    if (
+      selectedHost &&
+      (state.selectedIp !== selectedHost || state.selectedHostname !== selectedHost)
+    ) {
+      dispatch({
+        type: "SET_CONNECTION_DETAILS",
+        payload: {
+          selectedIp: selectedHost,
+          selectedHostname: selectedHost,
+        },
+      });
+    }
+  }, [
+    dispatch,
+    state.connectionHostType,
+    state.localIp,
+    state.publicIp,
+    state.selectedHostname,
+    state.selectedIp,
+  ]);
 
   const resolvePublicIp = async () => {
     if (!state.localIp?.trim()) {
@@ -98,25 +125,24 @@ export default function StepThreeConnection() {
       setIsResolvingIp(true);
       setConversionError(null);
 
-      const response = await fetch("https://api.ipify.org?format=json");
-      if (!response.ok) {
-        throw new Error("Failed to retrieve public IP address.");
-      }
-      const data: { ip?: string } = await response.json();
-      if (!data.ip) {
+      const detectedIp = await detectPublicIPv4();
+      if (!detectedIp) {
         throw new Error("Could not determine your public IP address.");
       }
 
       dispatch({
         type: "SET_CONNECTION_DETAILS",
         payload: {
-          publicIp: data.ip,
+          publicIp: detectedIp,
+          connectionHostType: "public",
+          selectedIp: detectedIp,
+          selectedHostname: detectedIp,
         },
       });
 
       toast({
         title: "Public IP Detected",
-        description: `We detected your network's public IP address ${data.ip}. Use the toggle below to pick the best host.`,
+        description: `We converted ${state.localIp} to your public IP address ${detectedIp}.`,
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unexpected error while converting IP.";
@@ -226,7 +252,7 @@ export default function StepThreeConnection() {
                     }
                   />
                   <Button type="button" onClick={resolvePublicIp} disabled={isResolvingIp}>
-                    {isResolvingIp ? "Resolving…" : "USE"}
+                    {isResolvingIp ? "Resolving…" : "Use Public IP"}
                   </Button>
                 </div>
                 <p className="text-xs text-muted-foreground">
@@ -417,4 +443,132 @@ export default function StepThreeConnection() {
       </CardFooter>
     </Card>
   );
+}
+
+function isValidIPv4(ip: string): boolean {
+  const ipv4Regex = /^(25[0-5]|2[0-4]\d|1?\d?\d)(\.(25[0-5]|2[0-4]\d|1?\d?\d)){3}$/;
+  return ipv4Regex.test(ip.trim());
+}
+
+async function detectPublicIPv4(): Promise<string | null> {
+  if (typeof window === "undefined") {
+    return fetchPublicIpFromServices();
+  }
+
+  try {
+    const stunIp = await fetchPublicIpViaStun();
+    if (stunIp && isValidIPv4(stunIp)) {
+      return stunIp;
+    }
+  } catch (error) {
+    console.warn("STUN public IP detection failed", error);
+  }
+
+  return fetchPublicIpFromServices();
+}
+
+async function fetchPublicIpViaStun(): Promise<string | null> {
+  if (typeof window === "undefined" || typeof RTCPeerConnection === "undefined") {
+    return null;
+  }
+
+  const rtc = new RTCPeerConnection({
+    iceServers: [
+      { urls: "stun:stun.l.google.com:19302" },
+      { urls: "stun:stun1.l.google.com:19302" },
+    ],
+    iceCandidatePoolSize: 1,
+  });
+
+  let resolved = false;
+
+  return new Promise((resolve) => {
+    const timeout = window.setTimeout(() => {
+      if (!resolved) {
+        resolved = true;
+        rtc.close();
+        resolve(null);
+      }
+    }, 4000);
+
+    const handleCandidate = (candidate?: RTCIceCandidate | null) => {
+      if (resolved) {
+        return;
+      }
+
+      if (!candidate) {
+        resolved = true;
+        window.clearTimeout(timeout);
+        rtc.onicecandidate = null;
+        rtc.close();
+        resolve(null);
+        return;
+      }
+
+      if (!candidate.candidate) {
+        return;
+      }
+
+      const match = candidate.candidate.match(/candidate:\S+ \d+ \S+ \d+ ([0-9.]+) \d+ typ (\S+)/);
+      if (!match) {
+        return;
+      }
+
+      const [, ip, type] = match;
+      if (type === "srflx" && isValidIPv4(ip)) {
+        resolved = true;
+        window.clearTimeout(timeout);
+        rtc.onicecandidate = null;
+        rtc.close();
+        resolve(ip);
+      }
+    };
+
+    rtc.onicecandidate = (event) => {
+      handleCandidate(event.candidate ?? null);
+    };
+
+    rtc.createDataChannel("ip-probe");
+    rtc
+      .createOffer()
+      .then((offer) => rtc.setLocalDescription(offer))
+      .catch(() => {
+        if (!resolved) {
+          resolved = true;
+          window.clearTimeout(timeout);
+          rtc.close();
+          resolve(null);
+        }
+      });
+  });
+}
+
+async function fetchPublicIpFromServices(): Promise<string | null> {
+  const providers: Array<() => Promise<string | null>> = [
+    async () => {
+      const response = await fetch("https://api.ipify.org?format=json");
+      if (!response.ok) return null;
+      const data: { ip?: string } = await response.json();
+      return data.ip && isValidIPv4(data.ip) ? data.ip : null;
+    },
+    async () => {
+      const response = await fetch("https://ipv4.icanhazip.com/", { cache: "no-store" });
+      if (!response.ok) return null;
+      const text = (await response.text()).trim();
+      return isValidIPv4(text) ? text : null;
+    },
+  ];
+
+  for (const provider of providers) {
+    try {
+      const ip = await provider();
+      if (ip) {
+        return ip;
+      }
+    } catch (error) {
+      console.warn("Public IP provider failed", error);
+    }
+  }
+
+  return null;
 }
