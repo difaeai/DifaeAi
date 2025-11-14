@@ -112,13 +112,12 @@ export default function StepThreeConnection() {
         type: "SET_CONNECTION_DETAILS",
         payload: {
           publicIp: data.ip,
-          connectionHostType: "public",
         },
       });
 
       toast({
         title: "Public IP Detected",
-        description: `We converted ${state.localIp} to your public IP address ${data.ip}.`,
+        description: `We detected your network's public IP address ${data.ip}. Use the toggle below to pick the best host.`,
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unexpected error while converting IP.";
@@ -203,8 +202,8 @@ export default function StepThreeConnection() {
           <Info className="h-4 w-4" />
           <AlertTitle>Use a direct RTSP stream</AlertTitle>
           <AlertDescription>
-            We'll help you build the correct RTSP address. Start with the camera's local IP, then supply the username, password, and port. We'll convert it to a public-facing stream URL for
-            you.
+            We'll help you build the correct RTSP address. Start with the camera's local IP, then supply the username, password, and port. We'll also detect your network's public IP so you can
+            choose the address that works best for testing and remote access.
           </AlertDescription>
         </Alert>
 
@@ -229,12 +228,12 @@ export default function StepThreeConnection() {
                     }
                   />
                   <Button type="button" onClick={resolvePublicIp} disabled={isResolvingIp}>
-                    {isResolvingIp ? "Resolving…" : "Use"}
+                    {isResolvingIp ? "Resolving…" : "USE"}
                   </Button>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Start with the local IP for your camera. We'll convert it to the public IP that BERRETO can reach.
-                </p>
+                  <p className="text-xs text-muted-foreground">
+                    Start with the local IP for your camera. We'll detect your public IP as a secondary option but you can continue using the local address if you're on the same network.
+                  </p>
                 {conversionError && <p className="text-xs text-destructive">{conversionError}</p>}
               </div>
 
@@ -242,7 +241,7 @@ export default function StepThreeConnection() {
                 <div className="rounded-md border bg-background p-4 space-y-3">
                   <div className="flex items-center gap-2 text-sm font-medium">
                     <Globe className="h-4 w-4 text-primary" />
-                    Detected Public IP
+                    Detected Network Public IP
                   </div>
                   <Input
                     id="public-ip"
@@ -285,8 +284,8 @@ export default function StepThreeConnection() {
                     </Button>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Pick whichever address BERRETO should use to reach your camera. Stay on the local IP if you're on the same
-                    network.
+                    Pick whichever address BERRETO should use to reach your camera. Stay on the local IP if you're testing from the
+                    same network, or switch to the public IP if you've exposed the stream externally.
                   </p>
                 </div>
               )}
@@ -360,14 +359,14 @@ export default function StepThreeConnection() {
             </Label>
             <Input id="rtsp-url" type="text" value={autoRtspUrl} readOnly className="font-mono" />
             <p className="text-xs text-muted-foreground">
-              We generated this RTSP link using your public IP and credentials. You'll confirm it and connect on the next step.
+              We generated this RTSP link using your selected host and credentials. You'll confirm it and connect on the next step.
             </p>
           </div>
         )}
 
         {rtspHost && (
           <div className="rounded-md border bg-muted/40 p-4 text-sm">
-            <p className="font-semibold">Detected Camera Host</p>
+            <p className="font-semibold">Host in Use for RTSP Link</p>
             <p className="font-mono text-xs mt-1">{rtspHost}</p>
             <p className="text-xs text-muted-foreground mt-2">
               We'll use this host when showing the connection summary on the next step.
