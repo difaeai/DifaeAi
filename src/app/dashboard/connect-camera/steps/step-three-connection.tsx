@@ -78,11 +78,38 @@ export default function StepThreeConnection() {
   useEffect(() => {
     if (state.connectionHostType === "public" && !state.publicIp && state.localIp) {
       dispatch({ type: "SET_CONNECTION_DETAILS", payload: { connectionHostType: "local" } });
+      return;
     }
     if (state.connectionHostType === "local" && !state.localIp && state.publicIp) {
       dispatch({ type: "SET_CONNECTION_DETAILS", payload: { connectionHostType: "public" } });
+      return;
     }
-  }, [dispatch, state.connectionHostType, state.localIp, state.publicIp]);
+
+    const selectedHost =
+      state.connectionHostType === "public"
+        ? state.publicIp?.trim()
+        : state.localIp?.trim();
+
+    if (
+      selectedHost &&
+      (state.selectedIp !== selectedHost || state.selectedHostname !== selectedHost)
+    ) {
+      dispatch({
+        type: "SET_CONNECTION_DETAILS",
+        payload: {
+          selectedIp: selectedHost,
+          selectedHostname: selectedHost,
+        },
+      });
+    }
+  }, [
+    dispatch,
+    state.connectionHostType,
+    state.localIp,
+    state.publicIp,
+    state.selectedHostname,
+    state.selectedIp,
+  ]);
 
   const resolvePublicIp = async () => {
     if (!state.localIp?.trim()) {
