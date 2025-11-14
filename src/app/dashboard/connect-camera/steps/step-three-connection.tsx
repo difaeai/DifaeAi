@@ -9,6 +9,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Info, Network, KeyRound, Globe } from "lucide-react";
 import { useWizard } from "../wizard-context";
 import { useToast } from "@/hooks/use-toast";
+import { isValidIPv4 } from "@/lib/network/ip";
 
 export default function StepThreeConnection() {
   const { state, dispatch } = useWizard();
@@ -445,14 +446,18 @@ export default function StepThreeConnection() {
   );
 }
 
-function isValidIPv4(ip: string): boolean {
-  const ipv4Regex = /^(25[0-5]|2[0-4]\d|1?\d?\d)(\.(25[0-5]|2[0-4]\d|1?\d?\d)){3}$/;
-  return ipv4Regex.test(ip.trim());
-}
-
 async function detectPublicIPv4(): Promise<string | null> {
   if (typeof window === "undefined") {
     return fetchPublicIpFromServices();
+  }
+
+  try {
+    const internalIp = await fetchPublicIpFromInternalEndpoint();
+    if (internalIp && isValidIPv4(internalIp)) {
+      return internalIp;
+    }
+  } catch (error) {
+    console.warn("Internal public IP detection failed", error);
   }
 
   try {
@@ -465,6 +470,20 @@ async function detectPublicIPv4(): Promise<string | null> {
   }
 
   return fetchPublicIpFromServices();
+}
+
+async function fetchPublicIpFromInternalEndpoint(): Promise<string | null> {
+  try {
+    const response = await fetch("/api/detect-public-ip", { cache: "no-store" });
+    if (!response.ok) {
+      return null;
+    }
+    const data: { ip?: string | null } = await response.json();
+    return data.ip && isValidIPv4(data.ip) ? data.ip : null;
+  } catch (error) {
+    console.warn("Failed to fetch public IP from internal endpoint", error);
+    return null;
+  }
 }
 
 async function fetchPublicIpViaStun(): Promise<string | null> {
