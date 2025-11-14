@@ -14,6 +14,7 @@ const BRIDGE_ORIGIN = import.meta.env.VITE_BRIDGE_AGENT_ORIGIN ?? 'http://localh
 export function TestConnection({ bridgeCameraId }: TestConnectionProps) {
   const { mutateAsync, data, error, isPending } = useProbe();
   const ipAddress = useCameraStore((state) => state.ipAddress);
+  const publicIpAddress = useCameraStore((state) => state.publicIpAddress);
   const selectedStreamUrl = useCameraStore((state) => state.selectedStreamUrl);
   const [previewUrl, setPreviewUrl] = useState<string>();
   const [previewError, setPreviewError] = useState<string>();
@@ -41,7 +42,8 @@ export function TestConnection({ bridgeCameraId }: TestConnectionProps) {
   const handleTest = async () => {
     setPreviewUrl(undefined);
     setPreviewError(undefined);
-    await mutateAsync(ipAddress);
+    const targetIp = publicIpAddress || ipAddress;
+    await mutateAsync(targetIp);
   };
 
   const handleSelect = (candidate: ProbeCandidate) => {
@@ -162,7 +164,21 @@ export function TestConnection({ bridgeCameraId }: TestConnectionProps) {
       {error && <div className="rounded border border-red-500 bg-red-950/40 px-4 py-3 text-sm text-red-300">{error.message}</div>}
       {data && (
         <ProbeResultsList
-          candidates={data.candidates}
+          candidates={
+            data.candidates.map((candidate) => {
+              if (!publicIpAddress || candidate.protocol !== 'rtsp') {
+                return candidate;
+              }
+              try {
+                const url = new URL(candidate.url);
+                url.hostname = publicIpAddress;
+                return { ...candidate, url: url.toString() };
+              } catch (error) {
+                console.warn('Failed to update candidate with public IP', error);
+                return { ...candidate, url: candidate.url.replace(/rtsp:\/\/(.*?)(?=\/|$)/, `rtsp://${publicIpAddress}`) };
+              }
+            })
+          }
           onSelect={(candidate) => handleSelect(candidate)}
           isLoadingPreview={isPending || isStartingBridge}
         />
