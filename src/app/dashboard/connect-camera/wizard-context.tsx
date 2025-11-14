@@ -12,11 +12,14 @@ export interface WizardState {
   cameraName: string;
   location: string;
   cameraType: CameraType;
+  localIp: string;
+  publicIp: string;
   selectedIp: string;
   selectedHostname: string;
   streamUrl: string;
   streamUser: string;
   streamPass: string;
+  streamPort: string;
   isConnectionTested: boolean;
   detectedStreamUrl: string;
 }
@@ -32,9 +35,12 @@ export type WizardAction =
       payload: {
         selectedIp?: string;
         selectedHostname?: string;
+        localIp?: string;
+        publicIp?: string;
         streamUrl?: string;
         streamUser?: string;
         streamPass?: string;
+        streamPort?: string;
       };
     }
   | { type: "SET_CONNECTION_TESTED"; payload: { tested: boolean; streamUrl?: string } }
