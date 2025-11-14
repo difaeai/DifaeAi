@@ -6,8 +6,6 @@ export type CameraType = "" | "ip" | "dvr" | "mobile" | "usb" | "cloud";
 
 export type WizardStep = 1 | 2 | 3 | 4;
 
-export type ConnectionMethod = "bridge";
-
 export interface WizardState {
   currentStep: WizardStep;
   activationId: string;
@@ -21,12 +19,6 @@ export interface WizardState {
   streamPass: string;
   isConnectionTested: boolean;
   detectedStreamUrl: string;
-  useBridge: boolean;
-  bridgeId: string;
-  bridgeName: string;
-  bridgeUrl: string;
-  bridgeApiKey: string;
-  connectionMethod: ConnectionMethod;
 }
 
 export type WizardAction =
@@ -43,15 +35,9 @@ export type WizardAction =
         streamUrl?: string;
         streamUser?: string;
         streamPass?: string;
-        useBridge?: boolean;
-        bridgeId?: string;
-        bridgeName?: string;
-        bridgeUrl?: string;
-        bridgeApiKey?: string;
       };
     }
   | { type: "SET_CONNECTION_TESTED"; payload: { tested: boolean; streamUrl?: string } }
-  | { type: "SET_CONNECTION_METHOD"; payload: ConnectionMethod }
   | { type: "RESET" };
 
 export const WizardContext = createContext<{
