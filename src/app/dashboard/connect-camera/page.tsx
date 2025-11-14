@@ -32,12 +32,6 @@ const initialState: WizardState = {
   streamPass: "",
   isConnectionTested: false,
   detectedStreamUrl: "",
-  useBridge: false,
-  bridgeId: "",
-  bridgeName: "",
-  bridgeUrl: "",
-  bridgeApiKey: "",
-  connectionMethod: "bridge",
 };
 
 function wizardReducer(state: WizardState, action: WizardAction): WizardState {
@@ -66,8 +60,6 @@ function wizardReducer(state: WizardState, action: WizardAction): WizardState {
         isConnectionTested: action.payload.tested,
         detectedStreamUrl: action.payload.streamUrl || state.detectedStreamUrl,
       };
-    case "SET_CONNECTION_METHOD":
-      return { ...state, connectionMethod: action.payload };
     case "RESET":
       return initialState;
     default:

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -9,45 +9,39 @@ import { Video, Loader2, CheckCircle, AlertTriangle } from "lucide-react";
 import { useWizard } from "../wizard-context";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
-function LiveCameraPreview({ url }: { url: string }) {
-  const [imgSrc, setImgSrc] = useState('');
-  const [hasError, setHasError] = useState(false);
-  
-  useEffect(() => {
-    // Use proxy to avoid HTTPS/HTTP mixed content blocking
-    const proxyUrl = `/api/camera-proxy?url=${encodeURIComponent(url)}`;
-    setImgSrc(proxyUrl + '&t=' + Date.now());
-    
-    // Auto-refresh every second for snapshot URLs
-    const interval = setInterval(() => {
-      setImgSrc(proxyUrl + '&t=' + Date.now());
-    }, 1000);
-    
-    return () => clearInterval(interval);
-  }, [url]);
-  
-  if (!imgSrc) return null;
-  
-  return (
-    <div className="relative w-full h-full">
-      <img 
-        src={imgSrc} 
-        alt="Camera Live Feed" 
-        className="w-full h-full object-cover"
-        onLoad={() => setHasError(false)}
-        onError={() => setHasError(true)}
-      />
-      {hasError && (
-        <div className="absolute inset-0 flex items-center justify-center bg-muted/80">
-          <p className="text-sm text-muted-foreground">Connecting to camera...</p>
-        </div>
-      )}
-    </div>
-  );
-}
+import LivePreviewPlayer from "@/components/live-preview-player";
 
 interface StepFourTestProps {
   onComplete: () => void;
+}
+
+function buildRtspWithCredentials(baseUrl: string, username?: string, password?: string) {
+  if (!baseUrl) return "";
+  try {
+    const url = new URL(baseUrl);
+    if (username) {
+      url.username = username;
+    }
+    if (password) {
+      url.password = password;
+    }
+    return url.toString();
+  } catch {
+    return baseUrl;
+  }
+}
+
+function maskRtsp(url: string) {
+  if (!url) return "";
+  try {
+    const parsed = new URL(url);
+    if (parsed.password) {
+      parsed.password = "******";
+    }
+    return parsed.toString();
+  } catch {
+    return url;
+  }
 }
 
 export default function StepFourTest({ onComplete }: StepFourTestProps) {
@@ -61,6 +55,9 @@ export default function StepFourTest({ onComplete }: StepFourTestProps) {
   const [videoReady, setVideoReady] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+
+  const isRtspCamera = state.cameraType === "ip" || state.cameraType === "dvr";
+  const displayRtspUrl = useMemo(() => maskRtsp(state.streamUrl), [state.streamUrl]);
 
   // Handle USB Webcam
   useEffect(() => {
@@ -98,138 +95,121 @@ export default function StepFourTest({ onComplete }: StepFourTestProps) {
     };
   }, [state.cameraType, toast, dispatch]);
 
-  const handleTestConnection = useCallback(async () => {
-    if (state.cameraType === "usb") {
-      // USB webcam already tested via getUserMedia
+  const handleConnectCamera = useCallback(async () => {
+    if (!isRtspCamera) {
+      return;
+    }
+
+    if (!user) {
+      toast({
+        variant: "destructive",
+        title: "Authentication Required",
+        description: "You must be logged in to connect your camera.",
+      });
+      dispatch({ type: "SET_CONNECTION_TESTED", payload: { tested: false } });
+      setVideoReady(false);
+      return;
+    }
+
+    if (!state.streamUrl) {
+      toast({
+        variant: "destructive",
+        title: "RTSP URL Required",
+        description: "Provide the RTSP link for your camera before connecting.",
+      });
+      dispatch({ type: "SET_CONNECTION_TESTED", payload: { tested: false } });
+      setVideoReady(false);
       return;
     }
 
     setIsTesting(true);
     setShowPreview(false);
-    
+    setVideoReady(false);
+    setPreviewUrl("");
+
     try {
-      if (!user) {
-        toast({
-          variant: "destructive",
-          title: "Authentication Required",
-          description: "You must be logged in to use the Camera Bridge.",
-        });
-        dispatch({ type: "SET_CONNECTION_TESTED", payload: { tested: false } });
-        setVideoReady(false);
-        return;
-      }
-
-      if (!state.bridgeId || !state.bridgeUrl || !state.bridgeName) {
-        toast({
-          variant: "destructive",
-          title: "Bridge Details Missing",
-          description: "Please complete the bridge configuration before testing the connection.",
-        });
-        dispatch({ type: "SET_CONNECTION_TESTED", payload: { tested: false } });
-        setVideoReady(false);
-        return;
-      }
-
-      if (!state.selectedIp) {
-        toast({
-          variant: "destructive",
-          title: "Camera IP Required",
-          description: "Enter your camera's IP address to continue.",
-        });
-        dispatch({ type: "SET_CONNECTION_TESTED", payload: { tested: false } });
-        setVideoReady(false);
-        return;
-      }
-
-      toast({
-        title: "Connecting via Camera Bridge...",
-        description: "Auto-detecting camera port and stream path on your local network.",
-      });
-
-      const authToken = await user.getIdToken();
-      const bridgeResponse = await fetch("/api/bridge/add-camera", {
+      const response = await fetch("/api/test-camera", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${authToken}`,
         },
         body: JSON.stringify({
-          bridgeId: state.bridgeId,
-          cameraIp: state.selectedIp,
+          cameraType: state.cameraType,
+          streamUrl: state.streamUrl,
           username: state.streamUser || "",
           password: state.streamPass || "",
-          autoDetect: true,
         }),
       });
 
-      if (!bridgeResponse.ok) {
-        const errorData = await bridgeResponse.json().catch(() => ({ error: "Network error" }));
-        dispatch({ type: "SET_CONNECTION_TESTED", payload: { tested: false } });
-        setVideoReady(false);
-
-        toast({
-          variant: "destructive",
-          title: "Bridge Connection Failed",
-          description:
-            errorData.error ||
-            `Bridge returned error (${bridgeResponse.status}). Please check:\n1. Bridge is running and accessible\n2. Camera is powered on\n3. IP address is correct\n4. You're on the same network`,
-          duration: 10000,
-        });
-        return;
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        const message = data?.message || "Connection test failed. Check your RTSP URL and credentials.";
+        throw new Error(message);
       }
 
-      const bridgeResult = await bridgeResponse.json();
-
-      if (bridgeResult.success && bridgeResult.camera) {
-        dispatch({
-          type: "SET_CONNECTION_TESTED",
-          payload: {
-            tested: true,
-            streamUrl: bridgeResult.camera.streamUrl,
-          },
-        });
-
-        setPreviewUrl(bridgeResult.camera.streamUrl);
-        setShowPreview(true);
-        setVideoReady(true);
-
-        toast({
-          title: "Camera Connected via Bridge!",
-          description: `Camera detected: ${bridgeResult.camera.manufacturer} ${bridgeResult.camera.model}\nLive preview available when on the same network.`,
-        });
-      } else {
-        dispatch({ type: "SET_CONNECTION_TESTED", payload: { tested: false } });
-        setVideoReady(false);
-
-        toast({
-          variant: "destructive",
-          title: "Bridge Connection Failed",
-          description:
-            bridgeResult.error ||
-            "Could not connect to camera via bridge. Please check:\n1. Camera is powered on\n2. IP address is correct\n3. You're on the same network as the camera\n4. Bridge is running and accessible",
-          duration: 10000,
-        });
-      }
+      const fullRtspUrl = buildRtspWithCredentials(state.streamUrl, state.streamUser, state.streamPass);
+      dispatch({ type: "SET_CONNECTION_TESTED", payload: { tested: true, streamUrl: fullRtspUrl } });
+      setPreviewUrl(fullRtspUrl);
+      setShowPreview(true);
+      toast({
+        title: "Camera connected!",
+        description: "We verified the RTSP stream. Loading live preview…",
+      });
     } catch (error) {
-      console.error("Connection test error:", error);
-      
-      // STRICT ERROR HANDLING: Do not auto-approve failures
+      const message = error instanceof Error ? error.message : "Failed to connect to camera.";
       dispatch({ type: "SET_CONNECTION_TESTED", payload: { tested: false } });
-      setShowPreview(false);
-      setVideoReady(false);
-      
+      setPreviewUrl("");
       toast({
         variant: "destructive",
-        title: "Connection Test Failed",
-        description: "Could not connect to camera. Please check the IP address and credentials, then try again.",
+        title: "Connection Failed",
+        description: message,
       });
     } finally {
       setIsTesting(false);
     }
-  }, [state, toast, dispatch, user]);
+  }, [dispatch, isRtspCamera, state.cameraType, state.streamPass, state.streamUrl, state.streamUser, toast, user]);
 
-  // Gate camera addition on both connection tested AND video ready
-  const isReadyToAdd = state.isConnectionTested && videoReady;
+  const isReadyToAdd = useMemo(() => {
+    if (state.cameraType === "usb") {
+      return state.isConnectionTested && videoReady;
+    }
+    if (isRtspCamera) {
+      return state.isConnectionTested && videoReady;
+    }
+    if (state.cameraType === "mobile" || state.cameraType === "cloud") {
+      return state.isConnectionTested;
+    }
+    return state.isConnectionTested;
+  }, [isRtspCamera, state.cameraType, state.isConnectionTested, videoReady]);
+
+  const handleComplete = async () => {
+    if (!user) {
+      toast({
+        variant: "destructive",
+        title: "Authentication Required",
+        description: "You must be logged in to add a camera.",
+      });
+      return;
+    }
+
+    if (!state.isConnectionTested) {
+      toast({
+        variant: "destructive",
+        title: "Connection Not Tested",
+        description: "Please connect the camera before adding it to the system.",
+      });
+      return;
+    }
+
+    setIsAdding(true);
+    try {
+      await onComplete();
+    } catch (error) {
+      console.error("Add camera error:", error);
+    } finally {
+      setIsAdding(false);
+    }
+  };
 
   return (
     <Card>
@@ -256,24 +236,32 @@ export default function StepFourTest({ onComplete }: StepFourTestProps) {
           </div>
           {state.selectedIp && (
             <div className="space-y-2">
-              <Label>IP Address</Label>
+              <Label>Camera Host</Label>
               <p className="text-sm font-medium font-mono">{state.selectedIp}</p>
+            </div>
+          )}
+          {isRtspCamera && state.streamUrl && (
+            <div className="space-y-2 md:col-span-2">
+              <Label>RTSP URL</Label>
+              <p className="text-xs font-mono break-all bg-muted/50 p-2 rounded">
+                {displayRtspUrl}
+              </p>
             </div>
           )}
         </div>
 
-        {/* Test Connection Button */}
-        {state.cameraType !== "usb" && (
-          <Button type="button" onClick={handleTestConnection} disabled={isTesting} size="lg">
+        {/* Connect/Test Button */}
+        {isRtspCamera && (
+          <Button type="button" onClick={handleConnectCamera} disabled={isTesting} size="lg">
             {isTesting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Testing Connection...
+                Connecting to Camera...
               </>
             ) : (
               <>
                 <Video className="mr-2 h-4 w-4" />
-                Test Connection
+                Connect Camera
               </>
             )}
           </Button>
@@ -286,18 +274,32 @@ export default function StepFourTest({ onComplete }: StepFourTestProps) {
             {showPreview && state.cameraType === "usb" ? (
               <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline controls />
             ) : showPreview && previewUrl ? (
-              <LiveCameraPreview url={previewUrl} />
+              <LivePreviewPlayer
+                rtspUrl={previewUrl}
+                onReady={() => {
+                  setVideoReady(true);
+                }}
+                onError={(message) => {
+                  setVideoReady(false);
+                  dispatch({ type: "SET_CONNECTION_TESTED", payload: { tested: false } });
+                  toast({
+                    variant: "destructive",
+                    title: "Preview Error",
+                    description: message || "Unable to render live stream.",
+                  });
+                }}
+              />
             ) : (
               <div className="text-center p-6">
                 <Video className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
                 <p className="text-sm text-muted-foreground">
                   {state.cameraType === "usb"
                     ? "Webcam preview should appear here"
-                    : "Live preview will appear here after a successful test."}
+                    : "Live preview will appear here after connecting to your camera."}
                 </p>
-                {state.cameraType !== "usb" && (
+                {isRtspCamera && (
                   <p className="text-xs text-muted-foreground mt-2">
-                    Your browser will connect directly to the camera on your local network.
+                    We'll launch a secure ffmpeg session to convert your RTSP stream to an in-browser preview.
                   </p>
                 )}
               </div>
@@ -315,12 +317,12 @@ export default function StepFourTest({ onComplete }: StepFourTestProps) {
             </AlertDescription>
           </Alert>
         ) : (
-          state.cameraType !== "usb" && (
+          isRtspCamera && (
             <Alert>
               <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>Connection Not Tested</AlertTitle>
+              <AlertTitle>Camera Not Connected</AlertTitle>
               <AlertDescription>
-                Please test the connection to validate the camera stream before adding it to the system.
+                Enter your RTSP link and click <strong>Connect Camera</strong> to verify the live stream before adding it.
               </AlertDescription>
             </Alert>
           )
@@ -330,7 +332,7 @@ export default function StepFourTest({ onComplete }: StepFourTestProps) {
         <Button variant="outline" onClick={() => dispatch({ type: "PREV_STEP" })}>
           Back
         </Button>
-        <Button onClick={onComplete} disabled={!isReadyToAdd || isAdding} size="lg">
+        <Button onClick={handleComplete} disabled={!isReadyToAdd || isAdding} size="lg">
           {isAdding ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />

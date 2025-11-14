@@ -1,68 +1,60 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Info, Network, Sparkles, CheckCircle } from "lucide-react";
+import { Info, Network, KeyRound } from "lucide-react";
 import { useWizard } from "../wizard-context";
 import { useToast } from "@/hooks/use-toast";
-import { BridgeCreationWizard } from "./bridge-creation-wizard";
 
 export default function StepThreeConnection() {
   const { state, dispatch } = useWizard();
   const { toast } = useToast();
-  const [showBridgeWizard, setShowBridgeWizard] = useState(false);
-
-  const handleBridgeWizardComplete = (config: {
-    bridgeId: string;
-    bridgeUrl: string;
-    bridgeName: string;
-    bridgeApiKey?: string;
-  }) => {
-    dispatch({
-      type: "SET_CONNECTION_METHOD",
-      payload: "bridge",
-    });
-
-    dispatch({
-      type: "SET_CONNECTION_DETAILS",
-      payload: {
-        bridgeId: config.bridgeId,
-        bridgeUrl: config.bridgeUrl,
-        bridgeName: config.bridgeName,
-        bridgeApiKey: config.bridgeApiKey ?? "",
-      },
-    });
-
-    toast({
-      title: "Bridge Configuration Loaded",
-      description: "Bridge details have been applied. Make sure the bridge is running before continuing.",
-    });
-  };
 
   const handleNext = () => {
-    if (!state.selectedIp) {
-      toast({
-        variant: "destructive",
-        title: "Camera IP Required",
-        description: "Enter your camera's IP address to continue.",
-      });
-      return;
-    }
-
-    if (!state.bridgeId || !state.bridgeUrl || !state.bridgeName) {
-      toast({
-        variant: "destructive",
-        title: "Bridge Configuration Incomplete",
-        description: "Please fill in Bridge ID, Bridge URL, and Bridge Name to continue.",
-      });
-      return;
-    }
-
     dispatch({ type: "NEXT_STEP" });
+  };
+
+  const rtspHost = useMemo(() => {
+    if (!state.streamUrl) return "";
+    try {
+      const url = new URL(state.streamUrl);
+      return url.hostname;
+    } catch {
+      return "";
+    }
+  }, [state.streamUrl]);
+
+  const handleRtspChange = (value: string) => {
+    dispatch({
+      type: "SET_CONNECTION_DETAILS",
+      payload: { streamUrl: value },
+    });
+
+    try {
+      const parsed = new URL(value);
+      const updates: {
+        selectedIp: string;
+        selectedHostname: string;
+        streamUser?: string;
+        streamPass?: string;
+      } = {
+        selectedIp: parsed.hostname,
+        selectedHostname: parsed.hostname,
+      };
+      if (parsed.username) {
+        updates.streamUser = decodeURIComponent(parsed.username);
+      }
+      if (parsed.password) {
+        updates.streamPass = decodeURIComponent(parsed.password);
+      }
+      dispatch({ type: "SET_CONNECTION_DETAILS", payload: updates });
+    } catch {
+      // Ignore parse failures until URL is complete
+    }
   };
 
   if (state.cameraType === "cloud") {
@@ -127,224 +119,117 @@ export default function StepThreeConnection() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="font-headline">Step 3: Choose Connection Method</CardTitle>
-        <CardDescription>Select how you want to connect your camera to BERRETO.</CardDescription>
+        <CardTitle className="font-headline">Step 3: Provide Your RTSP Stream</CardTitle>
+        <CardDescription>Enter the RTSP address for your camera so we can connect directly.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <Alert>
           <Info className="h-4 w-4" />
-          <AlertTitle>Camera Bridge Required</AlertTitle>
+          <AlertTitle>Use a direct RTSP stream</AlertTitle>
           <AlertDescription>
-            Use the BERRETO Camera Bridge to connect local network cameras securely without requiring the app and camera to share the same network.
+            Your camera should provide a URL that starts with <code className="bg-muted px-1 rounded">rtsp://</code>. If the URL already contains a username and password (for example
+            <code className="bg-muted px-1 rounded">rtsp://user:pass@192.168.1.10:554/stream</code>) we will detect them automatically.
           </AlertDescription>
         </Alert>
+
         <div className="rounded-lg border-2 border-primary/20 bg-primary/5 p-4">
           <div className="flex items-start gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground">
               <Network className="h-5 w-5" />
             </div>
-            <div>
-              <h3 className="font-semibold text-base">Camera Bridge (Recommended)</h3>
-              <p className="text-sm text-muted-foreground mt-1">
-                Stream cameras from your local network via a secure bridge. No need for port forwarding or keeping the app and camera on the same network.
+            <div className="space-y-2">
+              <h3 className="font-semibold text-base">RTSP Stream Address</h3>
+              <div className="space-y-2">
+                <Label htmlFor="rtsp-url">Full RTSP URL *</Label>
+                <Input
+                  id="rtsp-url"
+                  type="text"
+                  placeholder="rtsp://username:password@192.168.1.10:554/Streaming/Channels/101"
+                  value={state.streamUrl}
+                  onChange={(e) => handleRtspChange(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Paste the exact RTSP address that worked in VLC or another player. We'll use it to connect directly to your camera.
+                </p>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="rtsp-username" className="flex items-center gap-2">
+                    <KeyRound className="h-4 w-4 text-muted-foreground" />
+                    Username
+                  </Label>
+                  <Input
+                    id="rtsp-username"
+                    placeholder="e.g., admin"
+                    value={state.streamUser}
+                    onChange={(e) =>
+                      dispatch({ type: "SET_CONNECTION_DETAILS", payload: { streamUser: e.target.value } })
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="rtsp-password">Password</Label>
+                  <Input
+                    id="rtsp-password"
+                    type="password"
+                    placeholder="••••••••"
+                    value={state.streamPass}
+                    onChange={(e) =>
+                      dispatch({ type: "SET_CONNECTION_DETAILS", payload: { streamPass: e.target.value } })
+                    }
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                If your RTSP URL already contains credentials, we filled them in above. Otherwise, enter them here and we'll embed them before connecting.
               </p>
             </div>
           </div>
         </div>
 
-        <div className="space-y-4 rounded-lg border bg-blue-50/50 p-4 dark:bg-blue-950/30">
-          <div className="flex items-center justify-between">
-            <h3 className="font-semibold text-sm">Camera Bridge Connection Details</h3>
-
-            {/* Create/Reopen Bridge Button - Always visible */}
-            <Button
-                type="button"
-                variant="default"
-                size="sm"
-                onClick={() => setShowBridgeWizard(true)}
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-              >
-                <Sparkles className="h-4 w-4 mr-2" />
-                {state.bridgeId ? "Reopen Bridge Wizard" : "Create Bridge"}
-              </Button>
-            </div>
-
-            {!state.bridgeId && (
-              <Alert className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 border-blue-200 dark:border-blue-800">
-                <Sparkles className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                <AlertTitle className="text-blue-900 dark:text-blue-100">Don't have a bridge yet?</AlertTitle>
-                <AlertDescription className="text-blue-800 dark:text-blue-200 text-xs">
-                  Click <strong>"Create Bridge"</strong> above to generate configuration values and get installation instructions. The wizard will auto-fill these fields for you.
-                </AlertDescription>
-              </Alert>
-            )}
-            
-            {/* Camera IP for Bridge Mode */}
-            <div className="space-y-2">
-              <Label htmlFor="bridge-camera-ip">Camera IP Address *</Label>
-              <Input
-                id="bridge-camera-ip"
-                type="text"
-                placeholder="192.168.1.100"
-                value={state.selectedIp || ""}
-                onChange={(e) => dispatch({ type: "SET_CONNECTION_DETAILS", payload: { selectedIp: e.target.value } })}
-              />
-              <p className="text-xs text-muted-foreground">Enter your camera's local network IP address. Port will be auto-detected.</p>
-            </div>
-
-            <div className="space-y-3">
-              <Label>Camera Credentials (if required)</Label>
-              <Input
-                placeholder="Username"
-                value={state.streamUser || ""}
-                onChange={(e) => dispatch({ type: "SET_CONNECTION_DETAILS", payload: { streamUser: e.target.value } })}
-              />
-              <Input
-                type="password"
-                placeholder="Password"
-                value={state.streamPass || ""}
-                onChange={(e) => dispatch({ type: "SET_CONNECTION_DETAILS", payload: { streamPass: e.target.value } })}
-              />
-              <p className="text-xs text-muted-foreground">Leave blank if your camera doesn't require authentication.</p>
-            </div>
-
-            {state.bridgeId && (
-              <Alert className="bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800">
-                <CheckCircle className="h-4 w-4 text-green-600" />
-                <AlertTitle className="text-green-900 dark:text-green-100">Bridge Configured</AlertTitle>
-                <AlertDescription className="text-green-800 dark:text-green-200 text-xs">
-                  Bridge configuration loaded. Make sure your bridge is running before testing the connection.
-                </AlertDescription>
-              </Alert>
-            )}
-
-            {/* Show bridge field guidance regardless of IP entry - always visible */}
-            {state.bridgeId && (
-              <div className="space-y-4">
-
-                <div className="space-y-2 p-3 border rounded-md bg-white dark:bg-gray-900">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-bold">1</div>
-                    <Label htmlFor="bridge-id" className="text-sm font-semibold">Bridge ID *</Label>
-                  </div>
-                  <Input 
-                    id="bridge-id"
-                    placeholder="my-home-bridge"
-                    value={state.bridgeId || ""}
-                    onChange={(e) => dispatch({ type: "SET_CONNECTION_DETAILS", payload: { bridgeId: e.target.value } })}
-                  />
-                  <div className="text-xs space-y-1">
-                    <p className="font-medium text-foreground">Where to find this:</p>
-                    <div className="bg-muted rounded p-2 font-mono text-xs">
-                      <p className="text-muted-foreground mb-1">Docker:</p>
-                      <code>-e BRIDGE_ID=<span className="text-primary">my-home-bridge</span></code>
-                    </div>
-                    <p className="text-muted-foreground mt-2">📋 Copy the value after <code className="bg-muted px-1 rounded">BRIDGE_ID=</code> from your bridge startup command</p>
-                  </div>
-                </div>
-                
-                <div className="space-y-2 p-3 border rounded-md bg-white dark:bg-gray-900">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-bold">2</div>
-                    <Label htmlFor="bridge-url" className="text-sm font-semibold">Bridge URL *</Label>
-                  </div>
-                  <Input 
-                    id="bridge-url"
-                    placeholder="http://192.168.1.100:8080"
-                    value={state.bridgeUrl || ""}
-                    onChange={(e) => dispatch({ type: "SET_CONNECTION_DETAILS", payload: { bridgeUrl: e.target.value } })}
-                  />
-                  <div className="text-xs space-y-1">
-                    <p className="font-medium text-foreground">Choose based on where your bridge is running:</p>
-                    <div className="space-y-2 mt-2">
-                      <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded p-2">
-                        <p className="font-mono text-xs">http://localhost:8080</p>
-                        <p className="text-muted-foreground mt-1">✓ If bridge is on THIS computer</p>
-                      </div>
-                      <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded p-2">
-                        <p className="font-mono text-xs">http://192.168.1.100:8080</p>
-                        <p className="text-muted-foreground mt-1">✓ If bridge is on another device (replace with device's IP)</p>
-                      </div>
-                    </div>
-                    <p className="text-muted-foreground mt-2">💡 Find your device IP: Run <code className="bg-muted px-1 rounded">ipconfig</code> (Windows) or <code className="bg-muted px-1 rounded">ifconfig</code> (Mac/Linux)</p>
-                  </div>
-                </div>
-                
-                <div className="space-y-2 p-3 border rounded-md bg-white dark:bg-gray-900">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-bold">3</div>
-                    <Label htmlFor="bridge-name" className="text-sm font-semibold">Bridge Name *</Label>
-                  </div>
-                  <Input 
-                    id="bridge-name"
-                    placeholder="My Home Bridge"
-                    value={state.bridgeName || ""}
-                    onChange={(e) => dispatch({ type: "SET_CONNECTION_DETAILS", payload: { bridgeName: e.target.value } })}
-                  />
-                  <div className="text-xs space-y-1">
-                    <p className="font-medium text-foreground">Where to find this:</p>
-                    <div className="bg-muted rounded p-2 font-mono text-xs">
-                      <p className="text-muted-foreground mb-1">Docker:</p>
-                      <code>-e BRIDGE_NAME=<span className="text-primary">"My Home Bridge"</span></code>
-                    </div>
-                    <p className="text-muted-foreground mt-2">📝 This is the friendly name you chose when starting the bridge</p>
-                  </div>
-                </div>
-                
-                <div className="space-y-2 p-3 border rounded-md bg-white dark:bg-gray-900">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="flex items-center justify-center w-6 h-6 rounded-full bg-gray-400 text-white text-xs font-bold">4</div>
-                    <Label htmlFor="bridge-api-key" className="text-sm font-semibold">Bridge API Key <span className="text-muted-foreground font-normal">(Optional)</span></Label>
-                  </div>
-                  <Input 
-                    id="bridge-api-key"
-                    type="password"
-                    placeholder="Leave blank if not using authentication"
-                    value={state.bridgeApiKey || ""}
-                    onChange={(e) => dispatch({ type: "SET_CONNECTION_DETAILS", payload: { bridgeApiKey: e.target.value } })}
-                  />
-                  <div className="text-xs space-y-1">
-                    <p className="font-medium text-foreground">Only needed if you enabled authentication:</p>
-                    <div className="bg-muted rounded p-2 font-mono text-xs">
-                      <p className="text-muted-foreground mb-1">Docker:</p>
-                      <code>-e API_KEY=<span className="text-primary">your-secret-api-key</span></code>
-                    </div>
-                    <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded p-2 mt-2">
-                      <p className="text-blue-800 dark:text-blue-200">ℹ️ If you didn't set an API_KEY when starting the bridge, leave this field blank</p>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="pt-2 border-t space-y-2">
-                  <p className="text-xs font-medium text-foreground">Need help setting up a bridge?</p>
-                  <a 
-                    href="/docs/bridge-setup" 
-                    target="_blank" 
-                    className="inline-flex items-center gap-1 text-xs text-primary hover:underline font-medium"
-                  >
-                    📖 Open Full Setup Guide (with installation instructions) →
-                  </a>
-                </div>
-              </div>
-            )}
+        {rtspHost && (
+          <div className="rounded-md border bg-muted/40 p-4 text-sm">
+            <p className="font-semibold">Detected Camera Host</p>
+            <p className="font-mono text-xs mt-1">{rtspHost}</p>
+            <p className="text-xs text-muted-foreground mt-2">
+              We'll use this host when showing the connection summary on the next step.
+            </p>
           </div>
-
-        </CardContent>
-        <CardFooter className="flex justify-between">
-          <Button variant="outline" onClick={() => dispatch({ type: "PREV_STEP" })}>
-            Back
-          </Button>
-          <Button onClick={handleNext}>
-            Continue to Test Connection
-          </Button>
-        </CardFooter>
-
-      {/* Bridge Creation Wizard Dialog */}
-      <BridgeCreationWizard
-        open={showBridgeWizard}
-        onClose={() => setShowBridgeWizard(false)}
-        onComplete={handleBridgeWizardComplete}
-      />
+        )}
+      </CardContent>
+      <CardFooter className="flex justify-between">
+        <Button variant="outline" onClick={() => dispatch({ type: "PREV_STEP" })}>
+          Back
+        </Button>
+        <Button
+          onClick={() => {
+            if (!state.streamUrl || !state.streamUrl.toLowerCase().startsWith("rtsp")) {
+              toast({
+                variant: "destructive",
+                title: "RTSP URL Required",
+                description: "Enter a valid RTSP address before continuing.",
+              });
+              return;
+            }
+            if (!rtspHost) {
+              toast({
+                variant: "destructive",
+                title: "Invalid URL",
+                description: "We couldn't read the camera host from that RTSP address. Double-check the format and try again.",
+              });
+              return;
+            }
+            dispatch({
+              type: "SET_CONNECTION_DETAILS",
+              payload: { selectedIp: rtspHost, selectedHostname: rtspHost },
+            });
+            handleNext();
+          }}
+        >
+          Continue to Connect
+        </Button>
+      </CardFooter>
     </Card>
   );
 }
