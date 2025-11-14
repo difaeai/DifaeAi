@@ -328,18 +328,16 @@ export default function StepThreeConnection() {
               </div>
             )}
           </div>
-          </div>
-        </div>
 
-      </CardContent>
-      <CardFooter className="flex justify-between">
-        <Button variant="outline" onClick={() => dispatch({ type: "PREV_STEP" })}>
-          Back
-        </Button>
-        <Button onClick={handleNext}>
-          Continue to Test Connection
-        </Button>
-      </CardFooter>
+        </CardContent>
+        <CardFooter className="flex justify-between">
+          <Button variant="outline" onClick={() => dispatch({ type: "PREV_STEP" })}>
+            Back
+          </Button>
+          <Button onClick={handleNext}>
+            Continue to Test Connection
+          </Button>
+        </CardFooter>
 
       {/* Bridge Creation Wizard Dialog */}
       <BridgeCreationWizard
