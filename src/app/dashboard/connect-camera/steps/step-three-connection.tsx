@@ -107,6 +107,7 @@ export default function StepThreeConnection() {
         type: "SET_CONNECTION_DETAILS",
         payload: {
           publicIp: detectedIp,
+          connectionHostType: "public",
           selectedIp: detectedIp,
           selectedHostname: detectedIp,
         },
@@ -224,7 +225,7 @@ export default function StepThreeConnection() {
                     }
                   />
                   <Button type="button" onClick={resolvePublicIp} disabled={isResolvingIp}>
-                    {isResolvingIp ? "Resolving…" : "Use"}
+                    {isResolvingIp ? "Resolving…" : "Use Public IP"}
                   </Button>
                 </div>
                 <p className="text-xs text-muted-foreground">

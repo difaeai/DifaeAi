@@ -34,7 +34,7 @@ const initialState: WizardState = {
   streamUser: "",
   streamPass: "",
   streamPort: "554",
-  rtspPath: "",
+  rtspPath: "/Streaming/Channels/101",
   isConnectionTested: false,
   detectedStreamUrl: "",
 };
