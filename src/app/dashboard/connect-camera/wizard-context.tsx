@@ -6,7 +6,7 @@ export type CameraType = "" | "ip" | "dvr" | "mobile" | "usb" | "cloud";
 
 export type WizardStep = 1 | 2 | 3 | 4;
 
-export type ConnectionMethod = "manual" | "bridge";
+export type ConnectionMethod = "bridge";
 
 export interface WizardState {
   currentStep: WizardStep;

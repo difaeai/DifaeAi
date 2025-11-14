@@ -6,7 +6,6 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Info, Network, Sparkles, CheckCircle } from "lucide-react";
 import { useWizard } from "../wizard-context";
 import { useToast } from "@/hooks/use-toast";
@@ -15,29 +14,7 @@ import { BridgeCreationWizard } from "./bridge-creation-wizard";
 export default function StepThreeConnection() {
   const { state, dispatch } = useWizard();
   const { toast } = useToast();
-  const [manualIp, setManualIp] = useState("");
   const [showBridgeWizard, setShowBridgeWizard] = useState(false);
-
-  const handleManualIpSubmit = () => {
-    const ip = (manualIp || state.selectedIp || "").trim();
-
-    if (!ip) {
-      toast({
-        variant: "destructive",
-        title: "IP Address Required",
-        description: "Enter your camera's IP address to continue with manual setup.",
-      });
-      return;
-    }
-
-    dispatch({ type: "SET_CONNECTION_DETAILS", payload: { selectedIp: ip } });
-    setManualIp("");
-
-    toast({
-      title: "IP Address Saved",
-      description: `Camera IP set to ${ip}. Continue filling in credentials below if required.`,
-    });
-  };
 
   const handleBridgeWizardComplete = (config: {
     bridgeId: string;
@@ -67,22 +44,22 @@ export default function StepThreeConnection() {
   };
 
   const handleNext = () => {
-    // Validate based on connection method
-    if (state.connectionMethod === "manual") {
-      if (!state.selectedIp && state.cameraType === "ip") {
-        toast({ variant: "destructive", title: "No IP Address", description: "Please enter your camera's IP address." });
-        return;
-      }
-    } else if (state.connectionMethod === "bridge") {
-      if (!state.bridgeId || !state.bridgeUrl || !state.bridgeName) {
-        toast({ 
-          variant: "destructive", 
-          title: "Bridge Configuration Incomplete", 
-          description: "Please fill in Bridge ID, Bridge URL, and Bridge Name to continue." 
-        });
-        return;
-      }
+    if (!state.selectedIp) {
+      toast({
+        variant: "destructive",
+        title: "Camera IP Required",
+        description: "Enter your camera's IP address to continue.",
+      });
+      return;
+    }
 
+    if (!state.bridgeId || !state.bridgeUrl || !state.bridgeName) {
+      toast({
+        variant: "destructive",
+        title: "Bridge Configuration Incomplete",
+        description: "Please fill in Bridge ID, Bridge URL, and Bridge Name to continue.",
+      });
+      return;
     }
 
     dispatch({ type: "NEXT_STEP" });
@@ -156,132 +133,31 @@ export default function StepThreeConnection() {
       <CardContent className="space-y-6">
         <Alert>
           <Info className="h-4 w-4" />
-          <AlertTitle>Connection Method</AlertTitle>
+          <AlertTitle>Camera Bridge Required</AlertTitle>
           <AlertDescription>
-            Choose Manual IP Entry for direct connections, or Camera Bridge for cloud-hosted apps that need to access local network cameras.
+            Use the BERRETO Camera Bridge to connect local network cameras securely without requiring the app and camera to share the same network.
           </AlertDescription>
         </Alert>
-
-        {/* Connection Method Selection */}
-        <RadioGroup
-          value={state.connectionMethod}
-          onValueChange={(value) => dispatch({ type: "SET_CONNECTION_METHOD", payload: value as "manual" | "bridge" })}
-          className="space-y-3"
-        >
-          <Label className="text-base font-semibold">Select Connection Method:</Label>
-          
-          <div className="grid gap-3">
-            {/* Option 1: Manual IP Entry */}
-            <div 
-              className={`relative cursor-pointer rounded-lg border-2 p-4 transition-all ${
-                state.connectionMethod === "manual"
-                  ? "border-primary bg-primary/5" 
-                  : "border-muted hover:border-primary/50"
-              }`}
-              onClick={() => dispatch({ type: "SET_CONNECTION_METHOD", payload: "manual" })}
-            >
-              <div className="flex items-start gap-3">
-                <RadioGroupItem value="manual" id="manual-ip" className="mt-1" />
-                <div className="flex-1">
-                  <Label htmlFor="manual-ip" className="text-base font-semibold cursor-pointer">
-                    Manual IP Entry (Direct Connection)
-                  </Label>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Connect directly to the camera using its IP address, username, and password. <strong>Only works when app and camera are on the same local network.</strong>
-                  </p>
-                  <div className="mt-2 text-xs text-muted-foreground">
-                    ✓ Best for: Self-hosted/local BERRETO installations
-                  </div>
-                </div>
-              </div>
+        <div className="rounded-lg border-2 border-primary/20 bg-primary/5 p-4">
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground">
+              <Network className="h-5 w-5" />
             </div>
-
-            {/* Option 2: Camera Bridge */}
-            <div 
-              className={`relative cursor-pointer rounded-lg border-2 p-4 transition-all ${
-                state.connectionMethod === "bridge"
-                  ? "border-primary bg-primary/5" 
-                  : "border-muted hover:border-primary/50"
-              }`}
-              onClick={() => dispatch({ type: "SET_CONNECTION_METHOD", payload: "bridge" })}
-            >
-              <div className="flex items-start gap-3">
-                <RadioGroupItem value="bridge" id="use-bridge" className="mt-1" />
-                <div className="flex-1">
-                  <Label htmlFor="use-bridge" className="text-base font-semibold cursor-pointer flex items-center gap-2">
-                    <Network className="h-4 w-4" />
-                    Camera Bridge (For Cloud-Hosted App)
-                  </Label>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Stream cameras from your local network via a bridge. Only requires camera IP address - port auto-detected.
-                  </p>
-                  <div className="mt-2 text-xs text-muted-foreground">
-                    ✓ Best for: Cloud-hosted BERRETO accessing local network cameras
-                  </div>
-                </div>
-              </div>
+            <div>
+              <h3 className="font-semibold text-base">Camera Bridge (Recommended)</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                Stream cameras from your local network via a secure bridge. No need for port forwarding or keeping the app and camera on the same network.
+              </p>
             </div>
-
           </div>
-        </RadioGroup>
+        </div>
 
-        {/* Manual IP Entry Fields */}
-        {state.connectionMethod === "manual" && (
-          <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
-            <h3 className="font-semibold text-sm">Manual IP Connection Details</h3>
-            
-            <div className="space-y-2">
-              <Label htmlFor="ip-address">Camera IP Address *</Label>
-              <div className="flex gap-2">
-                <Input
-                  id="ip-address"
-                  type="text"
-                  placeholder="192.168.1.100"
-                  value={manualIp || state.selectedIp || ""}
-                  onChange={(e) => setManualIp(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleManualIpSubmit()}
-                />
-                <Button type="button" onClick={handleManualIpSubmit}>
-                  Set IP
-                </Button>
-              </div>
-            </div>
+        <div className="space-y-4 rounded-lg border bg-blue-50/50 p-4 dark:bg-blue-950/30">
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold text-sm">Camera Bridge Connection Details</h3>
 
-            {state.selectedIp && (
-              <div className="rounded-md border bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800 px-4 py-3">
-                <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">✓ Current IP Address</p>
-                <p className="font-mono text-sm font-medium">{state.selectedIp}</p>
-              </div>
-            )}
-
-            {state.selectedIp && (
-              <div className="space-y-3">
-                <Label>Camera Credentials (if required)</Label>
-                <Input 
-                  placeholder="Username"
-                  value={state.streamUser || ""}
-                  onChange={(e) => dispatch({ type: "SET_CONNECTION_DETAILS", payload: { streamUser: e.target.value } })} 
-                />
-                <Input
-                  type="password"
-                  placeholder="Password"
-                  value={state.streamPass || ""}
-                  onChange={(e) => dispatch({ type: "SET_CONNECTION_DETAILS", payload: { streamPass: e.target.value } })}
-                />
-                <p className="text-xs text-muted-foreground">Leave blank if your camera doesn't require authentication.</p>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Camera Bridge Fields */}
-        {state.connectionMethod === "bridge" && (
-          <div className="space-y-4 p-4 border rounded-lg bg-blue-50/50 dark:bg-blue-950/30">
-            <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-sm">Camera Bridge Connection Details</h3>
-              
-              {/* Create/Reopen Bridge Button - Always visible */}
-              <Button
+            {/* Create/Reopen Bridge Button - Always visible */}
+            <Button
                 type="button"
                 variant="default"
                 size="sm"
@@ -314,6 +190,22 @@ export default function StepThreeConnection() {
                 onChange={(e) => dispatch({ type: "SET_CONNECTION_DETAILS", payload: { selectedIp: e.target.value } })}
               />
               <p className="text-xs text-muted-foreground">Enter your camera's local network IP address. Port will be auto-detected.</p>
+            </div>
+
+            <div className="space-y-3">
+              <Label>Camera Credentials (if required)</Label>
+              <Input
+                placeholder="Username"
+                value={state.streamUser || ""}
+                onChange={(e) => dispatch({ type: "SET_CONNECTION_DETAILS", payload: { streamUser: e.target.value } })}
+              />
+              <Input
+                type="password"
+                placeholder="Password"
+                value={state.streamPass || ""}
+                onChange={(e) => dispatch({ type: "SET_CONNECTION_DETAILS", payload: { streamPass: e.target.value } })}
+              />
+              <p className="text-xs text-muted-foreground">Leave blank if your camera doesn't require authentication.</p>
             </div>
 
             {state.bridgeId && (
@@ -436,17 +328,16 @@ export default function StepThreeConnection() {
               </div>
             )}
           </div>
-        )}
 
-      </CardContent>
-      <CardFooter className="flex justify-between">
-        <Button variant="outline" onClick={() => dispatch({ type: "PREV_STEP" })}>
-          Back
-        </Button>
-        <Button onClick={handleNext}>
-          Continue to Test Connection
-        </Button>
-      </CardFooter>
+        </CardContent>
+        <CardFooter className="flex justify-between">
+          <Button variant="outline" onClick={() => dispatch({ type: "PREV_STEP" })}>
+            Back
+          </Button>
+          <Button onClick={handleNext}>
+            Continue to Test Connection
+          </Button>
+        </CardFooter>
 
       {/* Bridge Creation Wizard Dialog */}
       <BridgeCreationWizard

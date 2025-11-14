@@ -8,7 +8,7 @@ import {
   SheetClose,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Menu, ShoppingCart, Trash2, Plus, Minus } from "lucide-react";
+import { Menu, ShoppingCart, Trash2, Plus, Minus, X } from "lucide-react";
 import { useCart } from "@/context/cart-context";
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
@@ -78,10 +78,19 @@ export default function PublicHeader() {
                 <span className="sr-only">Open shopping cart</span>
               </Button>
             </SheetTrigger>
-            <SheetContent className="flex w-full flex-col border-l border-border/60 bg-white/95 text-foreground backdrop-blur-2xl sm:max-w-md">
-              <div className="border-b border-border/60 px-6 py-5">
-                <h2 className="text-lg font-headline font-semibold text-foreground">Your BERRETO Kit</h2>
-                <p className="text-sm text-muted-foreground">Curate the devices that keep every perimeter protected.</p>
+            <SheetContent className="flex w-full flex-col border-l border-border/60 bg-white/95 text-foreground backdrop-blur-2xl sm:max-w-md [&>button[data-radix-dialog-close]]:hidden">
+              <div className="flex items-start justify-between border-b border-border/60 px-6 py-5">
+                <div>
+                  <h2 className="text-lg font-headline font-semibold text-foreground">Your BERRETO Kit</h2>
+                  <p className="text-sm text-muted-foreground">Curate the devices that keep every perimeter protected.</p>
+                </div>
+                <SheetClose
+                  onClick={() => setCartOpen(false)}
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border/60 text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                >
+                  <X className="h-4 w-4" />
+                  <span className="sr-only">Close cart</span>
+                </SheetClose>
               </div>
               {cartItems.length > 0 ? (
                 <>

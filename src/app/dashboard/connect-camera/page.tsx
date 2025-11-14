@@ -37,7 +37,7 @@ const initialState: WizardState = {
   bridgeName: "",
   bridgeUrl: "",
   bridgeApiKey: "",
-  connectionMethod: "manual",
+  connectionMethod: "bridge",
 };
 
 function wizardReducer(state: WizardState, action: WizardAction): WizardState {
