@@ -20,10 +20,25 @@ export default function StepThreeConnection() {
     dispatch({ type: "NEXT_STEP" });
   };
 
-  const rtspHost = state.publicIp;
+  const rtspHost = useMemo(() => {
+    if (state.connectionHostType === "public" && state.publicIp) {
+      return state.publicIp;
+    }
+    if (state.localIp) {
+      return state.localIp;
+    }
+    return state.publicIp;
+  }, [state.connectionHostType, state.localIp, state.publicIp]);
+
+  const normalizedPath = useMemo(() => {
+    const raw = state.rtspPath?.trim();
+    if (!raw) return "";
+    const withoutLeading = raw.replace(/^\/+/, "");
+    return `/${withoutLeading}`;
+  }, [state.rtspPath]);
 
   const autoRtspUrl = useMemo(() => {
-    if (!state.publicIp) return "";
+    if (!rtspHost) return "";
     const username = state.streamUser?.trim();
     const password = state.streamPass?.trim();
     const port = state.streamPort?.trim() || "554";
@@ -41,15 +56,33 @@ export default function StepThreeConnection() {
     }
 
     const portSegment = port ? `:${port}` : "";
+    const pathSegment = normalizedPath || "";
 
-    return `rtsp://${credentials}${state.publicIp}${portSegment}/Streaming/Channels/101/`;
-  }, [state.publicIp, state.streamPass, state.streamPort, state.streamUser]);
+    return `rtsp://${credentials}${rtspHost}${portSegment}${pathSegment}`;
+  }, [normalizedPath, rtspHost, state.streamPass, state.streamPort, state.streamUser]);
 
   useEffect(() => {
-    if (autoRtspUrl !== state.streamUrl) {
+    if (autoRtspUrl && autoRtspUrl !== state.streamUrl) {
       dispatch({ type: "SET_CONNECTION_DETAILS", payload: { streamUrl: autoRtspUrl } });
+      if (state.isConnectionTested) {
+        dispatch({ type: "SET_CONNECTION_TESTED", payload: { tested: false } });
+      }
+    } else if (!autoRtspUrl && state.streamUrl) {
+      dispatch({ type: "SET_CONNECTION_DETAILS", payload: { streamUrl: "" } });
+      if (state.isConnectionTested) {
+        dispatch({ type: "SET_CONNECTION_TESTED", payload: { tested: false } });
+      }
     }
-  }, [autoRtspUrl, dispatch, state.streamUrl]);
+  }, [autoRtspUrl, dispatch, state.isConnectionTested, state.streamUrl]);
+
+  useEffect(() => {
+    if (state.connectionHostType === "public" && !state.publicIp && state.localIp) {
+      dispatch({ type: "SET_CONNECTION_DETAILS", payload: { connectionHostType: "local" } });
+    }
+    if (state.connectionHostType === "local" && !state.localIp && state.publicIp) {
+      dispatch({ type: "SET_CONNECTION_DETAILS", payload: { connectionHostType: "public" } });
+    }
+  }, [dispatch, state.connectionHostType, state.localIp, state.publicIp]);
 
   const resolvePublicIp = async () => {
     if (!state.localIp?.trim()) {
@@ -166,8 +199,7 @@ export default function StepThreeConnection() {
           <Info className="h-4 w-4" />
           <AlertTitle>Use a direct RTSP stream</AlertTitle>
           <AlertDescription>
-            We'll help you build the correct RTSP address. Start with the camera's local IP, then supply the username, password, and port. We'll convert it to a public-facing stream URL for
-            you.
+            We'll help you build the correct RTSP address. Start with the camera's local IP, then supply the username, password, and port. We'll also detect your network's public IP so you can choose the address that works best for testing and remote access.
           </AlertDescription>
         </Alert>
 
@@ -196,7 +228,7 @@ export default function StepThreeConnection() {
                   </Button>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Start with the local IP for your camera. We'll convert it to the public IP that BERRETO can reach.
+                  Start with the local IP for your camera. We'll detect your public IP as a secondary option but you can continue using the local address if you're on the same network.
                 </p>
                 {conversionError && <p className="text-xs text-destructive">{conversionError}</p>}
               </div>
@@ -205,10 +237,50 @@ export default function StepThreeConnection() {
                 <div className="rounded-md border bg-background p-4 space-y-3">
                   <div className="flex items-center gap-2 text-sm font-medium">
                     <Globe className="h-4 w-4 text-primary" />
-                    Public IP in use: <span className="font-mono">{state.publicIp}</span>
+                    Detected Network Public IP
+                  </div>
+                  <Input
+                    id="public-ip"
+                    type="text"
+                    value={state.publicIp}
+                    onChange={(e) =>
+                      dispatch({ type: "SET_CONNECTION_DETAILS", payload: { publicIp: e.target.value } })
+                    }
+                    placeholder="Enter public IP"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Adjust this if your camera is reachable through a different public address.
+                  </p>
+                </div>
+              )}
+
+              {(state.localIp || state.publicIp) && (
+                <div className="space-y-2">
+                  <Label>Choose the host for your RTSP link</Label>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      variant={state.connectionHostType === "local" ? "default" : "outline"}
+                      onClick={() =>
+                        dispatch({ type: "SET_CONNECTION_DETAILS", payload: { connectionHostType: "local" } })
+                      }
+                      disabled={!state.localIp}
+                    >
+                      Use Local IP {state.localIp ? `(${state.localIp})` : ""}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={state.connectionHostType === "public" ? "default" : "outline"}
+                      onClick={() =>
+                        dispatch({ type: "SET_CONNECTION_DETAILS", payload: { connectionHostType: "public" } })
+                      }
+                      disabled={!state.publicIp}
+                    >
+                      Use Public IP {state.publicIp ? `(${state.publicIp})` : ""}
+                    </Button>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    We'll embed this address into the RTSP connection details automatically.
+                    Pick whichever address BERRETO should use to reach your camera. Stay on the local IP if you're testing from the same network, or switch to the public IP if you've exposed the stream externally.
                   </p>
                 </div>
               )}
@@ -252,6 +324,21 @@ export default function StepThreeConnection() {
                     }
                   />
                 </div>
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="rtsp-path">Stream Path</Label>
+                  <Input
+                    id="rtsp-path"
+                    type="text"
+                    placeholder="e.g., Streaming/Channels/101 or h264"
+                    value={state.rtspPath}
+                    onChange={(e) =>
+                      dispatch({ type: "SET_CONNECTION_DETAILS", payload: { rtspPath: e.target.value } })
+                    }
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Provide the path portion of your stream. We'll make sure it's added to the RTSP URL correctly.
+                  </p>
+                </div>
               </div>
               <p className="text-xs text-muted-foreground">
                 Provide the username, password, and port for the camera. We'll embed them into the RTSP stream automatically.
@@ -260,21 +347,21 @@ export default function StepThreeConnection() {
           </div>
         </div>
 
-        {state.publicIp && (
+        {autoRtspUrl && (
           <div className="rounded-md border bg-muted/60 p-4 space-y-2">
             <Label htmlFor="rtsp-url" className="text-sm font-semibold">
               Generated RTSP URL
             </Label>
             <Input id="rtsp-url" type="text" value={autoRtspUrl} readOnly className="font-mono" />
             <p className="text-xs text-muted-foreground">
-              We generated this RTSP link using your public IP and credentials. You'll confirm it and connect on the next step.
+              We generated this RTSP link using your selected host and credentials. You'll confirm it and connect on the next step.
             </p>
           </div>
         )}
 
         {rtspHost && (
           <div className="rounded-md border bg-muted/40 p-4 text-sm">
-            <p className="font-semibold">Detected Camera Host</p>
+            <p className="font-semibold">Host in Use for RTSP Link</p>
             <p className="font-mono text-xs mt-1">{rtspHost}</p>
             <p className="text-xs text-muted-foreground mt-2">
               We'll use this host when showing the connection summary on the next step.
@@ -288,11 +375,11 @@ export default function StepThreeConnection() {
         </Button>
         <Button
           onClick={() => {
-            if (!state.publicIp) {
+            if (!rtspHost) {
               toast({
                 variant: "destructive",
-                title: "Public IP Required",
-                description: "Convert the local IP to a public IP before continuing.",
+                title: "Host Required",
+                description: "Provide a local or public IP address before continuing.",
               });
               return;
             }
@@ -394,7 +481,7 @@ async function fetchPublicIpViaStun(): Promise<string | null> {
         return;
       }
 
-      const match = candidate.candidate.match(/candidate:\S+ \d+ \S+ \d+ ([0-9.]+) \d+ typ (\S+)/);
+      const match = candidate.candidate.match(/candidate:\\S+ \d+ \\S+ \d+ ([0-9.]+) \d+ typ (\\S+)/);
       if (!match) {
         return;
       }
