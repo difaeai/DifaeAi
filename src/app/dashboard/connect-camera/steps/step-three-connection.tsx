@@ -33,7 +33,7 @@ export default function StepThreeConnection() {
   const normalizedPath = useMemo(() => {
     const raw = state.rtspPath?.trim();
     if (!raw) return "";
-    const withoutLeading = raw.replace(/^\/+/, "");
+    const withoutLeading = raw.replace(/^\/+/g, "");
     return `/${withoutLeading}`;
   }, [state.rtspPath]);
 
