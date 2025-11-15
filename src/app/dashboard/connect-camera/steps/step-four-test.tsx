@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Video, Loader2, CheckCircle, AlertTriangle } from "lucide-react";
+import { Video, Loader2, CheckCircle, AlertTriangle, Download } from "lucide-react";
 import { useWizard } from "../wizard-context";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
@@ -201,6 +201,16 @@ export default function StepFourTest({ onComplete }: StepFourTestProps) {
       return;
     }
 
+    if (state.cameraType === "ip" && !state.windowsAgentDownloadUrl) {
+      toast({
+        variant: "destructive",
+        title: "Generate the Windows agent",
+        description:
+          "Go back to Step 3 and generate the Windows background agent before finishing the setup.",
+      });
+      return;
+    }
+
     setIsAdding(true);
     try {
       await onComplete();
@@ -220,6 +230,34 @@ export default function StepFourTest({ onComplete }: StepFourTestProps) {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        {state.cameraType === "ip" && (
+          <Alert className="border-primary/40 bg-primary/5">
+            <Download className="h-4 w-4 text-primary" />
+            <AlertTitle>Windows background agent</AlertTitle>
+            <AlertDescription>
+              Run the generated Windows service on a PC that shares the camera's network so the stream keeps relaying to
+              BERRETO.
+            </AlertDescription>
+            {state.windowsAgentDownloadUrl ? (
+              <div className="mt-3 flex flex-wrap items-center gap-3">
+                <Button asChild size="sm">
+                  <a href={state.windowsAgentDownloadUrl} download>
+                    <Download className="mr-2 h-4 w-4" />
+                    Download agent again
+                  </a>
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                  You only need to run it once. It installs as a service and restarts automatically with Windows.
+                </p>
+              </div>
+            ) : (
+              <p className="mt-3 text-xs text-primary">
+                Go back to Step 3 to generate and download your customized agent before finalizing setup.
+              </p>
+            )}
+          </Alert>
+        )}
+
         {/* Connection Summary */}
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
