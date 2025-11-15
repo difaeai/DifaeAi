@@ -6,7 +6,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Info, Network, KeyRound, Globe } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Globe, Info, KeyRound, Laptop, Network } from "lucide-react";
 import { useWizard } from "../wizard-context";
 import { useToast } from "@/hooks/use-toast";
 import { isValidIPv4 } from "@/lib/network/ip";
@@ -16,9 +17,16 @@ export default function StepThreeConnection() {
   const { toast } = useToast();
   const [isResolvingIp, setIsResolvingIp] = useState(false);
   const [conversionError, setConversionError] = useState<string | null>(null);
+  const isLocalRunner = state.connectionMode === "localRunner";
 
   const handleNext = () => {
     dispatch({ type: "NEXT_STEP" });
+  };
+
+  const handleConnectionModeChange = (value: string) => {
+    const mode = value === "localRunner" ? "localRunner" : "standard";
+    setConversionError(null);
+    dispatch({ type: "SET_CONNECTION_DETAILS", payload: { connectionMode: mode } });
   };
 
   const rtspHost = useMemo(() => {
@@ -83,17 +91,19 @@ export default function StepThreeConnection() {
   }, [autoRtspUrl, dispatch, state.isConnectionTested, state.streamUrl]);
 
   useEffect(() => {
-    if (state.connectionHostType === "public" && !state.publicIp && state.localIp) {
-      dispatch({ type: "SET_CONNECTION_DETAILS", payload: { connectionHostType: "local" } });
-      return;
-    }
-    if (state.connectionHostType === "local" && !state.localIp && state.publicIp) {
-      dispatch({ type: "SET_CONNECTION_DETAILS", payload: { connectionHostType: "public" } });
-      return;
+    if (!isLocalRunner) {
+      if (state.connectionHostType === "public" && !state.publicIp && state.localIp) {
+        dispatch({ type: "SET_CONNECTION_DETAILS", payload: { connectionHostType: "local" } });
+        return;
+      }
+      if (state.connectionHostType === "local" && !state.localIp && state.publicIp) {
+        dispatch({ type: "SET_CONNECTION_DETAILS", payload: { connectionHostType: "public" } });
+        return;
+      }
     }
 
     const selectedHost =
-      state.connectionHostType === "public"
+      state.connectionHostType === "public" && !isLocalRunner
         ? state.publicIp?.trim()
         : state.localIp?.trim();
 
@@ -111,11 +121,57 @@ export default function StepThreeConnection() {
     }
   }, [
     dispatch,
+    isLocalRunner,
     state.connectionHostType,
     state.localIp,
     state.publicIp,
     state.selectedHostname,
     state.selectedIp,
+  ]);
+
+  useEffect(() => {
+    if (!isLocalRunner) {
+      return;
+    }
+
+    const updates: {
+      connectionHostType?: "local" | "public";
+      streamPort?: string;
+      rtspPath?: string;
+      selectedIp?: string;
+      selectedHostname?: string;
+    } = {};
+
+    if (state.connectionHostType !== "local") {
+      updates.connectionHostType = "local";
+    }
+
+    if (state.streamPort !== "554") {
+      updates.streamPort = "554";
+    }
+
+    const desiredPath = "/Streaming/Channels/101";
+    if (state.rtspPath?.trim() !== desiredPath) {
+      updates.rtspPath = desiredPath;
+    }
+
+    if (state.localIp && state.selectedIp !== state.localIp) {
+      updates.selectedIp = state.localIp;
+      updates.selectedHostname = state.localIp;
+    }
+
+    if (Object.keys(updates).length > 0) {
+      dispatch({ type: "SET_CONNECTION_DETAILS", payload: updates });
+    }
+  }, [
+    dispatch,
+    isLocalRunner,
+    state.connectionHostType,
+    state.localIp,
+    state.rtspPath,
+    state.selectedHostname,
+    state.selectedIp,
+    state.streamPort,
   ]);
 
   const resolvePublicIp = async () => {
@@ -238,149 +294,221 @@ export default function StepThreeConnection() {
           </AlertDescription>
         </Alert>
 
-        <div className="rounded-lg border-2 border-primary/20 bg-primary/5 p-4 space-y-4">
-          <div className="flex items-start gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground">
-              <Network className="h-5 w-5" />
-            </div>
-            <div className="space-y-2">
-              <h3 className="font-semibold text-base">RTSP Stream Address</h3>
-              <div className="space-y-2">
-                <Label htmlFor="local-ip">Local IP Address *</Label>
-                <div className="flex flex-col gap-2 md:flex-row md:items-center">
-                  <Input
-                    id="local-ip"
-                    type="text"
-                    className="md:flex-1"
-                    placeholder="e.g., 192.168.1.88"
-                    value={state.localIp}
-                    onChange={(e) =>
-                      dispatch({ type: "SET_CONNECTION_DETAILS", payload: { localIp: e.target.value } })
-                    }
-                  />
-                  <Button type="button" onClick={resolvePublicIp} disabled={isResolvingIp}>
-                    {isResolvingIp ? "Resolving…" : "Use Public IP"}
-                  </Button>
+        <Tabs value={state.connectionMode} onValueChange={handleConnectionModeChange} className="w-full">
+          <TabsList className="grid w-full grid-cols-2 md:w-auto">
+            <TabsTrigger value="standard" className="w-full text-sm">Direct RTSP Builder</TabsTrigger>
+            <TabsTrigger value="localRunner" className="w-full text-sm">Run locally</TabsTrigger>
+          </TabsList>
+          <TabsContent value="standard" className="mt-4 space-y-4">
+            <div className="rounded-lg border-2 border-primary/20 bg-primary/5 p-4 space-y-4">
+              <div className="flex items-start gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                  <Network className="h-5 w-5" />
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Start with the local IP for your camera. We'll detect your public IP as a secondary option but you can continue using the local address if you're on the same network.
-                </p>
-                {conversionError && <p className="text-xs text-destructive">{conversionError}</p>}
-              </div>
-
-              {state.publicIp && (
-                <div className="rounded-md border bg-background p-4 space-y-3">
-                  <div className="flex items-center gap-2 text-sm font-medium">
-                    <Globe className="h-4 w-4 text-primary" />
-                    Detected Network Public IP
+                <div className="space-y-2">
+                  <h3 className="font-semibold text-base">RTSP Stream Address</h3>
+                  <div className="space-y-2">
+                    <Label htmlFor="local-ip">Local IP Address *</Label>
+                    <div className="flex flex-col gap-2 md:flex-row md:items-center">
+                      <Input
+                        id="local-ip"
+                        type="text"
+                        className="md:flex-1"
+                        placeholder="e.g., 192.168.1.88"
+                        value={state.localIp}
+                        onChange={(e) =>
+                          dispatch({ type: "SET_CONNECTION_DETAILS", payload: { localIp: e.target.value } })
+                        }
+                      />
+                      <Button type="button" onClick={resolvePublicIp} disabled={isResolvingIp}>
+                        {isResolvingIp ? "Resolving…" : "Use Public IP"}
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Start with the local IP for your camera. We'll detect your public IP as a secondary option but you can continue using the local address if you're on the same network.
+                    </p>
+                    {conversionError && <p className="text-xs text-destructive">{conversionError}</p>}
                   </div>
-                  <Input
-                    id="public-ip"
-                    type="text"
-                    value={state.publicIp}
-                    onChange={(e) =>
-                      dispatch({ type: "SET_CONNECTION_DETAILS", payload: { publicIp: e.target.value } })
-                    }
-                    placeholder="Enter public IP"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Adjust this if your camera is reachable through a different public address.
-                  </p>
-                </div>
-              )}
 
-              {(state.localIp || state.publicIp) && (
-                <div className="space-y-2">
-                  <Label>Choose the host for your RTSP link</Label>
-                  <div className="flex flex-wrap gap-2">
-                    <Button
-                      type="button"
-                      variant={state.connectionHostType === "local" ? "default" : "outline"}
-                      onClick={() =>
-                        dispatch({ type: "SET_CONNECTION_DETAILS", payload: { connectionHostType: "local" } })
-                      }
-                      disabled={!state.localIp}
-                    >
-                      Use Local IP {state.localIp ? `(${state.localIp})` : ""}
-                    </Button>
-                    <Button
-                      type="button"
-                      variant={state.connectionHostType === "public" ? "default" : "outline"}
-                      onClick={() =>
-                        dispatch({ type: "SET_CONNECTION_DETAILS", payload: { connectionHostType: "public" } })
-                      }
-                      disabled={!state.publicIp}
-                    >
-                      Use Public IP {state.publicIp ? `(${state.publicIp})` : ""}
-                    </Button>
+                  {state.publicIp && (
+                    <div className="rounded-md border bg-background p-4 space-y-3">
+                      <div className="flex items-center gap-2 text-sm font-medium">
+                        <Globe className="h-4 w-4 text-primary" />
+                        Detected Network Public IP
+                      </div>
+                      <Input
+                        id="public-ip"
+                        type="text"
+                        value={state.publicIp}
+                        onChange={(e) =>
+                          dispatch({ type: "SET_CONNECTION_DETAILS", payload: { publicIp: e.target.value } })
+                        }
+                        placeholder="Enter public IP"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Adjust this if your camera is reachable through a different public address.
+                      </p>
+                    </div>
+                  )}
+
+                  {(state.localIp || state.publicIp) && (
+                    <div className="space-y-2">
+                      <Label>Choose the host for your RTSP link</Label>
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          type="button"
+                          variant={state.connectionHostType === "local" ? "default" : "outline"}
+                          onClick={() =>
+                            dispatch({ type: "SET_CONNECTION_DETAILS", payload: { connectionHostType: "local" } })
+                          }
+                          disabled={!state.localIp}
+                        >
+                          Use Local IP {state.localIp ? `(${state.localIp})` : ""}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant={state.connectionHostType === "public" ? "default" : "outline"}
+                          onClick={() =>
+                            dispatch({ type: "SET_CONNECTION_DETAILS", payload: { connectionHostType: "public" } })
+                          }
+                          disabled={!state.publicIp}
+                        >
+                          Use Public IP {state.publicIp ? `(${state.publicIp})` : ""}
+                        </Button>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Pick whichever address BERRETO should use to reach your camera. Stay on the local IP if you're testing from the same network, or switch to the public IP if you've exposed the stream externally.
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="rtsp-username" className="flex items-center gap-2">
+                        <KeyRound className="h-4 w-4 text-muted-foreground" />
+                        Username
+                      </Label>
+                      <Input
+                        id="rtsp-username"
+                        placeholder="e.g., admin"
+                        value={state.streamUser}
+                        onChange={(e) =>
+                          dispatch({ type: "SET_CONNECTION_DETAILS", payload: { streamUser: e.target.value } })
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="rtsp-password">Password</Label>
+                      <Input
+                        id="rtsp-password"
+                        type="password"
+                        placeholder="••••••••"
+                        value={state.streamPass}
+                        onChange={(e) =>
+                          dispatch({ type: "SET_CONNECTION_DETAILS", payload: { streamPass: e.target.value } })
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="rtsp-port">RTSP Port</Label>
+                      <Input
+                        id="rtsp-port"
+                        type="text"
+                        placeholder="554"
+                        value={state.streamPort}
+                        onChange={(e) =>
+                          dispatch({ type: "SET_CONNECTION_DETAILS", payload: { streamPort: e.target.value } })
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2 md:col-span-2">
+                      <Label htmlFor="rtsp-path">Stream Path</Label>
+                      <Input
+                        id="rtsp-path"
+                        type="text"
+                        placeholder="e.g., Streaming/Channels/101 or h264"
+                        value={state.rtspPath}
+                        onChange={(e) =>
+                          dispatch({ type: "SET_CONNECTION_DETAILS", payload: { rtspPath: e.target.value } })
+                        }
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Provide the path portion of your stream. We'll make sure it's added to the RTSP URL correctly.
+                      </p>
+                    </div>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Pick whichever address BERRETO should use to reach your camera. Stay on the local IP if you're testing from the same network, or switch to the public IP if you've exposed the stream externally.
-                  </p>
-                </div>
-              )}
-
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="rtsp-username" className="flex items-center gap-2">
-                    <KeyRound className="h-4 w-4 text-muted-foreground" />
-                    Username
-                  </Label>
-                  <Input
-                    id="rtsp-username"
-                    placeholder="e.g., admin"
-                    value={state.streamUser}
-                    onChange={(e) =>
-                      dispatch({ type: "SET_CONNECTION_DETAILS", payload: { streamUser: e.target.value } })
-                    }
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="rtsp-password">Password</Label>
-                  <Input
-                    id="rtsp-password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={state.streamPass}
-                    onChange={(e) =>
-                      dispatch({ type: "SET_CONNECTION_DETAILS", payload: { streamPass: e.target.value } })
-                    }
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="rtsp-port">RTSP Port</Label>
-                  <Input
-                    id="rtsp-port"
-                    type="text"
-                    placeholder="554"
-                    value={state.streamPort}
-                    onChange={(e) =>
-                      dispatch({ type: "SET_CONNECTION_DETAILS", payload: { streamPort: e.target.value } })
-                    }
-                  />
-                </div>
-                <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="rtsp-path">Stream Path</Label>
-                  <Input
-                    id="rtsp-path"
-                    type="text"
-                    placeholder="e.g., Streaming/Channels/101 or h264"
-                    value={state.rtspPath}
-                    onChange={(e) =>
-                      dispatch({ type: "SET_CONNECTION_DETAILS", payload: { rtspPath: e.target.value } })
-                    }
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Provide the path portion of your stream. We'll make sure it's added to the RTSP URL correctly.
+                    Provide the username, password, and port for the camera. We'll embed them into the RTSP stream automatically.
                   </p>
                 </div>
               </div>
-              <p className="text-xs text-muted-foreground">
-                Provide the username, password, and port for the camera. We'll embed them into the RTSP stream automatically.
-              </p>
             </div>
-          </div>
-        </div>
+          </TabsContent>
+          <TabsContent value="localRunner" className="mt-4 space-y-4">
+            <div className="rounded-lg border-2 border-primary/20 bg-primary/5 p-4 space-y-4">
+              <div className="flex items-start gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                  <Laptop className="h-5 w-5" />
+                </div>
+                <div className="space-y-3">
+                  <h3 className="font-semibold text-base">Run Locally</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Test the camera from this computer without exposing it publicly. We'll use the default RTSP port and stream path so you can connect with a link like rtsp://username:password@192.168.x.x:554/Streaming/Channels/101.
+                  </p>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2 md:col-span-2">
+                      <Label htmlFor="local-run-ip">Local Camera IP *</Label>
+                      <Input
+                        id="local-run-ip"
+                        type="text"
+                        placeholder="e.g., 192.168.18.130"
+                        value={state.localIp}
+                        onChange={(e) =>
+                          dispatch({
+                            type: "SET_CONNECTION_DETAILS",
+                            payload: { localIp: e.target.value, connectionHostType: "local" },
+                          })
+                        }
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Enter the IP address assigned to your camera on your local network.
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="local-run-username" className="flex items-center gap-2">
+                        <KeyRound className="h-4 w-4 text-muted-foreground" />
+                        Username
+                      </Label>
+                      <Input
+                        id="local-run-username"
+                        placeholder="e.g., admin"
+                        value={state.streamUser}
+                        onChange={(e) =>
+                          dispatch({ type: "SET_CONNECTION_DETAILS", payload: { streamUser: e.target.value } })
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="local-run-password">Password</Label>
+                      <Input
+                        id="local-run-password"
+                        type="password"
+                        placeholder="••••••••"
+                        value={state.streamPass}
+                        onChange={(e) =>
+                          dispatch({ type: "SET_CONNECTION_DETAILS", payload: { streamPass: e.target.value } })
+                        }
+                      />
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    We'll automatically use RTSP port 554 and the /Streaming/Channels/101 path so the generated link works for most Hikvision-style cameras.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
 
         {autoRtspUrl && (
           <div className="rounded-md border bg-muted/60 p-4 space-y-2">
