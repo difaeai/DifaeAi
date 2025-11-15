@@ -3,7 +3,6 @@ import { randomUUID } from "node:crypto";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { promises as fs } from "node:fs";
-import { spawn } from "node:child_process";
 import { z } from "zod";
 import { initFirebaseAdmin } from "@/lib/firebase-admin";
 import * as admin from "firebase-admin";
@@ -23,42 +22,15 @@ const payloadSchema = z.object({
 });
 
 const DEFAULT_BACKEND_URL = "https://bridge.difae.ai";
+const EMBED_MARKER_TEXT = "DIFAE_CONFIG_V1";
+const EMBED_MARKER_BUFFER = Buffer.from(EMBED_MARKER_TEXT, "utf8");
 
-async function runZipCommand(
-  tempDir: string,
-  archiveName: string,
-): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const zipProcess = spawn(
-      "zip",
-      ["-j", archiveName, "difae-bridge.exe", "config.json"],
-      {
-        cwd: tempDir,
-      },
-    );
-
-    const errorChunks: string[] = [];
-
-    zipProcess.stderr.on("data", (chunk) => {
-      errorChunks.push(Buffer.from(chunk).toString());
-    });
-
-    zipProcess.on("error", (error) => {
-      reject(error);
-    });
-
-    zipProcess.on("close", (code) => {
-      if (code === 0) {
-        resolve();
-      } else {
-        reject(
-          new Error(
-            `zip command exited with code ${code}: ${errorChunks.join("\n")}`,
-          ),
-        );
-      }
-    });
-  });
+function buildEmbeddedConfig(config: Record<string, unknown>): Buffer {
+  const configJson = JSON.stringify(config);
+  const configBuffer = Buffer.from(configJson, "utf8");
+  const lengthBuffer = Buffer.alloc(4);
+  lengthBuffer.writeUInt32LE(configBuffer.length, 0);
+  return Buffer.concat([EMBED_MARKER_BUFFER, lengthBuffer, configBuffer]);
 }
 
 export async function POST(req: NextRequest) {
@@ -123,7 +95,6 @@ export async function POST(req: NextRequest) {
     }
 
     tempDir = await fs.mkdtemp(path.join(tmpdir(), "difae-agent-"));
-    const configPath = path.join(tempDir, "config.json");
     const executableDestination = path.join(tempDir, "difae-bridge.exe");
 
     const backendUrl =
@@ -135,27 +106,10 @@ export async function POST(req: NextRequest) {
       backendUrl,
     };
 
-    await fs.writeFile(configPath, JSON.stringify(config, null, 2), "utf8");
     await fs.copyFile(sourceExecutable, executableDestination);
+    await fs.appendFile(executableDestination, buildEmbeddedConfig(config));
 
-    const archiveName = `difae-bridge-${bridgeId}.zip`;
-    const archivePath = path.join(tempDir, archiveName);
-
-    try {
-      await runZipCommand(tempDir, archiveName);
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-        return NextResponse.json(
-          {
-            error:
-              "zip command is not available on the server. Install the zip utility to enable agent packaging.",
-          },
-          { status: 500 },
-        );
-      }
-
-      throw error;
-    }
+    const agentFileName = `difae-bridge-${bridgeId}.exe`;
 
     const bucketName =
       process.env.WINDOWS_AGENT_BUCKET ||
@@ -164,11 +118,11 @@ export async function POST(req: NextRequest) {
 
     const bucket = admin.storage().bucket(bucketName);
 
-    const storagePath = `windows-agents/${payload.userId}/${bridgeId}/${archiveName}`;
+    const storagePath = `windows-agents/${payload.userId}/${bridgeId}/${agentFileName}`;
 
-    await bucket.upload(archivePath, {
+    await bucket.upload(executableDestination, {
       destination: storagePath,
-      contentType: "application/zip",
+      contentType: "application/octet-stream",
       metadata: {
         cacheControl: "private, max-age=0, no-transform",
       },

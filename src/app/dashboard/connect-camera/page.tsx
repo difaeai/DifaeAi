@@ -25,7 +25,7 @@ const initialState: WizardState = {
   cameraName: "",
   location: "",
   cameraType: "",
-  connectionMode: "standard",
+  connectionMode: "localRunner",
   localIp: "",
   selectedIp: "",
   streamUrl: "",
