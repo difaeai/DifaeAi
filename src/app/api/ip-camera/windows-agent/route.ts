@@ -211,17 +211,19 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error("windows-agent generation failed", error);
 
+    const { message, code } = normaliseError(error);
+
     if (agentDocRef) {
       await agentDocRef.set(
         {
           status: "failed",
+          errorCode: code,
+          errorMessage: message,
           updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         },
         { merge: true },
       );
     }
-
-    const { message, code } = normaliseError(error);
 
     return NextResponse.json(
       {
