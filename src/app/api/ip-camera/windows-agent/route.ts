@@ -22,148 +22,15 @@ const payloadSchema = z.object({
 });
 
 const DEFAULT_BACKEND_URL = "https://bridge.difae.ai";
+const EMBED_MARKER_TEXT = "DIFAE_CONFIG_V1";
+const EMBED_MARKER_BUFFER = Buffer.from(EMBED_MARKER_TEXT, "utf8");
 
-function msDosDateTime(date: Date): { date: number; time: number } {
-  const year = date.getFullYear();
-  const month = date.getMonth() + 1;
-  const day = date.getDate();
-  const hours = date.getHours();
-  const minutes = date.getMinutes();
-  const seconds = Math.floor(date.getSeconds() / 2);
-
-  const dosDate =
-    ((Math.max(1980, year) - 1980) << 9) |
-    ((Math.max(1, Math.min(month, 12)) & 0x0f) << 5) |
-    (Math.max(1, Math.min(day, 31)) & 0x1f);
-  const dosTime =
-    ((Math.max(0, Math.min(hours, 23)) & 0x1f) << 11) |
-    ((Math.max(0, Math.min(minutes, 59)) & 0x3f) << 5) |
-    (Math.max(0, Math.min(seconds, 29)) & 0x1f);
-
-  return { date: dosDate, time: dosTime };
-}
-
-function crc32(buffer: Buffer): number {
-  let crc = 0xffffffff;
-
-  for (let i = 0; i < buffer.length; i += 1) {
-    let byte = buffer[i];
-    crc ^= byte;
-
-    for (let bit = 0; bit < 8; bit += 1) {
-      const mask = -(crc & 1);
-      crc = (crc >>> 1) ^ (0xedb88320 & mask);
-    }
-  }
-
-  return (crc ^ 0xffffffff) >>> 0;
-}
-
-async function createZipArchive(
-  tempDir: string,
-  archiveName: string,
-): Promise<string> {
-  const files = await Promise.all(
-    ["difae-bridge.exe", "config.json"].map(async (name) => {
-      const filePath = path.join(tempDir, name);
-      const data = await fs.readFile(filePath);
-      const stats = await fs.stat(filePath);
-      return { name, data, mtime: stats.mtime }; 
-    }),
-  );
-
-  interface ZipRecord {
-    nameBuffer: Buffer;
-    data: Buffer;
-    crc: number;
-    modTime: number;
-    modDate: number;
-    offset: number;
-    size: number;
-  }
-
-  const records: ZipRecord[] = [];
-  let offset = 0;
-
-  for (const file of files) {
-    const nameBuffer = Buffer.from(file.name, "utf8");
-    const { date: dosDate, time: dosTime } = msDosDateTime(file.mtime);
-    const crc = crc32(file.data);
-    const fileSize = file.data.length;
-
-    const localHeader = Buffer.alloc(30);
-    localHeader.writeUInt32LE(0x04034b50, 0);
-    localHeader.writeUInt16LE(20, 4);
-    localHeader.writeUInt16LE(0, 6);
-    localHeader.writeUInt16LE(0, 8);
-    localHeader.writeUInt16LE(dosTime, 10);
-    localHeader.writeUInt16LE(dosDate, 12);
-    localHeader.writeUInt32LE(crc, 14);
-    localHeader.writeUInt32LE(file.data.length, 18);
-    localHeader.writeUInt32LE(file.data.length, 22);
-    localHeader.writeUInt16LE(nameBuffer.length, 26);
-    localHeader.writeUInt16LE(0, 28);
-
-    records.push({
-      nameBuffer,
-      data: Buffer.concat([localHeader, nameBuffer, file.data]),
-      crc,
-      modDate: dosDate,
-      modTime: dosTime,
-      offset,
-      size: fileSize,
-    });
-
-    offset += localHeader.length + nameBuffer.length + fileSize;
-  }
-
-  const centralDirectoryParts: Buffer[] = [];
-  let centralDirectorySize = 0;
-
-  for (const record of records) {
-    const header = Buffer.alloc(46);
-    header.writeUInt32LE(0x02014b50, 0);
-    header.writeUInt16LE(20, 4);
-    header.writeUInt16LE(20, 6);
-    header.writeUInt16LE(0, 8);
-    header.writeUInt16LE(0, 10);
-    header.writeUInt16LE(record.modTime, 12);
-    header.writeUInt16LE(record.modDate, 14);
-    header.writeUInt32LE(record.crc, 16);
-    header.writeUInt32LE(record.size, 20);
-    header.writeUInt32LE(record.size, 24);
-    header.writeUInt16LE(record.nameBuffer.length, 28);
-    header.writeUInt16LE(0, 30);
-    header.writeUInt16LE(0, 32);
-    header.writeUInt16LE(0, 34);
-    header.writeUInt16LE(0, 36);
-    header.writeUInt32LE(0, 38);
-    header.writeUInt32LE(record.offset, 42);
-
-    centralDirectoryParts.push(header, record.nameBuffer);
-    centralDirectorySize += header.length + record.nameBuffer.length;
-  }
-
-  const endOfCentralDirectory = Buffer.alloc(22);
-  endOfCentralDirectory.writeUInt32LE(0x06054b50, 0);
-  endOfCentralDirectory.writeUInt16LE(0, 4);
-  endOfCentralDirectory.writeUInt16LE(0, 6);
-  endOfCentralDirectory.writeUInt16LE(records.length, 8);
-  endOfCentralDirectory.writeUInt16LE(records.length, 10);
-  endOfCentralDirectory.writeUInt32LE(centralDirectorySize, 12);
-  endOfCentralDirectory.writeUInt32LE(offset, 16);
-  endOfCentralDirectory.writeUInt16LE(0, 20);
-
-  const archiveBuffer = Buffer.concat([
-    ...records.map((record) => record.data),
-    ...centralDirectoryParts,
-    endOfCentralDirectory,
-  ]);
-
-  const archivePath = path.join(tempDir, archiveName);
-  await fs.writeFile(archivePath, archiveBuffer);
-
-  return archivePath;
+function buildEmbeddedConfig(config: Record<string, unknown>): Buffer {
+  const configJson = JSON.stringify(config);
+  const configBuffer = Buffer.from(configJson, "utf8");
+  const lengthBuffer = Buffer.alloc(4);
+  lengthBuffer.writeUInt32LE(configBuffer.length, 0);
+  return Buffer.concat([EMBED_MARKER_BUFFER, lengthBuffer, configBuffer]);
 }
 
 export async function POST(req: NextRequest) {
@@ -228,7 +95,6 @@ export async function POST(req: NextRequest) {
     }
 
     tempDir = await fs.mkdtemp(path.join(tmpdir(), "difae-agent-"));
-    const configPath = path.join(tempDir, "config.json");
     const executableDestination = path.join(tempDir, "difae-bridge.exe");
 
     const backendUrl =
@@ -240,11 +106,10 @@ export async function POST(req: NextRequest) {
       backendUrl,
     };
 
-    await fs.writeFile(configPath, JSON.stringify(config, null, 2), "utf8");
     await fs.copyFile(sourceExecutable, executableDestination);
+    await fs.appendFile(executableDestination, buildEmbeddedConfig(config));
 
-    const archiveName = `difae-bridge-${bridgeId}.zip`;
-    const archivePath = await createZipArchive(tempDir, archiveName);
+    const agentFileName = `difae-bridge-${bridgeId}.exe`;
 
     const bucketName =
       process.env.WINDOWS_AGENT_BUCKET ||
@@ -253,13 +118,14 @@ export async function POST(req: NextRequest) {
 
     const bucket = admin.storage().bucket(bucketName);
 
-    const storagePath = `windows-agents/${payload.userId}/${bridgeId}/${archiveName}`;
+    const storagePath = `windows-agents/${payload.userId}/${bridgeId}/${agentFileName}`;
 
-    await bucket.upload(archivePath, {
+    await bucket.upload(executableDestination, {
       destination: storagePath,
-      contentType: "application/zip",
+      contentType: "application/octet-stream",
       metadata: {
         cacheControl: "private, max-age=0, no-transform",
+        contentDisposition: `attachment; filename="${agentFileName}"`,
       },
     });
 
