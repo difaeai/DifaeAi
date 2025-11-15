@@ -7,7 +7,7 @@ import { z } from "zod";
 import { initFirebaseAdmin } from "@/lib/firebase-admin";
 import * as admin from "firebase-admin";
 import { registerAgentDownload } from "./store";
-import { maybeSignExecutable } from "./signing";
+import { maybeSignExecutable, SigningConfigurationError } from "./signing";
 
 const payloadSchema = z.object({
   userId: z.string().min(1, "userId is required"),
@@ -187,9 +187,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const message =
+      error instanceof SigningConfigurationError
+        ? error.message
+        : "Failed to generate Windows agent.";
+
     return NextResponse.json(
       {
-        error: "Failed to generate Windows agent.",
+        error: message,
       },
       { status: 500 },
     );
