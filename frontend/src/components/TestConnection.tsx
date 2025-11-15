@@ -16,6 +16,9 @@ export function TestConnection({ bridgeCameraId }: TestConnectionProps) {
   const ipAddress = useCameraStore((state) => state.ipAddress);
   const publicIpAddress = useCameraStore((state) => state.publicIpAddress);
   const selectedStreamUrl = useCameraStore((state) => state.selectedStreamUrl);
+  const storedUsername = useCameraStore((state) => state.username);
+  const storedPassword = useCameraStore((state) => state.password);
+  const setSelectedStreamUrl = useCameraStore((state) => state.setSelectedStreamUrl);
   const [previewUrl, setPreviewUrl] = useState<string>();
   const [previewError, setPreviewError] = useState<string>();
   const [pairingCode, setPairingCode] = useState<string>();
@@ -24,11 +27,27 @@ export function TestConnection({ bridgeCameraId }: TestConnectionProps) {
   const [tokenExpiresAt, setTokenExpiresAt] = useState<number>();
   const [isPairing, setIsPairing] = useState(false);
   const [isStartingBridge, setIsStartingBridge] = useState(false);
+  const [useLocalMachine, setUseLocalMachine] = useState(false);
+  const [localIp, setLocalIp] = useState(() => ipAddress || '192.168.18.130');
+  const [localPort, setLocalPort] = useState('554');
+  const [localPath, setLocalPath] = useState('h264');
+  const [localUsername, setLocalUsername] = useState(() => storedUsername || 'admin');
+  const [localPassword, setLocalPassword] = useState(() => storedPassword || 'Berreto@121');
+  const [localError, setLocalError] = useState<string>();
 
   useEffect(() => {
     setPreviewUrl(undefined);
     setPreviewError(undefined);
   }, [selectedStreamUrl]);
+
+  useEffect(() => {
+    if (!useLocalMachine) {
+      return;
+    }
+    if (ipAddress && !localIp) {
+      setLocalIp(ipAddress);
+    }
+  }, [ipAddress, localIp, useLocalMachine]);
 
   const hlsUrl = useMemo(() => {
     if (!selectedStreamUrl) {
@@ -39,9 +58,47 @@ export function TestConnection({ bridgeCameraId }: TestConnectionProps) {
     return url.toString();
   }, [bridgeCameraId, selectedStreamUrl]);
 
+  const localRtspUrl = useMemo(() => {
+    if (!localIp) {
+      return '';
+    }
+    const trimmedPath = localPath.replace(/^\/+/, '');
+    const encodedUsername = localUsername ? encodeURIComponent(localUsername) : '';
+    const encodedPassword = localPassword ? encodeURIComponent(localPassword) : '';
+    const authSegment = encodedUsername
+      ? `${encodedUsername}${encodedPassword ? `:${encodedPassword}` : ''}@`
+      : '';
+    const portSegment = localPort ? `:${localPort}` : '';
+    const pathSegment = trimmedPath ? `/${trimmedPath}` : '';
+    return `rtsp://${authSegment}${localIp}${portSegment}${pathSegment}`;
+  }, [localIp, localPassword, localPath, localPort, localUsername]);
+
+  const validateLocalIp = (value: string) => {
+    const ipRegex = /^(25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)){3}$/;
+    return ipRegex.test(value.trim());
+  };
+
   const handleTest = async () => {
     setPreviewUrl(undefined);
     setPreviewError(undefined);
+    if (useLocalMachine) {
+      if (!validateLocalIp(localIp)) {
+        setLocalError('Enter a valid local IPv4 address (e.g. 192.168.18.130).');
+        return;
+      }
+      setLocalError(undefined);
+      setSelectedStreamUrl(localRtspUrl);
+      const manualCandidate: ProbeCandidate = {
+        protocol: 'rtsp',
+        url: localRtspUrl,
+        confidence: 1,
+        verified: true,
+        verificationMethod: 'ffprobe',
+        notes: 'Manual local RTSP entry',
+      };
+      await startBridgeStream(manualCandidate);
+      return;
+    }
     const targetIp = publicIpAddress || ipAddress;
     await mutateAsync(targetIp);
   };
@@ -142,10 +199,20 @@ export function TestConnection({ bridgeCameraId }: TestConnectionProps) {
         <button
           type="button"
           onClick={handleTest}
-          disabled={!ipAddress || isPending}
+          disabled={
+            isPending ||
+            isStartingBridge ||
+            (!useLocalMachine && !ipAddress)
+          }
           className="rounded bg-emerald-500 px-4 py-2 font-medium text-slate-950 shadow hover:bg-emerald-400 disabled:cursor-not-allowed disabled:bg-emerald-500/40"
         >
-          {isPending ? 'Probing…' : 'Test Connection'}
+          {useLocalMachine
+            ? isStartingBridge
+              ? 'Starting preview…'
+              : 'Test Local Connection'
+            : isPending
+              ? 'Probing…'
+              : 'Test Connection'}
         </button>
         <p className="mt-2 text-xs text-slate-400">
           We only probe a short list of safe RTSP and MJPEG endpoints. Authenticate manually if prompted. No password brute forcing is performed.
@@ -159,6 +226,31 @@ export function TestConnection({ bridgeCameraId }: TestConnectionProps) {
         pairWithAgent={pairWithAgent}
         fetchPairingCode={fetchPairingCode}
         tokenExpiresAt={tokenExpiresAt}
+      />
+
+      <LocalMachineOption
+        enabled={useLocalMachine}
+        onToggle={(checked) => {
+          setUseLocalMachine(checked);
+          if (!checked) {
+            setLocalError(undefined);
+          }
+        }}
+        localIp={localIp}
+        setLocalIp={(value) => {
+          setLocalIp(value);
+          setLocalError(undefined);
+        }}
+        localPort={localPort}
+        setLocalPort={setLocalPort}
+        localPath={localPath}
+        setLocalPath={setLocalPath}
+        localUsername={localUsername}
+        setLocalUsername={setLocalUsername}
+        localPassword={localPassword}
+        setLocalPassword={setLocalPassword}
+        localRtspUrl={localRtspUrl}
+        localError={localError}
       />
 
       {error && <div className="rounded border border-red-500 bg-red-950/40 px-4 py-3 text-sm text-red-300">{error.message}</div>}
@@ -266,6 +358,130 @@ function BridgeAgentPairing({ pairingCode, pairingError, isPairing, pairWithAgen
         </p>
       )}
       {pairingError && <p className="mt-2 text-xs text-red-400">{pairingError}</p>}
+    </div>
+  );
+}
+
+interface LocalMachineOptionProps {
+  enabled: boolean;
+  onToggle: (enabled: boolean) => void;
+  localIp: string;
+  setLocalIp: (value: string) => void;
+  localPort: string;
+  setLocalPort: (value: string) => void;
+  localPath: string;
+  setLocalPath: (value: string) => void;
+  localUsername: string;
+  setLocalUsername: (value: string) => void;
+  localPassword: string;
+  setLocalPassword: (value: string) => void;
+  localRtspUrl: string;
+  localError?: string;
+}
+
+function LocalMachineOption({
+  enabled,
+  onToggle,
+  localIp,
+  setLocalIp,
+  localPort,
+  setLocalPort,
+  localPath,
+  setLocalPath,
+  localUsername,
+  setLocalUsername,
+  localPassword,
+  setLocalPassword,
+  localRtspUrl,
+  localError,
+}: LocalMachineOptionProps) {
+  return (
+    <div className="rounded border border-slate-800 bg-slate-900/60 p-4 text-sm text-slate-200">
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div>
+          <p className="font-medium">Local machine RTSP camera</p>
+          <p className="text-xs text-slate-400">
+            Provide LAN credentials to tunnel the stream through the bridge agent running on this computer.
+          </p>
+        </div>
+        <label className="flex items-center gap-2 text-xs text-slate-300">
+          <input
+            type="checkbox"
+            checked={enabled}
+            onChange={(event) => onToggle(event.target.checked)}
+            className="h-4 w-4 accent-emerald-500"
+          />
+          Test a camera on this machine
+        </label>
+      </div>
+
+      {enabled && (
+        <div className="mt-4 space-y-4">
+          <div className="grid gap-3 md:grid-cols-2">
+            <label className="space-y-1">
+              <span className="block text-xs uppercase tracking-wide text-slate-400">Local IP address</span>
+              <input
+                value={localIp}
+                onChange={(event) => setLocalIp(event.target.value)}
+                placeholder="192.168.18.130"
+                className="w-full rounded border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none ring-emerald-500 focus:ring"
+              />
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              <label className="space-y-1">
+                <span className="block text-xs uppercase tracking-wide text-slate-400">Port</span>
+                <input
+                  value={localPort}
+                  onChange={(event) => setLocalPort(event.target.value.replace(/[^0-9]/g, ''))}
+                  placeholder="554"
+                  className="w-full rounded border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none ring-emerald-500 focus:ring"
+                />
+              </label>
+              <label className="space-y-1">
+                <span className="block text-xs uppercase tracking-wide text-slate-400">Stream path</span>
+                <input
+                  value={localPath}
+                  onChange={(event) => setLocalPath(event.target.value)}
+                  placeholder="h264"
+                  className="w-full rounded border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none ring-emerald-500 focus:ring"
+                />
+              </label>
+            </div>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-2">
+            <label className="space-y-1">
+              <span className="block text-xs uppercase tracking-wide text-slate-400">Username</span>
+              <input
+                value={localUsername}
+                onChange={(event) => setLocalUsername(event.target.value)}
+                placeholder="admin"
+                className="w-full rounded border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none ring-emerald-500 focus:ring"
+              />
+            </label>
+            <label className="space-y-1">
+              <span className="block text-xs uppercase tracking-wide text-slate-400">Password</span>
+              <input
+                type="password"
+                value={localPassword}
+                onChange={(event) => setLocalPassword(event.target.value)}
+                placeholder="Berreto@121"
+                className="w-full rounded border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none ring-emerald-500 focus:ring"
+              />
+            </label>
+          </div>
+
+          <div className="rounded border border-slate-800 bg-slate-950/60 p-3 text-xs text-slate-300">
+            <p className="font-semibold text-slate-200">Resulting RTSP URL</p>
+            <p className="mt-2 break-all font-mono text-[11px] text-emerald-300">{localRtspUrl}</p>
+            <p className="mt-2 text-[10px] text-slate-500">
+              Defaults match <code>rtsp://admin:Berreto@121@192.168.18.130:554/h264</code>. Update the values to match your LAN camera.
+            </p>
+          </div>
+
+          {localError && <p className="text-xs text-red-400">{localError}</p>}
+        </div>
+      )}
     </div>
   );
 }
