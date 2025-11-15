@@ -13,7 +13,7 @@
     "dev": "next dev -p 5000 -H 0.0.0.0",
     "prebuild": "node scripts/prebuild.js",
     "build": "next build",
-    "build:windows-agent": "dotnet publish bridge/windows-agent/WindowsCameraBridge.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeAllContentForSelfExtract=true -o bridge/windows-agent/publish",
+    "build:windows-agent": "rm -rf bridge/windows-agent/publish && mkdir -p bridge/windows-agent/publish && GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -C bridge/windows-agent -o publish/WindowsCameraBridge.exe . && cp bridge/windows-agent/agent-config.template.json bridge/windows-agent/publish/agent-config.json && (cd bridge/windows-agent/publish && zip -q -r ../windows-agent-template.zip WindowsCameraBridge.exe agent-config.json)",
     "start": "next start -p 5000 -H 0.0.0.0",
     "lint": "echo \"Linting handled in downstream pipelines\"",
     "test": "echo \"No automated tests configured\"",

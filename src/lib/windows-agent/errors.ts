@@ -1,6 +1,7 @@
 export const WINDOWS_AGENT_ERROR_CODES = {
   VALIDATION_FAILED: "validation_failed",
   TEMPLATE_MISSING: "template_missing",
+  TEMPLATE_BUILD_FAILED: "template_build_failed",
   SIGNING_CONFIGURATION_ERROR: "signing_configuration_error",
   SIGNING_EXECUTION_ERROR: "signing_execution_error",
   STORAGE_CONFIGURATION_ERROR: "storage_configuration_error",
