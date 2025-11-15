@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Info, KeyRound, Laptop, Loader2, Network } from "lucide-react";
+import { Download, Info, KeyRound, Laptop, Loader2, Network } from "lucide-react";
 import { useWizard } from "../wizard-context";
 import { useToast } from "@/hooks/use-toast";
 import { isValidIPv4 } from "@/lib/network/ip";
@@ -254,7 +254,7 @@ export default function StepThreeConnection() {
         try {
           const anchor = document.createElement("a");
           anchor.href = downloadUrl;
-          anchor.download = "difae-bridge-agent.zip";
+          anchor.download = "difae-bridge-agent.exe";
           anchor.style.display = "none";
           document.body.appendChild(anchor);
           anchor.click();
@@ -596,6 +596,26 @@ export default function StepThreeConnection() {
               We'll use this host when showing the connection summary on the next step.
             </p>
           </div>
+        )}
+
+        {state.windowsAgentDownloadUrl && (
+          <Alert className="border-primary/40 bg-primary/5">
+            <Download className="h-4 w-4" />
+            <AlertTitle>Windows agent generated</AlertTitle>
+            <AlertDescription>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <span className="text-sm">
+                  Download the installer again if the automatic download didn’t start. Run it on a Windows PC that can reach the
+                  camera.
+                </span>
+                <Button asChild size="sm" variant="secondary">
+                  <a href={state.windowsAgentDownloadUrl} download="difae-bridge-agent.exe">
+                    Download agent
+                  </a>
+                </Button>
+              </div>
+            </AlertDescription>
+          </Alert>
         )}
       </CardContent>
       <CardFooter className="flex justify-between">
