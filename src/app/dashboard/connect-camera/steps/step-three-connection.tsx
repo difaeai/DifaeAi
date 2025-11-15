@@ -12,6 +12,8 @@ import { useWizard } from "../wizard-context";
 import { useToast } from "@/hooks/use-toast";
 import { isValidIPv4 } from "@/lib/network/ip";
 import { useAuth } from "@/hooks/use-auth";
+import { isWindowsAgentErrorCode } from "@/lib/windows-agent/errors";
+import { getWindowsAgentErrorMessage } from "@/lib/windows-agent/messages";
 
 export default function StepThreeConnection() {
   const { state, dispatch } = useWizard();
@@ -238,10 +240,16 @@ export default function StepThreeConnection() {
         });
 
         const data = await response.json().catch(() => null);
+        const serverMessage =
+          data && typeof data.error === "string" ? data.error : undefined;
+        const serverCode =
+          data && isWindowsAgentErrorCode(data.code) ? data.code : undefined;
+
         if (!response.ok || !data || typeof data.downloadUrl !== "string") {
-          const message =
-            (data && typeof data.error === "string" && data.error) ||
-            "Failed to generate the Windows agent. Please try again.";
+          const message = serverCode
+            ? getWindowsAgentErrorMessage(serverCode, serverMessage)
+            : serverMessage ||
+              "Failed to generate the Windows agent. Please try again.";
           throw new Error(message);
         }
 

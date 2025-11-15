@@ -57,6 +57,8 @@ import LivePreviewPlayer from "@/components/live-preview-player";
 import MjpegPreview from "@/components/mjpeg-preview";
 import { CameraType, testCameraConnection } from "@/lib/camera-connect";
 import { useAuth } from "@/hooks/use-auth";
+import { isWindowsAgentErrorCode } from "@/lib/windows-agent/errors";
+import { getWindowsAgentErrorMessage } from "@/lib/windows-agent/messages";
 
 const DEFAULT_WINDOWS_AGENT_FORM = {
   cameraName: "",
@@ -584,11 +586,16 @@ export default function ConnectCameraPage() {
       });
 
       const data = await response.json().catch(() => null);
+      const serverMessage =
+        data && typeof data.error === "string" ? data.error : undefined;
+      const serverCode =
+        data && isWindowsAgentErrorCode(data.code) ? data.code : undefined;
 
       if (!response.ok || !data || typeof data.downloadUrl !== "string") {
-        const message =
-          (data && typeof data.error === "string" && data.error) ||
-          "Failed to generate the Windows agent. Please try again.";
+        const message = serverCode
+          ? getWindowsAgentErrorMessage(serverCode, serverMessage)
+          : serverMessage ||
+            "Failed to generate the Windows agent. Please try again.";
         throw new Error(message);
       }
 
