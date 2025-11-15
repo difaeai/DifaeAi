@@ -111,13 +111,14 @@ export default function StepThreeConnection() {
       selectedIp?: string;
     } = {};
 
-    if (state.streamPort !== "554") {
+    const portValue = state.streamPort?.trim();
+    if (!portValue) {
       updates.streamPort = "554";
     }
 
-    const desiredPath = "/Streaming/Channels/101";
-    if (state.rtspPath?.trim() !== desiredPath) {
-      updates.rtspPath = desiredPath;
+    const currentPath = state.rtspPath?.trim();
+    if (!currentPath) {
+      updates.rtspPath = "/Streaming/Channels/101";
     }
 
     if (state.localIp && state.selectedIp !== state.localIp) {
