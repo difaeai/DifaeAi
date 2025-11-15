@@ -12,6 +12,7 @@ export interface WizardState {
   cameraName: string;
   location: string;
   cameraType: CameraType;
+  connectionMode: "standard" | "localRunner";
   localIp: string;
   publicIp: string;
   connectionHostType: "local" | "public";
@@ -37,6 +38,7 @@ export type WizardAction =
       payload: {
         selectedIp?: string;
         selectedHostname?: string;
+        connectionMode?: "standard" | "localRunner";
         localIp?: string;
         publicIp?: string;
         connectionHostType?: "local" | "public";
