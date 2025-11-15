@@ -245,15 +245,21 @@ export default function StepThreeConnection() {
         });
 
         try {
-          const anchor = document.createElement("a");
-          anchor.href = downloadUrl;
-          anchor.download = "difae-bridge-agent.exe";
-          anchor.style.display = "none";
-          document.body.appendChild(anchor);
-          anchor.click();
-          document.body.removeChild(anchor);
+          const opened = window.open(downloadUrl, "_blank", "noopener,noreferrer");
+
+          if (!opened) {
+            const anchor = document.createElement("a");
+            anchor.href = downloadUrl;
+            anchor.rel = "noopener noreferrer";
+            anchor.target = "_blank";
+            anchor.style.display = "none";
+            document.body.appendChild(anchor);
+            anchor.click();
+            document.body.removeChild(anchor);
+          }
         } catch (error) {
           console.warn("automatic download failed", error);
+          window.location.assign(downloadUrl);
         }
 
         toast({

@@ -44,7 +44,7 @@ the end of the binary and serves the signed download URL.
 
 1. Generates a new `bridgeId` and stores a record in the `cameraBridgeAgents` Firestore collection with status `pending`.
 2. Copies the shared agent executable and embeds the per-camera configuration directly into the binary.
-3. Uploads the customised executable to Cloud Storage (bucket determined by `WINDOWS_AGENT_BUCKET` or `FIREBASE_STORAGE_BUCKET`).
+3. Uploads the customised executable to Cloud Storage (bucket determined by `WINDOWS_AGENT_BUCKET` or `FIREBASE_STORAGE_BUCKET`) with download headers so browsers prompt to save it as an `.exe` file.
 4. Updates the Firestore document with status `ready`, the storage path and the signed download URL.
 
 If any step fails the document status is set to `failed` and the endpoint responds with HTTP 500.

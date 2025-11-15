@@ -125,6 +125,7 @@ export async function POST(req: NextRequest) {
       contentType: "application/octet-stream",
       metadata: {
         cacheControl: "private, max-age=0, no-transform",
+        contentDisposition: `attachment; filename="${agentFileName}"`,
       },
     });
 
