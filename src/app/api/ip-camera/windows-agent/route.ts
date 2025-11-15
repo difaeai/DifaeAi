@@ -6,6 +6,12 @@ import { promises as fs } from "node:fs";
 import { z } from "zod";
 import { initFirebaseAdmin } from "@/lib/firebase-admin";
 import * as admin from "firebase-admin";
+import { registerAgentDownload } from "./store";
+import {
+  maybeSignExecutable,
+  SigningConfigurationError,
+  SigningExecutionError,
+} from "./signing";
 
 const payloadSchema = z.object({
   userId: z.string().min(1, "userId is required"),
@@ -36,9 +42,12 @@ function buildEmbeddedConfig(config: Record<string, unknown>): Buffer {
 export async function POST(req: NextRequest) {
   let tempDir: string | null = null;
   let agentDocRef: admin.firestore.DocumentReference | null = null;
+  const hasFirebaseConfig = Boolean(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
 
   try {
-    await initFirebaseAdmin();
+    if (hasFirebaseConfig) {
+      await initFirebaseAdmin();
+    }
 
     const parsed = payloadSchema.safeParse(await req.json());
 
@@ -56,26 +65,27 @@ export async function POST(req: NextRequest) {
     const rtspUrl = `rtsp://${encodeURIComponent(payload.username)}:${encodeURIComponent(payload.password)}@${payload.ipAddress}:${payload.rtspPort}${payload.rtspPath}`;
 
     const bridgeId = randomUUID();
-    const now = admin.firestore.FieldValue.serverTimestamp();
 
-    agentDocRef = admin
-      .firestore()
-      .collection("cameraBridgeAgents")
-      .doc(bridgeId);
+    if (hasFirebaseConfig) {
+      agentDocRef = admin
+        .firestore()
+        .collection("cameraBridgeAgents")
+        .doc(bridgeId);
 
-    await agentDocRef.set(
-      {
-        bridgeId,
-        userId: payload.userId,
-        cameraId: payload.cameraId ?? null,
-        cameraName: payload.cameraName ?? null,
-        rtspUrl,
-        status: "pending",
-        agentType: "windows-ip-camera",
-        createdAt: now,
-      },
-      { merge: true },
-    );
+      await agentDocRef.set(
+        {
+          bridgeId,
+          userId: payload.userId,
+          cameraId: payload.cameraId ?? null,
+          cameraName: payload.cameraName ?? null,
+          rtspUrl,
+          status: "pending",
+          agentType: "windows-ip-camera",
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        },
+        { merge: true },
+      );
+    }
 
     const agentTemplateDir =
       process.env.WINDOWS_AGENT_TEMPLATE_PATH ??
@@ -109,43 +119,65 @@ export async function POST(req: NextRequest) {
     await fs.copyFile(sourceExecutable, executableDestination);
     await fs.appendFile(executableDestination, buildEmbeddedConfig(config));
 
+    await maybeSignExecutable(executableDestination);
+
     const agentFileName = `difae-bridge-${bridgeId}.exe`;
 
     const bucketName =
-      process.env.WINDOWS_AGENT_BUCKET ||
-      process.env.FIREBASE_STORAGE_BUCKET ||
-      undefined;
+      process.env.WINDOWS_AGENT_BUCKET || process.env.FIREBASE_STORAGE_BUCKET || "";
+    const canUseBucket = hasFirebaseConfig && bucketName.length > 0;
 
-    const bucket = admin.storage().bucket(bucketName);
+    if (canUseBucket) {
+      const bucket = admin.storage().bucket(bucketName);
+      const storagePath = `windows-agents/${payload.userId}/${bridgeId}/${agentFileName}`;
 
-    const storagePath = `windows-agents/${payload.userId}/${bridgeId}/${agentFileName}`;
+      await bucket.upload(executableDestination, {
+        destination: storagePath,
+        contentType: "application/octet-stream",
+        metadata: {
+          cacheControl: "private, max-age=0, no-transform",
+          contentDisposition: `attachment; filename="${agentFileName}"`,
+        },
+      });
 
-    await bucket.upload(executableDestination, {
-      destination: storagePath,
-      contentType: "application/octet-stream",
-      metadata: {
-        cacheControl: "private, max-age=0, no-transform",
-        contentDisposition: `attachment; filename="${agentFileName}"`,
-      },
-    });
+      const expires = new Date(Date.now() + 1000 * 60 * 60 * 24 * 7);
+      const [signedUrl] = await bucket.file(storagePath).getSignedUrl({
+        action: "read",
+        expires,
+      });
 
-    const expires = new Date(Date.now() + 1000 * 60 * 60 * 24 * 7);
-    const [signedUrl] = await bucket.file(storagePath).getSignedUrl({
-      action: "read",
-      expires,
-    });
+      if (agentDocRef) {
+        await agentDocRef.set(
+          {
+            status: "ready",
+            storagePath,
+            downloadUrl: signedUrl,
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          },
+          { merge: true },
+        );
+      }
 
-    await agentDocRef.set(
-      {
-        status: "ready",
-        storagePath,
-        downloadUrl: signedUrl,
-        updatedAt: now,
-      },
-      { merge: true },
+      return NextResponse.json({ downloadUrl: signedUrl });
+    }
+
+    const { downloadUrl, record } = await registerAgentDownload(
+      executableDestination,
+      agentFileName,
     );
 
-    return NextResponse.json({ downloadUrl: signedUrl });
+    if (agentDocRef) {
+      await agentDocRef.set(
+        {
+          status: "ready",
+          downloadUrl,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        },
+        { merge: true },
+      );
+    }
+
+    return NextResponse.json({ downloadUrl, expiresAt: record.expiresAt });
   } catch (error) {
     console.error("windows-agent generation failed", error);
 
@@ -159,9 +191,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const message =
+      error instanceof SigningConfigurationError ||
+      error instanceof SigningExecutionError
+        ? error.message
+        : "Failed to generate Windows agent.";
+
     return NextResponse.json(
       {
-        error: "Failed to generate Windows agent.",
+        error: message,
       },
       { status: 500 },
     );

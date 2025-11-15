@@ -57,3 +57,20 @@ If any step fails the document status is set to `failed` and the endpoint respon
 - Set `DIFAE_BRIDGE_BACKEND_URL` if the default `https://bridge.difae.ai` should be overridden.
 - Optionally set `WINDOWS_AGENT_BUCKET` to target a custom Cloud Storage bucket (falls back to
   `FIREBASE_STORAGE_BUCKET`).
+- Provide a code-signing certificate so Windows Defender trusts the generated agent. Signing is
+  enabled by default and the endpoint will fail if no certificate is available. Configure one of:
+  - `WINDOWS_AGENT_SIGNING_CERT_PATH` — path to a `.pfx` / `.p12` certificate bundle on disk.
+  - `WINDOWS_AGENT_SIGNING_CERT_BASE64` — base64-encoded certificate content for environments
+    where writing the certificate to disk is undesirable (the API stores it in a temporary file
+    for the duration of the signing step only).
+  - `WINDOWS_AGENT_SIGNING_CERT_PASSWORD` — password for the certificate (if applicable).
+  - `WINDOWS_AGENT_SIGNTOOL_PATH` — set if the Windows `signtool` binary is available.
+  - otherwise install [`osslsigncode`](https://github.com/mtrojnar/osslsigncode) and expose it via
+    `WINDOWS_AGENT_OSSL_SIGNCODE_PATH` (defaults to searching the `$PATH`).
+  - Optional metadata: `WINDOWS_AGENT_SIGNING_DESCRIPTION`, `WINDOWS_AGENT_SIGNING_URL`, and
+    `WINDOWS_AGENT_SIGNING_TIMESTAMP_URL`.
+  - To disable signing (not recommended because Windows will flag the executable), set
+    `WINDOWS_AGENT_REQUIRE_SIGNING=false`.
+  - After signing the API verifies the resulting executable using the same tool. Set
+    `WINDOWS_AGENT_SKIP_SIGNING_VERIFICATION=true` to skip this extra verification step (not
+    recommended).
