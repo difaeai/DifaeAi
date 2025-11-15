@@ -5,8 +5,17 @@ import path from "node:path";
 import { promises as fs } from "node:fs";
 import { z } from "zod";
 import { initFirebaseAdmin } from "@/lib/firebase-admin";
+import {
+  WINDOWS_AGENT_ERROR_CODES,
+  type WindowsAgentErrorCode,
+} from "@/lib/windows-agent/errors";
 import * as admin from "firebase-admin";
 import { registerAgentDownload } from "./store";
+import {
+  maybeSignExecutable,
+  SigningConfigurationError,
+  SigningExecutionError,
+} from "./signing";
 
 const payloadSchema = z.object({
   userId: z.string().min(1, "userId is required"),
@@ -26,6 +35,48 @@ const DEFAULT_BACKEND_URL = "https://bridge.difae.ai";
 const EMBED_MARKER_TEXT = "DIFAE_CONFIG_V1";
 const EMBED_MARKER_BUFFER = Buffer.from(EMBED_MARKER_TEXT, "utf8");
 
+interface ErrorResponse {
+  message: string;
+  code: WindowsAgentErrorCode;
+}
+
+interface ExtendedErrorOptions {
+  cause?: unknown;
+}
+
+class WindowsAgentGenerationError extends Error {
+  public readonly response: ErrorResponse;
+  public readonly status: number;
+
+  constructor(response: ErrorResponse, status = 500, options?: ExtendedErrorOptions) {
+    super(response.message, options);
+    this.response = response;
+    this.status = status;
+    this.name = "WindowsAgentGenerationError";
+  }
+}
+
+function normaliseError(error: unknown): ErrorResponse {
+  if (error instanceof SigningConfigurationError) {
+    return {
+      message: error.message,
+      code: WINDOWS_AGENT_ERROR_CODES.SIGNING_CONFIGURATION_ERROR,
+    };
+  }
+
+  if (error instanceof SigningExecutionError) {
+    return {
+      message: error.message,
+      code: WINDOWS_AGENT_ERROR_CODES.SIGNING_EXECUTION_ERROR,
+    };
+  }
+
+  return {
+    message: "Failed to generate Windows agent.",
+    code: WINDOWS_AGENT_ERROR_CODES.UNKNOWN_ERROR,
+  };
+}
+
 function buildEmbeddedConfig(config: Record<string, unknown>): Buffer {
   const configJson = JSON.stringify(config);
   const configBuffer = Buffer.from(configJson, "utf8");
@@ -41,15 +92,30 @@ export async function POST(req: NextRequest) {
 
   try {
     if (hasFirebaseConfig) {
-      await initFirebaseAdmin();
+      try {
+        await initFirebaseAdmin();
+      } catch (firebaseError) {
+        throw new WindowsAgentGenerationError(
+          {
+            message: "Failed to initialise backend services for Windows agent generation.",
+            code: WINDOWS_AGENT_ERROR_CODES.FIREBASE_INIT_FAILED,
+          },
+          500,
+          { cause: firebaseError instanceof Error ? firebaseError : undefined },
+        );
+      }
     }
 
     const parsed = payloadSchema.safeParse(await req.json());
 
     if (!parsed.success) {
+      const message = parsed.error.issues
+        .map((issue) => issue.message)
+        .join(", ");
       return NextResponse.json(
         {
-          error: parsed.error.issues.map((issue) => issue.message).join(", "),
+          error: message,
+          code: WINDOWS_AGENT_ERROR_CODES.VALIDATION_FAILED,
         },
         { status: 400 },
       );
@@ -67,19 +133,30 @@ export async function POST(req: NextRequest) {
         .collection("cameraBridgeAgents")
         .doc(bridgeId);
 
-      await agentDocRef.set(
-        {
-          bridgeId,
-          userId: payload.userId,
-          cameraId: payload.cameraId ?? null,
-          cameraName: payload.cameraName ?? null,
-          rtspUrl,
-          status: "pending",
-          agentType: "windows-ip-camera",
-          createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        },
-        { merge: true },
-      );
+      try {
+        await agentDocRef.set(
+          {
+            bridgeId,
+            userId: payload.userId,
+            cameraId: payload.cameraId ?? null,
+            cameraName: payload.cameraName ?? null,
+            rtspUrl,
+            status: "pending",
+            agentType: "windows-ip-camera",
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          },
+          { merge: true },
+        );
+      } catch (error) {
+        throw new WindowsAgentGenerationError(
+          {
+            message: "Failed to persist Windows agent state.",
+            code: WINDOWS_AGENT_ERROR_CODES.FIRESTORE_WRITE_FAILED,
+          },
+          500,
+          { cause: error instanceof Error ? error : undefined },
+        );
+      }
     }
 
     const agentTemplateDir =
@@ -89,13 +166,15 @@ export async function POST(req: NextRequest) {
 
     try {
       await fs.access(sourceExecutable);
-    } catch {
-      return NextResponse.json(
+    } catch (error) {
+      throw new WindowsAgentGenerationError(
         {
-          error:
+          message:
             "Windows agent template executable is missing. Build the agent and place difae-bridge.exe in agents/windows-bridge/dist.",
+          code: WINDOWS_AGENT_ERROR_CODES.TEMPLATE_MISSING,
         },
-        { status: 500 },
+        500,
+        { cause: error instanceof Error ? error : undefined },
       );
     }
 
@@ -113,6 +192,7 @@ export async function POST(req: NextRequest) {
 
     await fs.copyFile(sourceExecutable, executableDestination);
     await fs.appendFile(executableDestination, buildEmbeddedConfig(config));
+    await maybeSignExecutable(executableDestination);
 
     const agentFileName = `difae-bridge-${bridgeId}.exe`;
 
@@ -124,71 +204,131 @@ export async function POST(req: NextRequest) {
       const bucket = admin.storage().bucket(bucketName);
       const storagePath = `windows-agents/${payload.userId}/${bridgeId}/${agentFileName}`;
 
-      await bucket.upload(executableDestination, {
-        destination: storagePath,
-        contentType: "application/octet-stream",
-        metadata: {
-          cacheControl: "private, max-age=0, no-transform",
-          contentDisposition: `attachment; filename="${agentFileName}"`,
-        },
-      });
+      try {
+        await bucket.upload(executableDestination, {
+          destination: storagePath,
+          contentType: "application/octet-stream",
+          metadata: {
+            cacheControl: "private, max-age=0, no-transform",
+            contentDisposition: `attachment; filename="${agentFileName}"`,
+          },
+        });
+      } catch (error) {
+        throw new WindowsAgentGenerationError(
+          {
+            message: "Failed to upload the Windows agent to Cloud Storage.",
+            code: WINDOWS_AGENT_ERROR_CODES.STORAGE_UPLOAD_FAILED,
+          },
+          500,
+          { cause: error instanceof Error ? error : undefined },
+        );
+      }
 
       const expires = new Date(Date.now() + 1000 * 60 * 60 * 24 * 7);
-      const [signedUrl] = await bucket.file(storagePath).getSignedUrl({
-        action: "read",
-        expires,
-      });
+
+      let signedUrl: string;
+      try {
+        [signedUrl] = await bucket.file(storagePath).getSignedUrl({
+          action: "read",
+          expires,
+        });
+      } catch (error) {
+        throw new WindowsAgentGenerationError(
+          {
+            message: "Failed to create a download URL for the Windows agent.",
+            code: WINDOWS_AGENT_ERROR_CODES.STORAGE_URL_GENERATION_FAILED,
+          },
+          500,
+          { cause: error instanceof Error ? error : undefined },
+        );
+      }
 
       if (agentDocRef) {
-        await agentDocRef.set(
-          {
-            status: "ready",
-            storagePath,
-            downloadUrl: signedUrl,
-            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-          },
-          { merge: true },
-        );
+        try {
+          await agentDocRef.set(
+            {
+              status: "ready",
+              storagePath,
+              downloadUrl: signedUrl,
+              updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+            },
+            { merge: true },
+          );
+        } catch (firestoreError) {
+          console.warn("failed to update agent record", firestoreError);
+        }
       }
 
       return NextResponse.json({ downloadUrl: signedUrl });
     }
 
-    const { downloadUrl, record } = await registerAgentDownload(
-      executableDestination,
-      agentFileName,
-    );
+    let registration: Awaited<ReturnType<typeof registerAgentDownload>>;
+    try {
+      registration = await registerAgentDownload(
+        executableDestination,
+        agentFileName,
+      );
+    } catch (error) {
+      throw new WindowsAgentGenerationError(
+        {
+          message: "Failed to prepare the Windows agent download.",
+          code: WINDOWS_AGENT_ERROR_CODES.DOWNLOAD_REGISTRATION_FAILED,
+        },
+        500,
+        { cause: error instanceof Error ? error : undefined },
+      );
+    }
+
+    const { downloadUrl, record } = registration;
 
     if (agentDocRef) {
-      await agentDocRef.set(
-        {
-          status: "ready",
-          downloadUrl,
-          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-        },
-        { merge: true },
-      );
+      try {
+        await agentDocRef.set(
+          {
+            status: "ready",
+            downloadUrl,
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          },
+          { merge: true },
+        );
+      } catch (firestoreError) {
+        console.warn("failed to update agent record", firestoreError);
+      }
     }
 
     return NextResponse.json({ downloadUrl, expiresAt: record.expiresAt });
   } catch (error) {
     console.error("windows-agent generation failed", error);
 
+    const response =
+      error instanceof WindowsAgentGenerationError
+        ? error.response
+        : normaliseError(error);
+    const status =
+      error instanceof WindowsAgentGenerationError ? error.status : 500;
+
     if (agentDocRef) {
-      await agentDocRef.set(
-        {
-          status: "failed",
-          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-        },
-        { merge: true },
-      );
+      try {
+        await agentDocRef.set(
+          {
+            status: "failed",
+            errorCode: response.code,
+            errorMessage: response.message,
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          },
+          { merge: true },
+        );
+      } catch (firestoreError) {
+        console.warn("failed to update agent record", firestoreError);
+      }
     }
 
     return NextResponse.json(
       {
-        error: "Failed to generate Windows agent.",
+        error: response.message,
+        code: response.code,
       },
-      { status: 500 },
+      { status },
     );
   } finally {
     if (tempDir) {

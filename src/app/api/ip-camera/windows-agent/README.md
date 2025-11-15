@@ -40,6 +40,13 @@ The URL is valid for seven days and points directly to a customised `difae-bridg
 executable from `agents/windows-bridge/dist/`, appends the generated configuration (`bridgeId`, RTSP URL and backend URL) to
 the end of the binary and serves the signed download URL.
 
+### Error responses
+
+Failures include an HTTP status, a human readable `error` string and a machine readable `code` property. The codes are defined
+in [`src/lib/windows-agent/errors.ts`](../../../../lib/windows-agent/errors.ts) and surface common failure cases such as
+validation errors, missing templates and signing misconfiguration. The UI maps these codes to user friendly messages while the
+server logs retain the underlying error details.
+
 ## Behaviour
 
 1. Generates a new `bridgeId` and stores a record in the `cameraBridgeAgents` Firestore collection with status `pending`.
@@ -57,3 +64,7 @@ If any step fails the document status is set to `failed` and the endpoint respon
 - Set `DIFAE_BRIDGE_BACKEND_URL` if the default `https://bridge.difae.ai` should be overridden.
 - Optionally set `WINDOWS_AGENT_BUCKET` to target a custom Cloud Storage bucket (falls back to
   `FIREBASE_STORAGE_BUCKET`).
+- To enable Authenticode signing set `WINDOWS_AGENT_SIGNING_CERT_PATH`, `WINDOWS_AGENT_SIGNING_CERT_PASSWORD` and, optionally,
+  `WINDOWS_AGENT_SIGNING_TOOL`, `WINDOWS_AGENT_SIGNING_TIMESTAMP_URL`, `WINDOWS_AGENT_SIGNING_DESCRIPTION`,
+  `WINDOWS_AGENT_SIGNING_URL`, `WINDOWS_AGENT_SIGNING_ARGS` and `WINDOWS_AGENT_SIGNING_VERIFY_ARGS`. When configured the API
+  signs the customised executable and verifies the signature before returning the download link.
