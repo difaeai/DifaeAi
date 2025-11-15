@@ -6,8 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Info, KeyRound, Laptop, Loader2, Network } from "lucide-react";
+import { Info, KeyRound, Laptop, Loader2 } from "lucide-react";
 import { useWizard } from "../wizard-context";
 import { useToast } from "@/hooks/use-toast";
 import { isValidIPv4 } from "@/lib/network/ip";
@@ -19,19 +18,9 @@ export default function StepThreeConnection() {
   const { user } = useAuth();
   const [isGeneratingAgent, setIsGeneratingAgent] = useState(false);
   const [agentError, setAgentError] = useState<string | null>(null);
-  const isLocalRunner = state.connectionMode === "localRunner";
 
   const handleNext = () => {
     dispatch({ type: "NEXT_STEP" });
-  };
-
-  const handleConnectionModeChange = (value: string) => {
-    const mode = value === "localRunner" ? "localRunner" : "standard";
-    setAgentError(null);
-    dispatch({
-      type: "SET_CONNECTION_DETAILS",
-      payload: { connectionMode: mode, windowsAgentDownloadUrl: "" },
-    });
   };
 
   const rtspHost = useMemo(() => state.localIp?.trim() || "", [state.localIp]);
@@ -42,6 +31,15 @@ export default function StepThreeConnection() {
     const withoutLeading = raw.replace(/^\/+/g, "");
     return `/${withoutLeading}`;
   }, [state.rtspPath]);
+
+  useEffect(() => {
+    if (state.connectionMode !== "localRunner") {
+      dispatch({
+        type: "SET_CONNECTION_DETAILS",
+        payload: { connectionMode: "localRunner" },
+      });
+    }
+  }, [dispatch, state.connectionMode]);
 
   const autoRtspUrl = useMemo(() => {
     if (!rtspHost) return "";
@@ -107,23 +105,20 @@ export default function StepThreeConnection() {
   }, [dispatch, rtspHost, state.selectedIp]);
 
   useEffect(() => {
-    if (!isLocalRunner) {
-      return;
-    }
-
     const updates: {
       streamPort?: string;
       rtspPath?: string;
       selectedIp?: string;
     } = {};
 
-    if (state.streamPort !== "554") {
+    const portValue = state.streamPort?.trim();
+    if (!portValue) {
       updates.streamPort = "554";
     }
 
-    const desiredPath = "/Streaming/Channels/101";
-    if (state.rtspPath?.trim() !== desiredPath) {
-      updates.rtspPath = desiredPath;
+    const currentPath = state.rtspPath?.trim();
+    if (!currentPath) {
+      updates.rtspPath = "/Streaming/Channels/101";
     }
 
     if (state.localIp && state.selectedIp !== state.localIp) {
@@ -135,7 +130,6 @@ export default function StepThreeConnection() {
     }
   }, [
     dispatch,
-    isLocalRunner,
     state.localIp,
     state.rtspPath,
     state.selectedIp,
@@ -252,15 +246,21 @@ export default function StepThreeConnection() {
         });
 
         try {
-          const anchor = document.createElement("a");
-          anchor.href = downloadUrl;
-          anchor.download = "difae-bridge-agent.zip";
-          anchor.style.display = "none";
-          document.body.appendChild(anchor);
-          anchor.click();
-          document.body.removeChild(anchor);
+          const opened = window.open(downloadUrl, "_blank", "noopener,noreferrer");
+
+          if (!opened) {
+            const anchor = document.createElement("a");
+            anchor.href = downloadUrl;
+            anchor.rel = "noopener noreferrer";
+            anchor.target = "_blank";
+            anchor.style.display = "none";
+            document.body.appendChild(anchor);
+            anchor.click();
+            document.body.removeChild(anchor);
+          }
         } catch (error) {
           console.warn("automatic download failed", error);
+          window.location.assign(downloadUrl);
         }
 
         toast({
@@ -359,222 +359,93 @@ export default function StepThreeConnection() {
           <Info className="h-4 w-4" />
           <AlertTitle>Use a direct RTSP stream</AlertTitle>
           <AlertDescription>
-            We'll help you build the correct RTSP address. Start with the camera's local IP, then supply the username, password, and port. We'll embed these details into a Windows background agent so it can relay the video to BERRETO automatically.
+            Enter the camera's LAN address and credentials. We'll embed them into a Windows background agent that runs
+            silently on startup and keeps the RTSP feed connected to BERRETO.
           </AlertDescription>
         </Alert>
 
-        <Tabs value={state.connectionMode} onValueChange={handleConnectionModeChange} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 md:w-auto">
-            <TabsTrigger value="standard" className="w-full text-sm">Direct RTSP Builder</TabsTrigger>
-            <TabsTrigger value="localRunner" className="w-full text-sm">Run locally</TabsTrigger>
-          </TabsList>
-          <TabsContent value="standard" className="mt-4 space-y-4">
-            <div className="rounded-lg border-2 border-primary/20 bg-primary/5 p-4 space-y-4">
-              <div className="flex items-start gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                  <Network className="h-5 w-5" />
-                </div>
-                <div className="space-y-3">
-                  <h3 className="font-semibold text-base">RTSP Stream Address</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Enter the local IP and credentials exactly as they work on your LAN. We'll package them into a Windows background service that forwards the video to BERRETO continuously.
-                  </p>
-                  <div className="space-y-2">
-                    <Label htmlFor="local-ip">Local IP Address *</Label>
-                    <Input
-                      id="local-ip"
-                      type="text"
-                      placeholder="e.g., 192.168.1.88"
-                      value={state.localIp}
-                      onChange={(e) => {
-                        setAgentError(null);
-                        dispatch({
-                          type: "SET_CONNECTION_DETAILS",
-                          payload: {
-                            localIp: e.target.value,
-                            windowsAgentDownloadUrl: "",
-                          },
-                        });
-                      }}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Use the address you can reach from a PC on the same network as the camera.
-                    </p>
-                  </div>
-
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label htmlFor="rtsp-username" className="flex items-center gap-2">
-                        <KeyRound className="h-4 w-4 text-muted-foreground" />
-                        Username
-                      </Label>
-                      <Input
-                        id="rtsp-username"
-                        placeholder="e.g., admin"
-                        value={state.streamUser}
-                        onChange={(e) => {
-                          setAgentError(null);
-                          dispatch({
-                            type: "SET_CONNECTION_DETAILS",
-                            payload: {
-                              streamUser: e.target.value,
-                              windowsAgentDownloadUrl: "",
-                            },
-                          });
-                        }}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="rtsp-password">Password</Label>
-                      <Input
-                        id="rtsp-password"
-                        type="password"
-                        placeholder="••••••••"
-                        value={state.streamPass}
-                        onChange={(e) => {
-                          setAgentError(null);
-                          dispatch({
-                            type: "SET_CONNECTION_DETAILS",
-                            payload: {
-                              streamPass: e.target.value,
-                              windowsAgentDownloadUrl: "",
-                            },
-                          });
-                        }}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="rtsp-port">RTSP Port</Label>
-                      <Input
-                        id="rtsp-port"
-                        type="text"
-                        placeholder="554"
-                        value={state.streamPort}
-                        onChange={(e) => {
-                          setAgentError(null);
-                          dispatch({
-                            type: "SET_CONNECTION_DETAILS",
-                            payload: {
-                              streamPort: e.target.value,
-                              windowsAgentDownloadUrl: "",
-                            },
-                          });
-                        }}
-                      />
-                    </div>
-                    <div className="space-y-2 md:col-span-2">
-                      <Label htmlFor="rtsp-path">Stream Path</Label>
-                      <Input
-                        id="rtsp-path"
-                        type="text"
-                        placeholder="e.g., Streaming/Channels/101 or h264"
-                        value={state.rtspPath}
-                        onChange={(e) => {
-                          setAgentError(null);
-                          dispatch({
-                            type: "SET_CONNECTION_DETAILS",
-                            payload: {
-                              rtspPath: e.target.value,
-                              windowsAgentDownloadUrl: "",
-                            },
-                          });
-                        }}
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        We'll append this path to the RTSP URL for you.
-                      </p>
-                    </div>
-                  </div>
+        <div className="rounded-lg border-2 border-primary/20 bg-primary/5 p-4 space-y-4">
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground">
+              <Laptop className="h-5 w-5" />
+            </div>
+            <div className="space-y-3">
+              <h3 className="font-semibold text-base">Run Locally</h3>
+              <p className="text-sm text-muted-foreground">
+                We'll generate a Windows service executable with these details baked in, then download it straight to this
+                computer.
+              </p>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="local-run-ip">Local Camera IP *</Label>
+                  <Input
+                    id="local-run-ip"
+                    type="text"
+                    placeholder="e.g., 192.168.18.130"
+                    value={state.localIp}
+                    onChange={(e) => {
+                      setAgentError(null);
+                      dispatch({
+                        type: "SET_CONNECTION_DETAILS",
+                        payload: {
+                          localIp: e.target.value,
+                          windowsAgentDownloadUrl: "",
+                        },
+                      });
+                    }}
+                  />
                   <p className="text-xs text-muted-foreground">
-                    These credentials stay inside the generated agent—nothing extra to configure once it runs on Windows.
+                    Use the address you can reach from a PC on the same network as the camera.
                   </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="local-run-username" className="flex items-center gap-2">
+                    <KeyRound className="h-4 w-4 text-muted-foreground" />
+                    Username
+                  </Label>
+                  <Input
+                    id="local-run-username"
+                    placeholder="e.g., admin"
+                    value={state.streamUser}
+                    onChange={(e) => {
+                      setAgentError(null);
+                      dispatch({
+                        type: "SET_CONNECTION_DETAILS",
+                        payload: {
+                          streamUser: e.target.value,
+                          windowsAgentDownloadUrl: "",
+                        },
+                      });
+                    }}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="local-run-password">Password</Label>
+                  <Input
+                    id="local-run-password"
+                    type="password"
+                    placeholder="••••••••"
+                    value={state.streamPass}
+                    onChange={(e) => {
+                      setAgentError(null);
+                      dispatch({
+                        type: "SET_CONNECTION_DETAILS",
+                        payload: {
+                          streamPass: e.target.value,
+                          windowsAgentDownloadUrl: "",
+                        },
+                      });
+                    }}
+                  />
                 </div>
               </div>
+              <p className="text-xs text-muted-foreground">
+                We'll automatically use RTSP port 554 and the /Streaming/Channels/101 path so the generated link works for most
+                Hikvision-style cameras.
+              </p>
             </div>
-          </TabsContent>
-          <TabsContent value="localRunner" className="mt-4 space-y-4">
-            <div className="rounded-lg border-2 border-primary/20 bg-primary/5 p-4 space-y-4">
-              <div className="flex items-start gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                  <Laptop className="h-5 w-5" />
-                </div>
-                <div className="space-y-3">
-                  <h3 className="font-semibold text-base">Run Locally</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Test the camera from this computer without exposing it publicly. We'll use the default RTSP port and stream path so you can connect with a link like rtsp://username:password@192.168.x.x:554/Streaming/Channels/101.
-                  </p>
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div className="space-y-2 md:col-span-2">
-                      <Label htmlFor="local-run-ip">Local Camera IP *</Label>
-                      <Input
-                        id="local-run-ip"
-                        type="text"
-                        placeholder="e.g., 192.168.18.130"
-                        value={state.localIp}
-                        onChange={(e) => {
-                          setAgentError(null);
-                          dispatch({
-                            type: "SET_CONNECTION_DETAILS",
-                            payload: {
-                              localIp: e.target.value,
-                              windowsAgentDownloadUrl: "",
-                            },
-                          });
-                        }}
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Enter the IP address assigned to your camera on your local network.
-                      </p>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="local-run-username" className="flex items-center gap-2">
-                        <KeyRound className="h-4 w-4 text-muted-foreground" />
-                        Username
-                      </Label>
-                      <Input
-                        id="local-run-username"
-                        placeholder="e.g., admin"
-                        value={state.streamUser}
-                        onChange={(e) => {
-                          setAgentError(null);
-                          dispatch({
-                            type: "SET_CONNECTION_DETAILS",
-                            payload: {
-                              streamUser: e.target.value,
-                              windowsAgentDownloadUrl: "",
-                            },
-                          });
-                        }}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="local-run-password">Password</Label>
-                      <Input
-                        id="local-run-password"
-                        type="password"
-                        placeholder="••••••••"
-                        value={state.streamPass}
-                        onChange={(e) => {
-                          setAgentError(null);
-                          dispatch({
-                            type: "SET_CONNECTION_DETAILS",
-                            payload: {
-                              streamPass: e.target.value,
-                              windowsAgentDownloadUrl: "",
-                            },
-                          });
-                        }}
-                      />
-                    </div>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    We'll automatically use RTSP port 554 and the /Streaming/Channels/101 path so the generated link works for most Hikvision-style cameras.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </TabsContent>
-        </Tabs>
+          </div>
+        </div>
 
         {autoRtspUrl && (
           <div className="rounded-md border bg-muted/60 p-4 space-y-2">
