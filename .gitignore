@@ -20,6 +20,8 @@
 # misc
 .DS_Store
 *.pem
+bridge/windows-agent/publish/
+bridge/windows-agent/windows-agent-template.zip
 
 # debug
 npm-debug.log*

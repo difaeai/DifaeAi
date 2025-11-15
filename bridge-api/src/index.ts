@@ -22,6 +22,7 @@ import { discoveryRoutes } from "./routes/discovery";
 import { streamRoutes } from "./routes/streams";
 import { healthRoutes } from "./routes/health";
 import { bridgeConnectionRoutes } from "./routes/bridge-connection";
+import { relayRoutes } from "./routes/relay";
 import { deviceStore } from "./store";
 import { ingestClient } from "./services/ingest-client";
 
@@ -73,6 +74,7 @@ async function buildServer() {
   await app.register(streamRoutes);
   await app.register(healthRoutes);
   await app.register(bridgeConnectionRoutes);
+  await app.register(relayRoutes);
 
   app.post("/webhooks/device-offline", async (request, reply) => {
     const payload = request.body as { deviceId: string; error?: string };

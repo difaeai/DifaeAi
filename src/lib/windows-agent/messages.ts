@@ -10,7 +10,7 @@ const WINDOWS_AGENT_ERROR_MESSAGES: Record<WindowsAgentErrorCode, string> = {
   [WINDOWS_AGENT_ERROR_CODES.VALIDATION_FAILED]:
     "The provided camera details are invalid. Check the form and try again.",
   [WINDOWS_AGENT_ERROR_CODES.TEMPLATE_MISSING]:
-    "The Windows agent template executable is missing from the server.",
+    "The Windows agent template archive is missing from the server.",
   [WINDOWS_AGENT_ERROR_CODES.SIGNING_CONFIGURATION_ERROR]:
     "The Windows agent signing configuration is invalid. Contact support.",
   [WINDOWS_AGENT_ERROR_CODES.SIGNING_EXECUTION_ERROR]:
