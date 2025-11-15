@@ -20,7 +20,7 @@ python -m pip install pyinstaller
 
 echo.
 echo Building Windows executable...
-pyinstaller --onefile --name="BERRETO-Bridge" --icon=icon.ico bridge_agent/cloud_agent.py
+pyinstaller --onefile --name="BERRETO-Bridge" bridge_agent/cloud_agent.py
 
 echo.
 echo ========================================
