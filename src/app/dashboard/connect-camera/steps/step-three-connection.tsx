@@ -12,6 +12,10 @@ import { useWizard } from "../wizard-context";
 import { useToast } from "@/hooks/use-toast";
 import { isValidIPv4 } from "@/lib/network/ip";
 import { useAuth } from "@/hooks/use-auth";
+import {
+  WINDOWS_AGENT_ERROR_CODES,
+  isWindowsAgentErrorCode,
+} from "@/lib/windows-agent/errors";
 
 export default function StepThreeConnection() {
   const { state, dispatch } = useWizard();
@@ -250,19 +254,20 @@ export default function StepThreeConnection() {
             return "Failed to generate the Windows agent. Please try again.";
           }
 
-          const errorCode =
-            typeof data?.errorCode === "string" ? data.errorCode : undefined;
+          const errorCode = isWindowsAgentErrorCode(data?.errorCode)
+            ? data.errorCode
+            : undefined;
           const rawMessage =
             typeof data?.error === "string" ? data.error : undefined;
 
-          if (errorCode === "SIGNING_CONFIGURATION_ERROR") {
+          if (errorCode === WINDOWS_AGENT_ERROR_CODES.SIGNING_CONFIGURATION_ERROR) {
             return (
               rawMessage ||
               "Agent signing is not configured. Ask your administrator to configure the Windows code-signing certificate."
             );
           }
 
-          if (errorCode === "SIGNING_EXECUTION_ERROR") {
+          if (errorCode === WINDOWS_AGENT_ERROR_CODES.SIGNING_EXECUTION_ERROR) {
             return (
               rawMessage ||
               "We couldn't sign the Windows agent binary. Please try again or contact support."

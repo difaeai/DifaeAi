@@ -12,35 +12,34 @@ import {
   SigningConfigurationError,
   SigningExecutionError,
 } from "./signing";
-
-type ErrorCode =
-  | "SIGNING_CONFIGURATION_ERROR"
-  | "SIGNING_EXECUTION_ERROR"
-  | "UNKNOWN_ERROR";
+import {
+  WINDOWS_AGENT_ERROR_CODES,
+  WindowsAgentErrorCode,
+} from "@/lib/windows-agent/errors";
 
 interface ErrorResponse {
   message: string;
-  code: ErrorCode;
+  code: WindowsAgentErrorCode;
 }
 
 function normaliseError(error: unknown): ErrorResponse {
   if (error instanceof SigningConfigurationError) {
     return {
       message: error.message,
-      code: "SIGNING_CONFIGURATION_ERROR",
+      code: WINDOWS_AGENT_ERROR_CODES.SIGNING_CONFIGURATION_ERROR,
     };
   }
 
   if (error instanceof SigningExecutionError) {
     return {
       message: error.message,
-      code: "SIGNING_EXECUTION_ERROR",
+      code: WINDOWS_AGENT_ERROR_CODES.SIGNING_EXECUTION_ERROR,
     };
   }
 
   return {
     message: "Failed to generate Windows agent.",
-    code: "UNKNOWN_ERROR",
+    code: WINDOWS_AGENT_ERROR_CODES.UNKNOWN_ERROR,
   };
 }
 
