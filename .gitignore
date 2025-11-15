@@ -21,6 +21,7 @@
 .DS_Store
 *.pem
 bridge/windows-agent/publish/
+bridge/windows-agent/prebuilt/
 bridge/windows-agent/windows-agent-template.zip
 
 # debug
