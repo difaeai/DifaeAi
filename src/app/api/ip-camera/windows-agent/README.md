@@ -44,7 +44,7 @@ The URL is valid for seven days and points to a zip archive that contains:
 ## Behaviour
 
 1. Generates a new `bridgeId` and stores a record in the `cameraBridgeAgents` Firestore collection with status `pending`.
-2. Copies the shared agent executable, writes the per-camera `config.json`, then uses the `zip` CLI to archive the files.
+2. Copies the shared agent executable, writes the per-camera `config.json`, then packages the files into a zip archive in-memory.
 3. Uploads the archive to Cloud Storage (bucket determined by `WINDOWS_AGENT_BUCKET` or `FIREBASE_STORAGE_BUCKET`).
 4. Updates the Firestore document with status `ready`, the storage path and the signed download URL.
 
@@ -54,7 +54,7 @@ If any step fails the document status is set to `failed` and the endpoint respon
 
 - Place the compiled agent binary at `agents/windows-bridge/dist/difae-bridge.exe` or set
   `WINDOWS_AGENT_TEMPLATE_PATH` to a folder that contains it.
-- The host environment must have the `zip` command available so the route can package the archive.
+- No external `zip` command is required; the server creates the archive directly using Node.js APIs.
 - Set `DIFAE_BRIDGE_BACKEND_URL` if the default `https://bridge.difae.ai` should be overridden.
 - Optionally set `WINDOWS_AGENT_BUCKET` to target a custom Cloud Storage bucket (falls back to
   `FIREBASE_STORAGE_BUCKET`).
