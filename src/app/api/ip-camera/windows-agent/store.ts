@@ -51,9 +51,9 @@ export async function registerAgentDownload(
 ) {
   await cleanupExpiredAgents();
 
-  const safeName = fileName.replace(/[^a-zA-Z0-9_.-]/g, "_") || "difae-bridge.exe";
+  const safeName = fileName.replace(/[^a-zA-Z0-9_.-]/g, "_") || "difae-bridge.zip";
   const token = randomUUID();
-  const extension = path.extname(safeName) || ".exe";
+  const extension = path.extname(safeName) || ".zip";
   const targetName = `${token}${extension}`;
 
   await fs.mkdir(DOWNLOAD_DIR, { recursive: true });
@@ -64,7 +64,7 @@ export async function registerAgentDownload(
     token,
     filePath: targetPath,
     fileName: safeName,
-    contentType: options?.contentType ?? "application/vnd.microsoft.portable-executable",
+    contentType: options?.contentType ?? "application/zip",
     expiresAt: Date.now() + (options?.expiresInMs ?? DEFAULT_TTL_MS),
   };
 

@@ -1,0 +1,18 @@
+{
+  "bridgeId": "00000000-0000-0000-0000-000000000000",
+  "backendUrl": "https://bridge.difae.ai",
+  "relayEndpoint": "/api/bridge/relay",
+  "apiKey": "REPLACE_WITH_API_KEY_IF_REQUIRED",
+  "camera": {
+    "host": "192.168.1.10",
+    "username": "admin",
+    "password": "password",
+    "rtspPort": 554,
+    "streamPath": "/h264/ch1/main/av_stream"
+  },
+  "ffmpeg": {
+    "path": "ffmpeg",
+    "rtspTransport": "tcp",
+    "extraArguments": ["-stimeout", "10000000"]
+  }
+}

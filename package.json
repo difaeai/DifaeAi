@@ -13,6 +13,7 @@
     "dev": "next dev -p 5000 -H 0.0.0.0",
     "prebuild": "node scripts/prebuild.js",
     "build": "next build",
+    "build:windows-agent": "dotnet publish bridge/windows-agent/WindowsCameraBridge.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeAllContentForSelfExtract=true -o bridge/windows-agent/publish",
     "start": "next start -p 5000 -H 0.0.0.0",
     "lint": "echo \"Linting handled in downstream pipelines\"",
     "test": "echo \"No automated tests configured\"",

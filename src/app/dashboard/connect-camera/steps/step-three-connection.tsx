@@ -262,7 +262,7 @@ export default function StepThreeConnection() {
         try {
           const anchor = document.createElement("a");
           anchor.href = downloadUrl;
-          anchor.download = "difae-bridge-agent.exe";
+          anchor.download = "difae-bridge-agent.zip";
           anchor.style.display = "none";
           document.body.appendChild(anchor);
           anchor.click();
@@ -274,7 +274,7 @@ export default function StepThreeConnection() {
         toast({
           title: "Windows agent ready",
           description:
-            "Download started. Run the service on a Windows PC that shares the camera's network.",
+            "Download started. Extract the zip and run WindowsCameraBridge.exe on a Windows PC that shares the camera's network.",
         });
       } catch (error) {
         const message =
@@ -613,12 +613,12 @@ export default function StepThreeConnection() {
             <AlertDescription>
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <span className="text-sm">
-                  Download the installer again if the automatic download didn’t start. Run it on a Windows PC that can reach the
-                  camera.
+                  Download the zip again if the automatic download didn’t start. Extract it on a Windows PC that can reach the
+                  camera, then run <code className="font-mono">WindowsCameraBridge.exe</code>.
                 </span>
                 <Button asChild size="sm" variant="secondary">
-                  <a href={state.windowsAgentDownloadUrl} download="difae-bridge-agent.exe">
-                    Download agent
+                  <a href={state.windowsAgentDownloadUrl} download="difae-bridge-agent.zip">
+                    Download agent (zip)
                   </a>
                 </Button>
               </div>

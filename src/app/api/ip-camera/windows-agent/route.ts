@@ -11,11 +11,7 @@ import {
 } from "@/lib/windows-agent/errors";
 import * as admin from "firebase-admin";
 import { registerAgentDownload } from "./store";
-import {
-  maybeSignExecutable,
-  SigningConfigurationError,
-  SigningExecutionError,
-} from "./signing";
+import { extractArchive, createArchive } from "./archive";
 
 const payloadSchema = z.object({
   userId: z.string().min(1, "userId is required"),
@@ -32,8 +28,6 @@ const payloadSchema = z.object({
 });
 
 const DEFAULT_BACKEND_URL = "https://bridge.difae.ai";
-const EMBED_MARKER_TEXT = "DIFAE_CONFIG_V1";
-const EMBED_MARKER_BUFFER = Buffer.from(EMBED_MARKER_TEXT, "utf8");
 
 interface ErrorResponse {
   message: string;
@@ -56,33 +50,11 @@ class WindowsAgentGenerationError extends Error {
   }
 }
 
-function normaliseError(error: unknown): ErrorResponse {
-  if (error instanceof SigningConfigurationError) {
-    return {
-      message: error.message,
-      code: WINDOWS_AGENT_ERROR_CODES.SIGNING_CONFIGURATION_ERROR,
-    };
-  }
-
-  if (error instanceof SigningExecutionError) {
-    return {
-      message: error.message,
-      code: WINDOWS_AGENT_ERROR_CODES.SIGNING_EXECUTION_ERROR,
-    };
-  }
-
+function normaliseError(_error: unknown): ErrorResponse {
   return {
     message: "Failed to generate Windows agent.",
     code: WINDOWS_AGENT_ERROR_CODES.UNKNOWN_ERROR,
   };
-}
-
-function buildEmbeddedConfig(config: Record<string, unknown>): Buffer {
-  const configJson = JSON.stringify(config);
-  const configBuffer = Buffer.from(configJson, "utf8");
-  const lengthBuffer = Buffer.alloc(4);
-  lengthBuffer.writeUInt32LE(configBuffer.length, 0);
-  return Buffer.concat([EMBED_MARKER_BUFFER, lengthBuffer, configBuffer]);
 }
 
 export async function POST(req: NextRequest) {
@@ -159,18 +131,22 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const agentTemplateDir =
-      process.env.WINDOWS_AGENT_TEMPLATE_PATH ??
-      path.join(process.cwd(), "agents", "windows-bridge", "dist");
-    const sourceExecutable = path.join(agentTemplateDir, "difae-bridge.exe");
+    const templateZipPath =
+      process.env.WINDOWS_AGENT_TEMPLATE_ZIP_PATH ??
+      path.join(
+        process.cwd(),
+        "bridge",
+        "windows-agent",
+        "windows-agent-template.zip",
+      );
 
     try {
-      await fs.access(sourceExecutable);
+      await fs.access(templateZipPath);
     } catch (error) {
       throw new WindowsAgentGenerationError(
         {
           message:
-            "Windows agent template executable is missing. Build the agent and place difae-bridge.exe in agents/windows-bridge/dist.",
+            "Windows agent template archive is missing. Run npm run build:windows-agent before generating downloads.",
           code: WINDOWS_AGENT_ERROR_CODES.TEMPLATE_MISSING,
         },
         500,
@@ -179,22 +155,67 @@ export async function POST(req: NextRequest) {
     }
 
     tempDir = await fs.mkdtemp(path.join(tmpdir(), "difae-agent-"));
-    const executableDestination = path.join(tempDir, "difae-bridge.exe");
+    const extractDir = path.join(tempDir, "template");
+    try {
+      await extractArchive(templateZipPath, extractDir);
+    } catch (error) {
+      throw new WindowsAgentGenerationError(
+        {
+          message:
+            "Failed to unpack the Windows agent template. Install zip/unzip (Linux/macOS) or ensure PowerShell is available (Windows).",
+          code: WINDOWS_AGENT_ERROR_CODES.UNKNOWN_ERROR,
+        },
+        500,
+        { cause: error instanceof Error ? error : undefined },
+      );
+    }
 
     const backendUrl =
       process.env.DIFAE_BRIDGE_BACKEND_URL || DEFAULT_BACKEND_URL;
+    const relayEndpoint =
+      process.env.DIFAE_BRIDGE_RELAY_ENDPOINT || "/api/bridge/relay";
+    const apiKey = process.env.DIFAE_BRIDGE_AGENT_API_KEY ?? undefined;
+    const ffmpegPath = process.env.DIFAE_BRIDGE_AGENT_FFMPEG_PATH || "ffmpeg";
 
     const config = {
       bridgeId,
-      rtspUrl,
       backendUrl,
-    };
+      relayEndpoint,
+      ...(apiKey ? { apiKey } : {}),
+      camera: {
+        host: payload.ipAddress,
+        username: payload.username,
+        password: payload.password,
+        rtspPort: payload.rtspPort,
+        streamPath: payload.rtspPath,
+        rtspUrl,
+      },
+      ffmpeg: {
+        path: ffmpegPath,
+        rtspTransport: "tcp",
+        extraArguments: ["-stimeout", "10000000"],
+      },
+    } satisfies Record<string, unknown>;
 
-    await fs.copyFile(sourceExecutable, executableDestination);
-    await fs.appendFile(executableDestination, buildEmbeddedConfig(config));
-    await maybeSignExecutable(executableDestination);
+    const configPath = path.join(extractDir, "agent-config.json");
+    await fs.writeFile(configPath, JSON.stringify(config, null, 2), "utf8");
 
-    const agentFileName = `difae-bridge-${bridgeId}.exe`;
+    const packagedArchive = path.join(tempDir, `difae-bridge-${bridgeId}.zip`);
+    try {
+      await createArchive(extractDir, packagedArchive);
+    } catch (error) {
+      throw new WindowsAgentGenerationError(
+        {
+          message:
+            "Failed to package the Windows agent archive. Install zip/unzip (Linux/macOS) or ensure PowerShell is available (Windows).",
+          code: WINDOWS_AGENT_ERROR_CODES.UNKNOWN_ERROR,
+        },
+        500,
+        { cause: error instanceof Error ? error : undefined },
+      );
+    }
+
+    const agentFileName = `difae-bridge-${bridgeId}.zip`;
 
     const bucketName =
       process.env.WINDOWS_AGENT_BUCKET || process.env.FIREBASE_STORAGE_BUCKET || "";
@@ -205,9 +226,9 @@ export async function POST(req: NextRequest) {
       const storagePath = `windows-agents/${payload.userId}/${bridgeId}/${agentFileName}`;
 
       try {
-        await bucket.upload(executableDestination, {
+        await bucket.upload(packagedArchive, {
           destination: storagePath,
-          contentType: "application/octet-stream",
+          contentType: "application/zip",
           metadata: {
             cacheControl: "private, max-age=0, no-transform",
             contentDisposition: `attachment; filename="${agentFileName}"`,
@@ -265,8 +286,9 @@ export async function POST(req: NextRequest) {
     let registration: Awaited<ReturnType<typeof registerAgentDownload>>;
     try {
       registration = await registerAgentDownload(
-        executableDestination,
+        packagedArchive,
         agentFileName,
+        { contentType: "application/zip" },
       );
     } catch (error) {
       throw new WindowsAgentGenerationError(

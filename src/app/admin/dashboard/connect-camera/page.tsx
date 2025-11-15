@@ -1313,9 +1313,10 @@ export default function ConnectCameraPage() {
                       </h3>
                       <p className="text-sm text-muted-foreground">
                         Before you download the agent, please enter your camera
-                        details. We will generate a small .exe file configured
-                        only for your camera. Run it on a Windows PC on the same
-                        local network as your camera.
+                        details. We will generate a Windows 10/11 x64 zip
+                        package configured only for your camera. Extract it on a
+                        Windows PC on the same local network and run the
+                        included executable.
                       </p>
                       <p className="text-xs text-muted-foreground">
                         The agent runs silently in the background and
@@ -1330,16 +1331,17 @@ export default function ConnectCameraPage() {
                           Windows agent ready to download
                         </div>
                         <p className="text-sm text-muted-foreground">
-                          Download the file, run it once on a Windows PC that is
-                          on the same network as your camera. After that you can
-                          close everything – the agent will run as a background
-                          service automatically.
+                          Download the zip, extract it on a Windows PC that is
+                          on the same network as your camera, then run
+                          <code className="mx-1 font-mono">WindowsCameraBridge.exe</code>.
+                          After the first launch it registers itself to run in
+                          the background automatically.
                         </p>
                         <div className="flex flex-wrap gap-3">
                           <Button asChild size="lg">
                             <a href={agentDownloadUrl} download>
                               <Download className="mr-2 h-4 w-4" />
-                              Download Windows Agent (.exe)
+                              Download Windows Agent (zip)
                             </a>
                           </Button>
                           <Button
