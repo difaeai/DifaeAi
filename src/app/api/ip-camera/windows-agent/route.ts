@@ -13,6 +13,37 @@ import {
   SigningExecutionError,
 } from "./signing";
 
+type ErrorCode =
+  | "SIGNING_CONFIGURATION_ERROR"
+  | "SIGNING_EXECUTION_ERROR"
+  | "UNKNOWN_ERROR";
+
+interface ErrorResponse {
+  message: string;
+  code: ErrorCode;
+}
+
+function normaliseError(error: unknown): ErrorResponse {
+  if (error instanceof SigningConfigurationError) {
+    return {
+      message: error.message,
+      code: "SIGNING_CONFIGURATION_ERROR",
+    };
+  }
+
+  if (error instanceof SigningExecutionError) {
+    return {
+      message: error.message,
+      code: "SIGNING_EXECUTION_ERROR",
+    };
+  }
+
+  return {
+    message: "Failed to generate Windows agent.",
+    code: "UNKNOWN_ERROR",
+  };
+}
+
 const payloadSchema = z.object({
   userId: z.string().min(1, "userId is required"),
   cameraId: z.string().min(1).optional(),
@@ -191,15 +222,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const message =
-      error instanceof SigningConfigurationError ||
-      error instanceof SigningExecutionError
-        ? error.message
-        : "Failed to generate Windows agent.";
+    const { message, code } = normaliseError(error);
 
     return NextResponse.json(
       {
         error: message,
+        errorCode: code,
       },
       { status: 500 },
     );

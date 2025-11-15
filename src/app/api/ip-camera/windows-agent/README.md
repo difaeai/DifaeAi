@@ -48,6 +48,10 @@ the end of the binary and serves the signed download URL.
 4. Updates the Firestore document with status `ready`, the storage path and the signed download URL.
 
 If any step fails the document status is set to `failed` and the endpoint responds with HTTP 500.
+When the failure is related to signing, the response includes an `errorCode` of either
+`SIGNING_CONFIGURATION_ERROR` (missing certificate, tools, or metadata) or
+`SIGNING_EXECUTION_ERROR` (the signing tool rejected the binary). Other failures return
+`UNKNOWN_ERROR`.
 
 ## Prerequisites
 
