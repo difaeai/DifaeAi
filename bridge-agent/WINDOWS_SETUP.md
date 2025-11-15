@@ -96,11 +96,13 @@ cd bridge-agent
 pip install -r requirements.txt
 pip install pyinstaller
 
-# Build executable
+# Build executable (produces dist\\BERRETO-Bridge.exe)
 pyinstaller --onefile --name="BERRETO-Bridge" bridge_agent/cloud_agent.py
-
-# Executable will be in: dist\BERRETO-Bridge.exe
 ```
+
+### Automated builds from GitHub Actions
+
+Prefer a ready-made binary? Open the repository's **Actions** tab, run the **Build Windows Bridge Agent** workflow (or download the latest successful artifact), and grab `BERRETO-Bridge.exe`. The workflow compiles on a Windows host with PyInstaller, so the output already has the correct `.exe` extension and is immediately runnable on Windows.
 
 ### Testing Locally
 ```bat
