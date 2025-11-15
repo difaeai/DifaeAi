@@ -237,12 +237,46 @@ export default function StepThreeConnection() {
           body: JSON.stringify(payload),
         });
 
-        const data = await response.json().catch(() => null);
-        if (!response.ok || !data || typeof data.downloadUrl !== "string") {
-          const message =
-            (data && typeof data.error === "string" && data.error) ||
-            "Failed to generate the Windows agent. Please try again.";
-          throw new Error(message);
+        const data = (await response.json().catch(() => null)) as
+          | {
+              downloadUrl?: unknown;
+              error?: unknown;
+              errorCode?: unknown;
+            }
+          | null;
+
+        const resolveErrorMessage = (): string => {
+          if (!data) {
+            return "Failed to generate the Windows agent. Please try again.";
+          }
+
+          const errorCode =
+            typeof data?.errorCode === "string" ? data.errorCode : undefined;
+          const rawMessage =
+            typeof data?.error === "string" ? data.error : undefined;
+
+          if (errorCode === "SIGNING_CONFIGURATION_ERROR") {
+            return (
+              rawMessage ||
+              "Agent signing is not configured. Ask your administrator to configure the Windows code-signing certificate."
+            );
+          }
+
+          if (errorCode === "SIGNING_EXECUTION_ERROR") {
+            return (
+              rawMessage ||
+              "We couldn't sign the Windows agent binary. Please try again or contact support."
+            );
+          }
+
+          return (
+            rawMessage ||
+            "Failed to generate the Windows agent. Please try again."
+          );
+        };
+
+        if (!response.ok || typeof data?.downloadUrl !== "string") {
+          throw new Error(resolveErrorMessage());
         }
 
         const downloadUrl = data.downloadUrl as string;
