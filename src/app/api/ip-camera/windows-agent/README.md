@@ -1,7 +1,7 @@
 # Windows IP Camera Agent API
 
 This route powers the “Generate Windows Agent” step in the admin camera onboarding flow. It accepts camera credentials from
-the web UI, writes them into a per-camera `agent-config.json`, injects that file into a prebuilt Windows agent zip and returns
+the web UI, writes them into a per-camera `agent-config.json`, bundles that file with the Windows agent executable and returns
 a download URL for the customized package.
 
 ## Endpoint
@@ -36,9 +36,9 @@ POST /api/ip-camera/windows-agent
 }
 ```
 
-The URL is valid for seven days and points directly to a camera-specific zip archive. The endpoint copies a shared template
-(`bridge/windows-agent/windows-agent-template.zip`), replaces `agent-config.json` with the generated payload, re-zips the
-folder and returns the signed download URL.
+The URL is valid for seven days and points directly to a camera-specific zip archive. The endpoint ensures the Windows agent
+executable exists (compiling it on demand when necessary), writes the generated config beside it, zips the bundle, and returns
+the signed download URL.
 
 ### Error responses
 
@@ -50,8 +50,8 @@ server logs retain the underlying error details.
 ## Behaviour
 
 1. Generates a new `bridgeId` and stores a record in the `cameraBridgeAgents` Firestore collection with status `pending`.
-2. Copies the shared template zip, writes `agent-config.json` with the per-camera credentials and relay settings, then creates a
-   new archive.
+2. Ensures the Windows agent executable exists (building it via the Go toolchain if it is missing), writes `agent-config.json`
+   with the per-camera credentials and relay settings, then creates a new archive.
 3. Uploads the customized archive to Cloud Storage (bucket determined by `WINDOWS_AGENT_BUCKET` or `FIREBASE_STORAGE_BUCKET`)
    with download headers so browsers prompt to save it as a `.zip` file.
 4. Updates the Firestore document with status `ready`, the storage path and the signed download URL.
@@ -60,10 +60,12 @@ If any step fails the document status is set to `failed` and the endpoint respon
 
 ## Prerequisites
 
-- Build the Windows agent by running `npm run build:windows-agent`. This publishes the .NET worker and creates
-  `bridge/windows-agent/windows-agent-template.zip`.
+- Install Go 1.21+ so the server can compile the Windows agent on demand. Running `npm run build:windows-agent` ahead of time
+  caches the executable in `bridge/windows-agent/publish/` to avoid rebuilding it for every request.
 - Set `DIFAE_BRIDGE_BACKEND_URL` if the default `https://bridge.difae.ai` should be overridden.
 - Optionally configure `DIFAE_BRIDGE_RELAY_ENDPOINT`, `DIFAE_BRIDGE_AGENT_API_KEY`, or `DIFAE_BRIDGE_AGENT_FFMPEG_PATH` to
 override defaults written into the config file.
+- Optionally set `WINDOWS_AGENT_PROJECT_ROOT` or `WINDOWS_AGENT_EXECUTABLE_PATH` if the executable lives outside the default
+  `bridge/windows-agent/publish/` folder.
 - Optionally set `WINDOWS_AGENT_BUCKET` to target a custom Cloud Storage bucket (falls back to `FIREBASE_STORAGE_BUCKET`).
 - The server host must provide `zip`/`unzip` on Unix or PowerShell on Windows so the archive can be extracted and repackaged.

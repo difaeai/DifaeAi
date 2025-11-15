@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "node:crypto";
+import { execFile } from "node:child_process";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { promises as fs } from "node:fs";
+import { promisify } from "node:util";
 import { z } from "zod";
 import { initFirebaseAdmin } from "@/lib/firebase-admin";
 import {
@@ -11,7 +13,72 @@ import {
 } from "@/lib/windows-agent/errors";
 import * as admin from "firebase-admin";
 import { registerAgentDownload } from "./store";
-import { extractArchive, createArchive } from "./archive";
+import { createArchive } from "./archive";
+
+const execFileAsync = promisify(execFile);
+
+const AGENT_EXECUTABLE_NAME = "WindowsCameraBridge.exe";
+const DEFAULT_AGENT_PROJECT_ROOT = path.join(
+  process.cwd(),
+  "bridge",
+  "windows-agent",
+);
+
+async function buildWindowsAgentExecutable(
+  executablePath: string,
+  agentProjectRoot: string,
+) {
+  await fs.mkdir(path.dirname(executablePath), { recursive: true });
+
+  try {
+    await execFileAsync(
+      "go",
+      ["build", "-o", executablePath, "."],
+      {
+        cwd: agentProjectRoot,
+        env: {
+          ...process.env,
+          GOOS: "windows",
+          GOARCH: "amd64",
+          CGO_ENABLED: "0",
+        },
+      },
+    );
+  } catch (error) {
+    throw new WindowsAgentGenerationError(
+      {
+        message:
+          "Failed to compile the Windows agent. Install Go 1.21+ and ensure it is available on the PATH.",
+        code: WINDOWS_AGENT_ERROR_CODES.TEMPLATE_BUILD_FAILED,
+      },
+      500,
+      { cause: error instanceof Error ? error : undefined },
+    );
+  }
+}
+
+async function ensureWindowsAgentExecutable(
+  executablePath: string,
+  agentProjectRoot: string,
+) {
+  try {
+    await fs.access(executablePath);
+    return;
+  } catch (accessError) {
+    if ((accessError as NodeJS.ErrnoException).code !== "ENOENT") {
+      throw new WindowsAgentGenerationError(
+        {
+          message: "Failed to prepare the Windows agent executable.",
+          code: WINDOWS_AGENT_ERROR_CODES.UNKNOWN_ERROR,
+        },
+        500,
+        { cause: accessError instanceof Error ? accessError : undefined },
+      );
+    }
+  }
+
+  await buildWindowsAgentExecutable(executablePath, agentProjectRoot);
+}
 
 const payloadSchema = z.object({
   userId: z.string().min(1, "userId is required"),
@@ -131,38 +198,49 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const templateZipPath =
-      process.env.WINDOWS_AGENT_TEMPLATE_ZIP_PATH ??
+    tempDir = await fs.mkdtemp(path.join(tmpdir(), "difae-agent-"));
+    const bundleDir = path.join(tempDir, "agent");
+    await fs.mkdir(bundleDir, { recursive: true });
+
+    const agentProjectRoot =
+      process.env.WINDOWS_AGENT_PROJECT_ROOT ?? DEFAULT_AGENT_PROJECT_ROOT;
+    const executableOverridePath =
+      process.env.WINDOWS_AGENT_EXECUTABLE_PATH ?? null;
+    const executablePath =
+      executableOverridePath ??
       path.join(
-        process.cwd(),
-        "bridge",
-        "windows-agent",
-        "windows-agent-template.zip",
+        agentProjectRoot,
+        "publish",
+        AGENT_EXECUTABLE_NAME,
       );
 
-    try {
-      await fs.access(templateZipPath);
-    } catch (error) {
-      throw new WindowsAgentGenerationError(
-        {
-          message:
-            "Windows agent template archive is missing. Run npm run build:windows-agent before generating downloads.",
-          code: WINDOWS_AGENT_ERROR_CODES.TEMPLATE_MISSING,
-        },
-        500,
-        { cause: error instanceof Error ? error : undefined },
-      );
+    if (executableOverridePath) {
+      try {
+        await fs.access(executablePath);
+      } catch (error) {
+        throw new WindowsAgentGenerationError(
+          {
+            message:
+              "Configured Windows agent executable is missing. Update WINDOWS_AGENT_EXECUTABLE_PATH to a valid file before generating downloads.",
+            code: WINDOWS_AGENT_ERROR_CODES.TEMPLATE_MISSING,
+          },
+          500,
+          { cause: error instanceof Error ? error : undefined },
+        );
+      }
+    } else {
+      await ensureWindowsAgentExecutable(executablePath, agentProjectRoot);
     }
 
-    tempDir = await fs.mkdtemp(path.join(tmpdir(), "difae-agent-"));
-    const extractDir = path.join(tempDir, "template");
     try {
-      await extractArchive(templateZipPath, extractDir);
+      await fs.copyFile(
+        executablePath,
+        path.join(bundleDir, AGENT_EXECUTABLE_NAME),
+      );
     } catch (error) {
       throw new WindowsAgentGenerationError(
         {
-          message:
-            "Failed to unpack the Windows agent template. Install zip/unzip (Linux/macOS) or ensure PowerShell is available (Windows).",
+          message: "Failed to prepare the Windows agent executable.",
           code: WINDOWS_AGENT_ERROR_CODES.UNKNOWN_ERROR,
         },
         500,
@@ -197,12 +275,12 @@ export async function POST(req: NextRequest) {
       },
     } satisfies Record<string, unknown>;
 
-    const configPath = path.join(extractDir, "agent-config.json");
+    const configPath = path.join(bundleDir, "agent-config.json");
     await fs.writeFile(configPath, JSON.stringify(config, null, 2), "utf8");
 
     const packagedArchive = path.join(tempDir, `difae-bridge-${bridgeId}.zip`);
     try {
-      await createArchive(extractDir, packagedArchive);
+      await createArchive(bundleDir, packagedArchive);
     } catch (error) {
       throw new WindowsAgentGenerationError(
         {

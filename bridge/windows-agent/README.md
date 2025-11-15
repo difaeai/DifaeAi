@@ -1,37 +1,24 @@
 # Windows Camera Bridge Agent
 
-This folder contains the Windows background agent that relays RTSP camera streams to the Difae backend. The agent is a [.NET 8](https://dotnet.microsoft.com/en-us/download/dotnet/8.0) worker service that runs as a console application and is packaged as a self-contained Win32 executable targeting **win-x64**.
+This folder contains the Windows background agent that relays RTSP camera streams to the Difae backend. The agent is implemented in Go and compiled into a self-contained Win32 executable targeting **win-x64**.
 
 ## Project layout
 
-- `WindowsCameraBridge.csproj` – .NET project configured for self-contained, single-file publish.
-- `Program.cs` – entry point that wires up dependency injection, logging, and hosted services.
-- `Services/` – configuration loading, FFmpeg relay loop, and auto-start registration.
-- `Logging/FileLoggerProvider.cs` – lightweight logger that writes to `windows-agent.log` next to the executable.
+- `main.go` – entry point that wires up configuration loading, logging, the FFmpeg relay loop, and auto-start registration.
+- `go.mod` – module definition used by the Go toolchain when cross-compiling to Windows.
 - `agent-config.template.json` – template configuration copied into published packages.
 
 ## Building the agent
 
-The repository root exposes an npm script that publishes the agent and produces an updated template zip:
+The repository root exposes an npm script that cross-compiles the agent for Windows:
 
 ```bash
 npm run build:windows-agent
 ```
 
-The command runs:
+The script clears `bridge/windows-agent/publish/`, compiles the Go program for `windows/amd64`, and places the resulting `WindowsCameraBridge.exe` beside a copy of `agent-config.template.json`. A convenience archive (`windows-agent-template.zip`) is also produced for manual distribution and is ignored by git.
 
-```bash
-dotnet publish bridge/windows-agent/WindowsCameraBridge.csproj \
-  -c Release \
-  -r win-x64 \
-  --self-contained true \
-  -p:PublishSingleFile=true \
-  -o bridge/windows-agent/publish
-```
-
-After publishing, MSBuild bundles the executable and `agent-config.json` into `bridge/windows-agent/windows-agent-template.zip`. The publish directory will contain the raw `WindowsCameraBridge.exe` alongside the generated configuration template.
-
-> **Note:** The build requires the .NET 8 SDK and a Windows FFmpeg binary available at runtime. Place `ffmpeg.exe` on the system `PATH` or update `agent-config.json` with the absolute path under the `ffmpeg.path` property.
+> **Note:** Building requires Go 1.21+ and a Windows FFmpeg binary available at runtime. Place `ffmpeg.exe` on the system `PATH` or update `agent-config.json` with the absolute path under the `ffmpeg.path` property.
 
 ## Runtime behaviour
 
@@ -43,6 +30,4 @@ After publishing, MSBuild bundles the executable and `agent-config.json` into `b
 
 ## Packaging for distribution
 
-The Next.js API endpoint expects `bridge/windows-agent/windows-agent-template.zip` to exist. Each request copies the template into a temporary directory, injects a fresh `agent-config.json`, re-zips the folder, and hands the archive to the browser.
-
-Run the build command whenever the agent code changes to refresh the template before deploying the web application.
+The Next.js API endpoint compiles the agent on demand (unless `WINDOWS_AGENT_EXECUTABLE_PATH` overrides the location) and packages the executable together with a generated `agent-config.json` for each download request. Running `npm run build:windows-agent` ahead of time ensures the cached executable is available so the API can package archives without rebuilding the binary on every request.
