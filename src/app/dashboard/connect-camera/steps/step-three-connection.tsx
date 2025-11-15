@@ -7,16 +7,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Globe, Info, KeyRound, Laptop, Network } from "lucide-react";
+import { Info, KeyRound, Laptop, Loader2, Network } from "lucide-react";
 import { useWizard } from "../wizard-context";
 import { useToast } from "@/hooks/use-toast";
 import { isValidIPv4 } from "@/lib/network/ip";
+import { useAuth } from "@/hooks/use-auth";
 
 export default function StepThreeConnection() {
   const { state, dispatch } = useWizard();
   const { toast } = useToast();
-  const [isResolvingIp, setIsResolvingIp] = useState(false);
-  const [conversionError, setConversionError] = useState<string | null>(null);
+  const { user } = useAuth();
+  const [isGeneratingAgent, setIsGeneratingAgent] = useState(false);
+  const [agentError, setAgentError] = useState<string | null>(null);
   const isLocalRunner = state.connectionMode === "localRunner";
 
   const handleNext = () => {
@@ -25,19 +27,14 @@ export default function StepThreeConnection() {
 
   const handleConnectionModeChange = (value: string) => {
     const mode = value === "localRunner" ? "localRunner" : "standard";
-    setConversionError(null);
-    dispatch({ type: "SET_CONNECTION_DETAILS", payload: { connectionMode: mode } });
+    setAgentError(null);
+    dispatch({
+      type: "SET_CONNECTION_DETAILS",
+      payload: { connectionMode: mode, windowsAgentDownloadUrl: "" },
+    });
   };
 
-  const rtspHost = useMemo(() => {
-    if (state.connectionHostType === "public" && state.publicIp) {
-      return state.publicIp;
-    }
-    if (state.localIp) {
-      return state.localIp;
-    }
-    return state.publicIp;
-  }, [state.connectionHostType, state.localIp, state.publicIp]);
+  const rtspHost = useMemo(() => state.localIp?.trim() || "", [state.localIp]);
 
   const normalizedPath = useMemo(() => {
     const raw = state.rtspPath?.trim();
@@ -91,43 +88,23 @@ export default function StepThreeConnection() {
   }, [autoRtspUrl, dispatch, state.isConnectionTested, state.streamUrl]);
 
   useEffect(() => {
-    if (!isLocalRunner) {
-      if (state.connectionHostType === "public" && !state.publicIp && state.localIp) {
-        dispatch({ type: "SET_CONNECTION_DETAILS", payload: { connectionHostType: "local" } });
-        return;
+    if (!rtspHost) {
+      if (state.selectedIp) {
+        dispatch({
+          type: "SET_CONNECTION_DETAILS",
+          payload: { selectedIp: "" },
+        });
       }
-      if (state.connectionHostType === "local" && !state.localIp && state.publicIp) {
-        dispatch({ type: "SET_CONNECTION_DETAILS", payload: { connectionHostType: "public" } });
-        return;
-      }
+      return;
     }
 
-    const selectedHost =
-      state.connectionHostType === "public" && !isLocalRunner
-        ? state.publicIp?.trim()
-        : state.localIp?.trim();
-
-    if (
-      selectedHost &&
-      (state.selectedIp !== selectedHost || state.selectedHostname !== selectedHost)
-    ) {
+    if (state.selectedIp !== rtspHost) {
       dispatch({
         type: "SET_CONNECTION_DETAILS",
-        payload: {
-          selectedIp: selectedHost,
-          selectedHostname: selectedHost,
-        },
+        payload: { selectedIp: rtspHost },
       });
     }
-  }, [
-    dispatch,
-    isLocalRunner,
-    state.connectionHostType,
-    state.localIp,
-    state.publicIp,
-    state.selectedHostname,
-    state.selectedIp,
-  ]);
+  }, [dispatch, rtspHost, state.selectedIp]);
 
   useEffect(() => {
     if (!isLocalRunner) {
@@ -135,16 +112,10 @@ export default function StepThreeConnection() {
     }
 
     const updates: {
-      connectionHostType?: "local" | "public";
       streamPort?: string;
       rtspPath?: string;
       selectedIp?: string;
-      selectedHostname?: string;
     } = {};
-
-    if (state.connectionHostType !== "local") {
-      updates.connectionHostType = "local";
-    }
 
     if (state.streamPort !== "554") {
       updates.streamPort = "554";
@@ -157,7 +128,6 @@ export default function StepThreeConnection() {
 
     if (state.localIp && state.selectedIp !== state.localIp) {
       updates.selectedIp = state.localIp;
-      updates.selectedHostname = state.localIp;
     }
 
     if (Object.keys(updates).length > 0) {
@@ -166,58 +136,157 @@ export default function StepThreeConnection() {
   }, [
     dispatch,
     isLocalRunner,
-    state.connectionHostType,
     state.localIp,
     state.rtspPath,
-    state.selectedHostname,
     state.selectedIp,
     state.streamPort,
   ]);
 
-  const resolvePublicIp = async () => {
-    if (!state.localIp?.trim()) {
+  const handleAddConnection = async () => {
+    setAgentError(null);
+
+    const trimmedHost = rtspHost.trim();
+    if (!trimmedHost) {
+      const description = "Provide the local IP address of your camera before continuing.";
       toast({
         variant: "destructive",
         title: "Local IP Required",
-        description: "Enter the local IP address of your camera before converting it.",
+        description,
       });
+      setAgentError(description);
       return;
     }
 
-    try {
-      setIsResolvingIp(true);
-      setConversionError(null);
-
-      const detectedIp = await detectPublicIPv4();
-      if (!detectedIp) {
-        throw new Error("Could not determine your public IP address.");
-      }
-
-      dispatch({
-        type: "SET_CONNECTION_DETAILS",
-        payload: {
-          publicIp: detectedIp,
-          connectionHostType: "public",
-          selectedIp: detectedIp,
-          selectedHostname: detectedIp,
-        },
-      });
-
-      toast({
-        title: "Public IP Detected",
-        description: `We converted ${state.localIp} to your public IP address ${detectedIp}.`,
-      });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Unexpected error while converting IP.";
-      setConversionError(message);
+    if (!isValidIPv4(trimmedHost)) {
+      const description = "Enter a valid IPv4 address (e.g., 192.168.1.120).";
       toast({
         variant: "destructive",
-        title: "IP Conversion Failed",
-        description: message,
+        title: "Invalid IP",
+        description,
       });
-    } finally {
-      setIsResolvingIp(false);
+      setAgentError(description);
+      return;
     }
+
+    const username = state.streamUser?.trim();
+    const password = state.streamPass?.trim();
+
+    if (!username || !password) {
+      const description = "Enter the camera username and password so we can embed them into the agent.";
+      toast({
+        variant: "destructive",
+        title: "Credentials Required",
+        description,
+      });
+      setAgentError(description);
+      return;
+    }
+
+    const portValue = state.streamPort?.trim() || "554";
+    const portNumber = Number(portValue);
+    if (!Number.isInteger(portNumber) || portNumber < 1 || portNumber > 65535) {
+      const description = "Enter a valid RTSP port between 1 and 65535.";
+      toast({
+        variant: "destructive",
+        title: "Invalid Port",
+        description,
+      });
+      setAgentError(description);
+      return;
+    }
+
+    const finalPath = normalizedPath || "/Streaming/Channels/101";
+
+    dispatch({
+      type: "SET_CONNECTION_DETAILS",
+      payload: {
+        selectedIp: trimmedHost,
+        streamPort: String(portNumber),
+        rtspPath: finalPath,
+      },
+    });
+    dispatch({ type: "SET_CONNECTION_TESTED", payload: { tested: false } });
+
+    if (state.cameraType === "ip") {
+      if (!user?.uid) {
+        const description = "Sign in before generating the Windows agent.";
+        toast({
+          variant: "destructive",
+          title: "Authentication Required",
+          description,
+        });
+        setAgentError(description);
+        return;
+      }
+
+      setIsGeneratingAgent(true);
+      try {
+        const payload: Record<string, unknown> = {
+          userId: user.uid,
+          cameraName: state.cameraName?.trim() || undefined,
+          ipAddress: trimmedHost,
+          username,
+          password,
+          rtspPort: portNumber,
+          rtspPath: finalPath,
+        };
+
+        const response = await fetch("/api/ip-camera/windows-agent", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        const data = await response.json().catch(() => null);
+        if (!response.ok || !data || typeof data.downloadUrl !== "string") {
+          const message =
+            (data && typeof data.error === "string" && data.error) ||
+            "Failed to generate the Windows agent. Please try again.";
+          throw new Error(message);
+        }
+
+        const downloadUrl = data.downloadUrl as string;
+        dispatch({
+          type: "SET_CONNECTION_DETAILS",
+          payload: { windowsAgentDownloadUrl: downloadUrl },
+        });
+
+        try {
+          const anchor = document.createElement("a");
+          anchor.href = downloadUrl;
+          anchor.download = "difae-bridge-agent.zip";
+          anchor.style.display = "none";
+          document.body.appendChild(anchor);
+          anchor.click();
+          document.body.removeChild(anchor);
+        } catch (error) {
+          console.warn("automatic download failed", error);
+        }
+
+        toast({
+          title: "Windows agent ready",
+          description:
+            "Download started. Run the service on a Windows PC that shares the camera's network.",
+        });
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Failed to generate the Windows agent. Please try again.";
+        setAgentError(message);
+        toast({
+          variant: "destructive",
+          title: "Agent generation failed",
+          description: message,
+        });
+        setIsGeneratingAgent(false);
+        return;
+      }
+
+      setIsGeneratingAgent(false);
+    }
+
+    handleNext();
   };
 
   if (state.cameraType === "cloud") {
@@ -290,7 +359,7 @@ export default function StepThreeConnection() {
           <Info className="h-4 w-4" />
           <AlertTitle>Use a direct RTSP stream</AlertTitle>
           <AlertDescription>
-            We'll help you build the correct RTSP address. Start with the camera's local IP, then supply the username, password, and port. We'll also detect your network's public IP so you can choose the address that works best for testing and remote access.
+            We'll help you build the correct RTSP address. Start with the camera's local IP, then supply the username, password, and port. We'll embed these details into a Windows background agent so it can relay the video to BERRETO automatically.
           </AlertDescription>
         </Alert>
 
@@ -305,82 +374,33 @@ export default function StepThreeConnection() {
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground">
                   <Network className="h-5 w-5" />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-3">
                   <h3 className="font-semibold text-base">RTSP Stream Address</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Enter the local IP and credentials exactly as they work on your LAN. We'll package them into a Windows background service that forwards the video to BERRETO continuously.
+                  </p>
                   <div className="space-y-2">
                     <Label htmlFor="local-ip">Local IP Address *</Label>
-                    <div className="flex flex-col gap-2 md:flex-row md:items-center">
-                      <Input
-                        id="local-ip"
-                        type="text"
-                        className="md:flex-1"
-                        placeholder="e.g., 192.168.1.88"
-                        value={state.localIp}
-                        onChange={(e) =>
-                          dispatch({ type: "SET_CONNECTION_DETAILS", payload: { localIp: e.target.value } })
-                        }
-                      />
-                      <Button type="button" onClick={resolvePublicIp} disabled={isResolvingIp}>
-                        {isResolvingIp ? "Resolving…" : "Use Public IP"}
-                      </Button>
-                    </div>
+                    <Input
+                      id="local-ip"
+                      type="text"
+                      placeholder="e.g., 192.168.1.88"
+                      value={state.localIp}
+                      onChange={(e) => {
+                        setAgentError(null);
+                        dispatch({
+                          type: "SET_CONNECTION_DETAILS",
+                          payload: {
+                            localIp: e.target.value,
+                            windowsAgentDownloadUrl: "",
+                          },
+                        });
+                      }}
+                    />
                     <p className="text-xs text-muted-foreground">
-                      Start with the local IP for your camera. We'll detect your public IP as a secondary option but you can continue using the local address if you're on the same network.
+                      Use the address you can reach from a PC on the same network as the camera.
                     </p>
-                    {conversionError && <p className="text-xs text-destructive">{conversionError}</p>}
                   </div>
-
-                  {state.publicIp && (
-                    <div className="rounded-md border bg-background p-4 space-y-3">
-                      <div className="flex items-center gap-2 text-sm font-medium">
-                        <Globe className="h-4 w-4 text-primary" />
-                        Detected Network Public IP
-                      </div>
-                      <Input
-                        id="public-ip"
-                        type="text"
-                        value={state.publicIp}
-                        onChange={(e) =>
-                          dispatch({ type: "SET_CONNECTION_DETAILS", payload: { publicIp: e.target.value } })
-                        }
-                        placeholder="Enter public IP"
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Adjust this if your camera is reachable through a different public address.
-                      </p>
-                    </div>
-                  )}
-
-                  {(state.localIp || state.publicIp) && (
-                    <div className="space-y-2">
-                      <Label>Choose the host for your RTSP link</Label>
-                      <div className="flex flex-wrap gap-2">
-                        <Button
-                          type="button"
-                          variant={state.connectionHostType === "local" ? "default" : "outline"}
-                          onClick={() =>
-                            dispatch({ type: "SET_CONNECTION_DETAILS", payload: { connectionHostType: "local" } })
-                          }
-                          disabled={!state.localIp}
-                        >
-                          Use Local IP {state.localIp ? `(${state.localIp})` : ""}
-                        </Button>
-                        <Button
-                          type="button"
-                          variant={state.connectionHostType === "public" ? "default" : "outline"}
-                          onClick={() =>
-                            dispatch({ type: "SET_CONNECTION_DETAILS", payload: { connectionHostType: "public" } })
-                          }
-                          disabled={!state.publicIp}
-                        >
-                          Use Public IP {state.publicIp ? `(${state.publicIp})` : ""}
-                        </Button>
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        Pick whichever address BERRETO should use to reach your camera. Stay on the local IP if you're testing from the same network, or switch to the public IP if you've exposed the stream externally.
-                      </p>
-                    </div>
-                  )}
 
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-2">
@@ -392,9 +412,16 @@ export default function StepThreeConnection() {
                         id="rtsp-username"
                         placeholder="e.g., admin"
                         value={state.streamUser}
-                        onChange={(e) =>
-                          dispatch({ type: "SET_CONNECTION_DETAILS", payload: { streamUser: e.target.value } })
-                        }
+                        onChange={(e) => {
+                          setAgentError(null);
+                          dispatch({
+                            type: "SET_CONNECTION_DETAILS",
+                            payload: {
+                              streamUser: e.target.value,
+                              windowsAgentDownloadUrl: "",
+                            },
+                          });
+                        }}
                       />
                     </div>
                     <div className="space-y-2">
@@ -404,9 +431,16 @@ export default function StepThreeConnection() {
                         type="password"
                         placeholder="••••••••"
                         value={state.streamPass}
-                        onChange={(e) =>
-                          dispatch({ type: "SET_CONNECTION_DETAILS", payload: { streamPass: e.target.value } })
-                        }
+                        onChange={(e) => {
+                          setAgentError(null);
+                          dispatch({
+                            type: "SET_CONNECTION_DETAILS",
+                            payload: {
+                              streamPass: e.target.value,
+                              windowsAgentDownloadUrl: "",
+                            },
+                          });
+                        }}
                       />
                     </div>
                     <div className="space-y-2">
@@ -416,9 +450,16 @@ export default function StepThreeConnection() {
                         type="text"
                         placeholder="554"
                         value={state.streamPort}
-                        onChange={(e) =>
-                          dispatch({ type: "SET_CONNECTION_DETAILS", payload: { streamPort: e.target.value } })
-                        }
+                        onChange={(e) => {
+                          setAgentError(null);
+                          dispatch({
+                            type: "SET_CONNECTION_DETAILS",
+                            payload: {
+                              streamPort: e.target.value,
+                              windowsAgentDownloadUrl: "",
+                            },
+                          });
+                        }}
                       />
                     </div>
                     <div className="space-y-2 md:col-span-2">
@@ -428,17 +469,24 @@ export default function StepThreeConnection() {
                         type="text"
                         placeholder="e.g., Streaming/Channels/101 or h264"
                         value={state.rtspPath}
-                        onChange={(e) =>
-                          dispatch({ type: "SET_CONNECTION_DETAILS", payload: { rtspPath: e.target.value } })
-                        }
+                        onChange={(e) => {
+                          setAgentError(null);
+                          dispatch({
+                            type: "SET_CONNECTION_DETAILS",
+                            payload: {
+                              rtspPath: e.target.value,
+                              windowsAgentDownloadUrl: "",
+                            },
+                          });
+                        }}
                       />
                       <p className="text-xs text-muted-foreground">
-                        Provide the path portion of your stream. We'll make sure it's added to the RTSP URL correctly.
+                        We'll append this path to the RTSP URL for you.
                       </p>
                     </div>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Provide the username, password, and port for the camera. We'll embed them into the RTSP stream automatically.
+                    These credentials stay inside the generated agent—nothing extra to configure once it runs on Windows.
                   </p>
                 </div>
               </div>
@@ -463,12 +511,16 @@ export default function StepThreeConnection() {
                         type="text"
                         placeholder="e.g., 192.168.18.130"
                         value={state.localIp}
-                        onChange={(e) =>
+                        onChange={(e) => {
+                          setAgentError(null);
                           dispatch({
                             type: "SET_CONNECTION_DETAILS",
-                            payload: { localIp: e.target.value, connectionHostType: "local" },
-                          })
-                        }
+                            payload: {
+                              localIp: e.target.value,
+                              windowsAgentDownloadUrl: "",
+                            },
+                          });
+                        }}
                       />
                       <p className="text-xs text-muted-foreground">
                         Enter the IP address assigned to your camera on your local network.
@@ -483,9 +535,16 @@ export default function StepThreeConnection() {
                         id="local-run-username"
                         placeholder="e.g., admin"
                         value={state.streamUser}
-                        onChange={(e) =>
-                          dispatch({ type: "SET_CONNECTION_DETAILS", payload: { streamUser: e.target.value } })
-                        }
+                        onChange={(e) => {
+                          setAgentError(null);
+                          dispatch({
+                            type: "SET_CONNECTION_DETAILS",
+                            payload: {
+                              streamUser: e.target.value,
+                              windowsAgentDownloadUrl: "",
+                            },
+                          });
+                        }}
                       />
                     </div>
                     <div className="space-y-2">
@@ -495,9 +554,16 @@ export default function StepThreeConnection() {
                         type="password"
                         placeholder="••••••••"
                         value={state.streamPass}
-                        onChange={(e) =>
-                          dispatch({ type: "SET_CONNECTION_DETAILS", payload: { streamPass: e.target.value } })
-                        }
+                        onChange={(e) => {
+                          setAgentError(null);
+                          dispatch({
+                            type: "SET_CONNECTION_DETAILS",
+                            payload: {
+                              streamPass: e.target.value,
+                              windowsAgentDownloadUrl: "",
+                            },
+                          });
+                        }}
                       />
                     </div>
                   </div>
@@ -536,192 +602,23 @@ export default function StepThreeConnection() {
         <Button variant="outline" onClick={() => dispatch({ type: "PREV_STEP" })}>
           Back
         </Button>
-        <Button
-          onClick={() => {
-            if (!rtspHost) {
-              toast({
-                variant: "destructive",
-                title: "Host Required",
-                description: "Provide a local or public IP address before continuing.",
-              });
-              return;
-            }
-            if (!state.streamUser?.trim() || !state.streamPass?.trim()) {
-              toast({
-                variant: "destructive",
-                title: "Credentials Required",
-                description: "Enter the camera username and password to build the RTSP link.",
-              });
-              return;
-            }
-            if (!state.streamPort?.trim()) {
-              toast({
-                variant: "destructive",
-                title: "Port Required",
-                description: "Provide the RTSP port that should be used for this camera.",
-              });
-              return;
-            }
-            dispatch({
-              type: "SET_CONNECTION_DETAILS",
-              payload: {
-                selectedIp: rtspHost,
-                selectedHostname: rtspHost,
-              },
-            });
-            dispatch({ type: "SET_CONNECTION_TESTED", payload: { tested: false } });
-            handleNext();
-          }}
-        >
-          Add Connection
-        </Button>
+        <div className="flex flex-col items-end gap-2">
+          {agentError && (
+            <p className="max-w-xs text-right text-sm text-destructive">{agentError}</p>
+          )}
+          <Button onClick={handleAddConnection} disabled={isGeneratingAgent}>
+            {isGeneratingAgent ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Generating agent...
+              </>
+            ) : (
+              "Add Connection"
+            )}
+          </Button>
+        </div>
       </CardFooter>
     </Card>
   );
 }
 
-async function detectPublicIPv4(): Promise<string | null> {
-  if (typeof window === "undefined") {
-    return fetchPublicIpFromServices();
-  }
-
-  try {
-    const internalIp = await fetchPublicIpFromInternalEndpoint();
-    if (internalIp && isValidIPv4(internalIp)) {
-      return internalIp;
-    }
-  } catch (error) {
-    console.warn("Internal public IP detection failed", error);
-  }
-
-  try {
-    const stunIp = await fetchPublicIpViaStun();
-    if (stunIp && isValidIPv4(stunIp)) {
-      return stunIp;
-    }
-  } catch (error) {
-    console.warn("STUN public IP detection failed", error);
-  }
-
-  return fetchPublicIpFromServices();
-}
-
-async function fetchPublicIpFromInternalEndpoint(): Promise<string | null> {
-  try {
-    const response = await fetch("/api/detect-public-ip", { cache: "no-store" });
-    if (!response.ok) {
-      return null;
-    }
-    const data: { ip?: string | null } = await response.json();
-    return data.ip && isValidIPv4(data.ip) ? data.ip : null;
-  } catch (error) {
-    console.warn("Failed to fetch public IP from internal endpoint", error);
-    return null;
-  }
-}
-
-async function fetchPublicIpViaStun(): Promise<string | null> {
-  if (typeof window === "undefined" || typeof RTCPeerConnection === "undefined") {
-    return null;
-  }
-
-  const rtc = new RTCPeerConnection({
-    iceServers: [
-      { urls: "stun:stun.l.google.com:19302" },
-      { urls: "stun:stun1.l.google.com:19302" },
-    ],
-    iceCandidatePoolSize: 1,
-  });
-
-  let resolved = false;
-
-  return new Promise((resolve) => {
-    const timeout = window.setTimeout(() => {
-      if (!resolved) {
-        resolved = true;
-        rtc.close();
-        resolve(null);
-      }
-    }, 4000);
-
-    const handleCandidate = (candidate?: RTCIceCandidate | null) => {
-      if (resolved) {
-        return;
-      }
-
-      if (!candidate) {
-        resolved = true;
-        window.clearTimeout(timeout);
-        rtc.onicecandidate = null;
-        rtc.close();
-        resolve(null);
-        return;
-      }
-
-      if (!candidate.candidate) {
-        return;
-      }
-
-      const match = candidate.candidate.match(/candidate:\S+ \d+ \S+ \d+ ([0-9.]+) \d+ typ (\S+)/);
-      if (!match) {
-        return;
-      }
-
-      const [, ip, type] = match;
-      if (type === "srflx" && isValidIPv4(ip)) {
-        resolved = true;
-        window.clearTimeout(timeout);
-        rtc.onicecandidate = null;
-        rtc.close();
-        resolve(ip);
-      }
-    };
-
-    rtc.onicecandidate = (event) => {
-      handleCandidate(event.candidate ?? null);
-    };
-
-    rtc.createDataChannel("ip-probe");
-    rtc
-      .createOffer()
-      .then((offer) => rtc.setLocalDescription(offer))
-      .catch(() => {
-        if (!resolved) {
-          resolved = true;
-          window.clearTimeout(timeout);
-          rtc.close();
-          resolve(null);
-        }
-      });
-  });
-}
-
-async function fetchPublicIpFromServices(): Promise<string | null> {
-  const providers: Array<() => Promise<string | null>> = [
-    async () => {
-      const response = await fetch("https://api.ipify.org?format=json");
-      if (!response.ok) return null;
-      const data: { ip?: string } = await response.json();
-      return data.ip && isValidIPv4(data.ip) ? data.ip : null;
-    },
-    async () => {
-      const response = await fetch("https://ipv4.icanhazip.com/", { cache: "no-store" });
-      if (!response.ok) return null;
-      const text = (await response.text()).trim();
-      return isValidIPv4(text) ? text : null;
-    },
-  ];
-
-  for (const provider of providers) {
-    try {
-      const ip = await provider();
-      if (ip) {
-        return ip;
-      }
-    } catch (error) {
-      console.warn("Public IP provider failed", error);
-    }
-  }
-
-  return null;
-}

@@ -39,6 +39,7 @@ import {
   Usb,
   Smartphone,
   Box,
+  Download,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -55,28 +56,38 @@ import { cn } from "@/lib/utils";
 import LivePreviewPlayer from "@/components/live-preview-player";
 import MjpegPreview from "@/components/mjpeg-preview";
 import { CameraType, testCameraConnection } from "@/lib/camera-connect";
+import { useAuth } from "@/hooks/use-auth";
+
+const DEFAULT_WINDOWS_AGENT_FORM = {
+  cameraName: "",
+  ipAddress: "",
+  username: "",
+  password: "",
+  rtspPort: "554",
+  rtspPath: "/Streaming/Channels/101",
+};
 
 // dialogs ko dynamically load karein (no require at runtime)
 const ProbeResultsDialog = dynamic(
   () =>
     import("@/components/ui/probe-results-dialog").then(
-      (m) => m.ProbeResultsDialog
+      (m) => m.ProbeResultsDialog,
     ),
-  { ssr: false }
+  { ssr: false },
 );
 const NetworkScannerDialog = dynamic(
   () => import("@/components/ui/network-scanner-dialog"),
-  { ssr: false }
+  { ssr: false },
 );
 
 async function addCamera(
-  cameraData: Omit<Camera, "id" | "createdAt">
+  cameraData: Omit<Camera, "id" | "createdAt">,
 ): Promise<string> {
   const camerasCollection = collection(
     db,
     "users",
     cameraData.userId,
-    "cameras"
+    "cameras",
   );
   const docRef = await addDoc(camerasCollection, {
     ...cameraData,
@@ -88,12 +99,20 @@ async function addCamera(
 export default function ConnectCameraPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const [cameraType, setCameraType] = useState<CameraType | "">("");
   const [isTesting, setIsTesting] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
   const [isConnectionTested, setIsConnectionTested] = useState(false);
-  const [hasWebcamPermission, setHasWebcamPermission] = useState<boolean | null>(null);
+  const [hasWebcamPermission, setHasWebcamPermission] = useState<
+    boolean | null
+  >(null);
+
+  const [agentForm, setAgentForm] = useState({ ...DEFAULT_WINDOWS_AGENT_FORM });
+  const [isGeneratingAgent, setIsGeneratingAgent] = useState(false);
+  const [agentDownloadUrl, setAgentDownloadUrl] = useState<string | null>(null);
+  const [agentError, setAgentError] = useState<string | null>(null);
 
   const [previewRtspUrl, setPreviewRtspUrl] = useState<string>("");
   const [previewCandidates, setPreviewCandidates] = useState<string[]>([]);
@@ -106,11 +125,36 @@ export default function ConnectCameraPage() {
   const formRef = useRef<HTMLFormElement>(null);
 
   const cameraTypeOptions = [
-    { type: "ip" as CameraType, icon: <Wifi className="h-8 w-8" />, title: "IP Camera", description: "Is it a standalone Wi-Fi or Ethernet camera?" },
-    { type: "dvr" as CameraType, icon: <Box className="h-8 w-8" />, title: "DVR / NVR System", description: "Part of a recorder box/system?" },
-    { type: "usb" as CameraType, icon: <Usb className="h-8 w-8" />, title: "USB Webcam", description: "Webcam connected to your computer?" },
-    { type: "mobile" as CameraType, icon: <Smartphone className="h-8 w-8" />, title: "Mobile Camera", description: "Phone app streaming over Wi-Fi?" },
-    { type: "cloud" as CameraType, icon: <Cloud className="h-8 w-8" />, title: "Cloud Camera", description: "Ring, Nest, Arlo, Wyze, etc." },
+    {
+      type: "ip" as CameraType,
+      icon: <Wifi className="h-8 w-8" />,
+      title: "IP Camera",
+      description: "Is it a standalone Wi-Fi or Ethernet camera?",
+    },
+    {
+      type: "dvr" as CameraType,
+      icon: <Box className="h-8 w-8" />,
+      title: "DVR / NVR System",
+      description: "Part of a recorder box/system?",
+    },
+    {
+      type: "usb" as CameraType,
+      icon: <Usb className="h-8 w-8" />,
+      title: "USB Webcam",
+      description: "Webcam connected to your computer?",
+    },
+    {
+      type: "mobile" as CameraType,
+      icon: <Smartphone className="h-8 w-8" />,
+      title: "Mobile Camera",
+      description: "Phone app streaming over Wi-Fi?",
+    },
+    {
+      type: "cloud" as CameraType,
+      icon: <Cloud className="h-8 w-8" />,
+      title: "Cloud Camera",
+      description: "Ring, Nest, Arlo, Wyze, etc.",
+    },
   ];
 
   useEffect(() => {
@@ -124,7 +168,9 @@ export default function ConnectCameraPage() {
     if (cameraType === "usb") {
       const getWebcamPermission = async () => {
         try {
-          const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+          });
           setHasWebcamPermission(true);
           setIsConnectionTested(true);
           if (videoRef.current) {
@@ -148,6 +194,15 @@ export default function ConnectCameraPage() {
     return cleanupStream;
   }, [cameraType, toast]);
 
+  useEffect(() => {
+    if (cameraType !== "ip") {
+      setAgentForm({ ...DEFAULT_WINDOWS_AGENT_FORM });
+      setAgentDownloadUrl(null);
+      setAgentError(null);
+      setIsGeneratingAgent(false);
+    }
+  }, [cameraType]);
+
   const [probeResults, setProbeResults] = useState<any[]>([]);
   const [showProbeResults, setShowProbeResults] = useState(false);
   const [probeInProgress, setProbeInProgress] = useState(false);
@@ -161,7 +216,10 @@ export default function ConnectCameraPage() {
     if (previewRtspUrl && isConnectionTested) {
       setIsTesting(true);
       setIsConnectionTested(false);
-      toast({ title: "Attempting live preview...", description: "Trying the detected stream URL in the player." });
+      toast({
+        title: "Attempting live preview...",
+        description: "Trying the detected stream URL in the player.",
+      });
       return;
     }
 
@@ -176,14 +234,20 @@ export default function ConnectCameraPage() {
 
     toast({
       title: "Testing connection...",
-      description: cameraType === "cloud" ? "Redirecting you for authentication..." : "This may take a moment.",
+      description:
+        cameraType === "cloud"
+          ? "Redirecting you for authentication..."
+          : "This may take a moment.",
     });
 
     try {
       const formData = new FormData(formRef.current);
       const username = String(formData.get("stream-user") ?? "").trim();
       const password = String(formData.get("stream-pass") ?? "").trim();
-      const result = await testCameraConnection(cameraType as CameraType, formData);
+      const result = await testCameraConnection(
+        cameraType as CameraType,
+        formData,
+      );
 
       const enrichUrl = (url: string | undefined | null) => {
         if (!url) return "";
@@ -198,7 +262,8 @@ export default function ConnectCameraPage() {
         }
       };
 
-      const isNonEmptyString = (v: string | null | undefined): v is string => !!v;
+      const isNonEmptyString = (v: string | null | undefined): v is string =>
+        !!v;
 
       if (result.success) {
         if (result.candidates && result.candidates.length > 0) {
@@ -209,7 +274,9 @@ export default function ConnectCameraPage() {
               candidates = [enriched, ...candidates];
             }
           }
-          candidates = [...new Set(candidates.map(enrichUrl).filter(isNonEmptyString))];
+          candidates = [
+            ...new Set(candidates.map(enrichUrl).filter(isNonEmptyString)),
+          ];
           setPreviewCandidates(candidates);
           setCandidateIndex(0);
           if (candidates[0]) {
@@ -218,7 +285,11 @@ export default function ConnectCameraPage() {
           }
 
           try {
-            const probeBody: any = { candidates, timeoutMs: 7000, concurrentLimit: 3 };
+            const probeBody: any = {
+              candidates,
+              timeoutMs: 7000,
+              concurrentLimit: 3,
+            };
             if (username) probeBody.username = username;
             if (password) probeBody.password = password;
 
@@ -237,13 +308,20 @@ export default function ConnectCameraPage() {
               parseError = err instanceof Error ? err.message : String(err);
             }
 
-            const detailResults = Array.isArray(probeJson?.results) ? probeJson.results : [];
+            const detailResults = Array.isArray(probeJson?.results)
+              ? probeJson.results
+              : [];
             setProbeResults(detailResults);
 
-            const requiresAuth = detailResults.some((r: any) => !!r?.requiresAuth);
+            const requiresAuth = detailResults.some(
+              (r: any) => !!r?.requiresAuth,
+            );
             const unauthorizedStatus = detailResults.some((r: any) => {
               const rawStatus = r?.statusCode;
-              const status = typeof rawStatus === "number" ? rawStatus : Number(rawStatus ?? 0);
+              const status =
+                typeof rawStatus === "number"
+                  ? rawStatus
+                  : Number(rawStatus ?? 0);
               if (status === 401 || status === 403) return true;
               const stderr = typeof r?.stderr === "string" ? r.stderr : "";
               return /401|403|unauthorized|forbidden/i.test(stderr);
@@ -252,18 +330,29 @@ export default function ConnectCameraPage() {
             const messageIndicatesAuth =
               typeof probeJson?.message === "string" &&
               /401|403|unauthorized|forbidden|invalid credential|authenticat/i.test(
-                probeJson.message
+                probeJson.message,
               );
-            const directStatusAuth = responseStatus === 401 || responseStatus === 403;
+            const directStatusAuth =
+              responseStatus === 401 || responseStatus === 403;
             const parseIndicatesAuth =
               typeof parseError === "string" &&
               /401|403|unauthorized|forbidden/i.test(parseError);
 
-            if (!username && (requiresAuth || messageIndicatesAuth || directStatusAuth || parseIndicatesAuth)) {
+            if (
+              !username &&
+              (requiresAuth ||
+                messageIndicatesAuth ||
+                directStatusAuth ||
+                parseIndicatesAuth)
+            ) {
               const message =
                 "This camera requires a username and password. Enter credentials and re-run Test Connection.";
               setCredentialsError(message);
-              toast({ variant: "destructive", title: "Authentication Required", description: message });
+              toast({
+                variant: "destructive",
+                title: "Authentication Required",
+                description: message,
+              });
               setIsTesting(false);
               setPreviewCandidates([]);
               setCandidateIndex(0);
@@ -273,11 +362,22 @@ export default function ConnectCameraPage() {
               return;
             }
 
-            if (username && (requiresAuth || unauthorizedStatus || messageIndicatesAuth || directStatusAuth || parseIndicatesAuth)) {
+            if (
+              username &&
+              (requiresAuth ||
+                unauthorizedStatus ||
+                messageIndicatesAuth ||
+                directStatusAuth ||
+                parseIndicatesAuth)
+            ) {
               const message =
                 "The camera rejected the username or password you entered. Please verify and try again.";
               setCredentialsError(message);
-              toast({ variant: "destructive", title: "Invalid Credentials", description: message });
+              toast({
+                variant: "destructive",
+                title: "Invalid Credentials",
+                description: message,
+              });
               setIsTesting(false);
               setIsConnectionTested(false);
               setPreviewCandidates([]);
@@ -292,7 +392,11 @@ export default function ConnectCameraPage() {
               const message = parseError
                 ? `Server response unreadable: ${parseError}`
                 : "Server returned an unexpected response.";
-              toast({ variant: "destructive", title: "Probe Error", description: message });
+              toast({
+                variant: "destructive",
+                title: "Probe Error",
+                description: message,
+              });
               setShowProbeResults(true);
               setIsTesting(false);
               setPreviewCandidates([]);
@@ -365,6 +469,150 @@ export default function ConnectCameraPage() {
     setIsTesting(false);
   };
 
+  const handleGenerateWindowsAgent = async () => {
+    if (cameraType !== "ip") return;
+
+    if (!user?.uid) {
+      const message = "You must be signed in to generate the Windows agent.";
+      setAgentError(message);
+      toast({
+        variant: "destructive",
+        title: "Authentication Required",
+        description: message,
+      });
+      return;
+    }
+
+    const trimmedIp = agentForm.ipAddress.trim();
+    const trimmedUsername = agentForm.username.trim();
+    const portValue =
+      agentForm.rtspPort.trim() || DEFAULT_WINDOWS_AGENT_FORM.rtspPort;
+    const pathValue =
+      agentForm.rtspPath.trim() || DEFAULT_WINDOWS_AGENT_FORM.rtspPath;
+
+    const ipRegex =
+      /^(25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)){3}$/;
+
+    if (!trimmedIp) {
+      const message = "Camera IP address is required for the Windows agent.";
+      setAgentError(message);
+      toast({
+        variant: "destructive",
+        title: "Missing IP Address",
+        description: message,
+      });
+      return;
+    }
+
+    if (!ipRegex.test(trimmedIp)) {
+      const message = "Enter a valid IPv4 address (e.g., 192.168.1.100).";
+      setAgentError(message);
+      toast({
+        variant: "destructive",
+        title: "Invalid IP Address",
+        description: message,
+      });
+      return;
+    }
+
+    if (!trimmedUsername) {
+      const message = "Camera username is required for the Windows agent.";
+      setAgentError(message);
+      toast({
+        variant: "destructive",
+        title: "Missing Username",
+        description: message,
+      });
+      return;
+    }
+
+    if (!agentForm.password) {
+      const message = "Camera password is required for the Windows agent.";
+      setAgentError(message);
+      toast({
+        variant: "destructive",
+        title: "Missing Password",
+        description: message,
+      });
+      return;
+    }
+
+    const portNumber = Number(portValue);
+
+    if (
+      !Number.isInteger(portNumber) ||
+      portNumber <= 0 ||
+      portNumber > 65535
+    ) {
+      const message = "Enter a valid RTSP port between 1 and 65535.";
+      setAgentError(message);
+      toast({
+        variant: "destructive",
+        title: "Invalid RTSP Port",
+        description: message,
+      });
+      return;
+    }
+
+    const normalizedPath = pathValue.startsWith("/")
+      ? pathValue
+      : `/${pathValue}`;
+
+    setAgentError(null);
+    setAgentDownloadUrl(null);
+    setIsGeneratingAgent(true);
+
+    try {
+      const payload: Record<string, unknown> = {
+        userId: user.uid,
+        ipAddress: trimmedIp,
+        username: trimmedUsername,
+        password: agentForm.password,
+        rtspPort: portNumber,
+        rtspPath: normalizedPath,
+      };
+
+      const trimmedCameraName = agentForm.cameraName.trim();
+      if (trimmedCameraName) {
+        payload.cameraName = trimmedCameraName;
+      }
+
+      const response = await fetch("/api/ip-camera/windows-agent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json().catch(() => null);
+
+      if (!response.ok || !data || typeof data.downloadUrl !== "string") {
+        const message =
+          (data && typeof data.error === "string" && data.error) ||
+          "Failed to generate the Windows agent. Please try again.";
+        throw new Error(message);
+      }
+
+      setAgentDownloadUrl(data.downloadUrl);
+      toast({
+        title: "Windows Agent Ready",
+        description: "Download the customized agent for this camera.",
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Failed to generate the Windows agent. Please try again.";
+      setAgentError(message);
+      toast({
+        variant: "destructive",
+        title: "Could not generate agent",
+        description: message,
+      });
+    } finally {
+      setIsGeneratingAgent(false);
+    }
+  };
+
   const handleAddCamera = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isConnectionTested) {
@@ -376,7 +624,11 @@ export default function ConnectCameraPage() {
       return;
     }
     if (!formRef.current) {
-      toast({ variant: "destructive", title: "Form Error", description: "An unexpected form error occurred." });
+      toast({
+        variant: "destructive",
+        title: "Form Error",
+        description: "An unexpected form error occurred.",
+      });
       return;
     }
 
@@ -385,13 +637,20 @@ export default function ConnectCameraPage() {
     const data = Object.fromEntries(formData.entries());
 
     let uniqueId: string | undefined;
-    if (cameraType === "ip") uniqueId = previewRtspUrl || (data["stream-url"] as string);
-    else if (cameraType === "dvr" || cameraType === "mobile") uniqueId = previewRtspUrl;
-    else if (cameraType === "usb") uniqueId = `webcam_${data.userId}_${Date.now()}`;
+    if (cameraType === "ip")
+      uniqueId = previewRtspUrl || (data["stream-url"] as string);
+    else if (cameraType === "dvr" || cameraType === "mobile")
+      uniqueId = previewRtspUrl;
+    else if (cameraType === "usb")
+      uniqueId = `webcam_${data.userId}_${Date.now()}`;
     else uniqueId = (data.activationId as string) || undefined;
 
     if (!uniqueId) {
-      toast({ variant: "destructive", title: "Failed to Add Camera", description: "Could not determine a unique ID for the camera." });
+      toast({
+        variant: "destructive",
+        title: "Failed to Add Camera",
+        description: "Could not determine a unique ID for the camera.",
+      });
       setIsAdding(false);
       return;
     }
@@ -407,10 +666,17 @@ export default function ConnectCameraPage() {
         facialRecognition: false,
       });
 
-      toast({ title: "Camera Added Successfully!", description: `Camera '${data.name}' added to user's account.` });
+      toast({
+        title: "Camera Added Successfully!",
+        description: `Camera '${data.name}' added to user's account.`,
+      });
       router.push("/admin/dashboard/cameras");
     } catch {
-      toast({ variant: "destructive", title: "Failed to Add Camera", description: "Could not save camera to database." });
+      toast({
+        variant: "destructive",
+        title: "Failed to Add Camera",
+        description: "Could not save camera to database.",
+      });
     }
     setIsAdding(false);
   };
@@ -432,7 +698,8 @@ export default function ConnectCameraPage() {
               <Info className="h-4 w-4" />
               <AlertTitle>IP Camera Setup</AlertTitle>
               <AlertDescription>
-                Just enter your camera's IP address (from router/app). We'll detect and connect to the stream.
+                Just enter your camera's IP address (from router/app). We'll
+                detect and connect to the stream.
               </AlertDescription>
             </Alert>
 
@@ -446,7 +713,11 @@ export default function ConnectCameraPage() {
                   pattern="^(\d{1,3}\.){3}\d{1,3}$"
                   title="Enter your camera's IP address (e.g., 192.168.1.100)"
                 />
-                <Button type="button" variant="outline" onClick={() => setScannerOpen(true)}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setScannerOpen(true)}
+                >
                   Scan Network
                 </Button>
               </div>
@@ -458,27 +729,48 @@ export default function ConnectCameraPage() {
             <div className="grid sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="stream-user">Username (optional)</Label>
-                <Input id="stream-user" name="stream-user" placeholder="e.g., admin" onChange={() => setCredentialsError(null)} />
+                <Input
+                  id="stream-user"
+                  name="stream-user"
+                  placeholder="e.g., admin"
+                  onChange={() => setCredentialsError(null)}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="stream-pass">Password (optional)</Label>
-                <Input id="stream-pass" name="stream-pass" placeholder="Camera password" type="password" onChange={() => setCredentialsError(null)} />
+                <Input
+                  id="stream-pass"
+                  name="stream-pass"
+                  placeholder="Camera password"
+                  type="password"
+                  onChange={() => setCredentialsError(null)}
+                />
               </div>
             </div>
 
-            {credentialsError && <p className="text-sm text-destructive">{credentialsError}</p>}
+            {credentialsError && (
+              <p className="text-sm text-destructive">{credentialsError}</p>
+            )}
 
             <Accordion type="single" collapsible className="w-full">
               <AccordionItem value="item-1">
-                <AccordionTrigger className="text-sm hover:no-underline">How to find the IP</AccordionTrigger>
+                <AccordionTrigger className="text-sm hover:no-underline">
+                  How to find the IP
+                </AccordionTrigger>
                 <AccordionContent>
                   <div className="text-xs space-y-3 pt-2">
                     <p className="font-semibold">1) Camera App</p>
-                    <p className="text-muted-foreground">Look for Device Info / Network Settings</p>
+                    <p className="text-muted-foreground">
+                      Look for Device Info / Network Settings
+                    </p>
                     <p className="font-semibold">2) Router</p>
-                    <p className="text-muted-foreground">Connected Devices / DHCP Client List</p>
+                    <p className="text-muted-foreground">
+                      Connected Devices / DHCP Client List
+                    </p>
                     <p className="font-semibold">3) Scan</p>
-                    <p className="text-muted-foreground">Use the network scanner</p>
+                    <p className="text-muted-foreground">
+                      Use the network scanner
+                    </p>
                   </div>
                 </AccordionContent>
               </AccordionItem>
@@ -492,24 +784,44 @@ export default function ConnectCameraPage() {
             <Alert>
               <Info className="h-4 w-4" />
               <AlertTitle>DVR / NVR System</AlertTitle>
-              <AlertDescription>We support most ONVIF-compliant brands (Hikvision, Dahua, CP Plus, etc.).</AlertDescription>
+              <AlertDescription>
+                We support most ONVIF-compliant brands (Hikvision, Dahua, CP
+                Plus, etc.).
+              </AlertDescription>
             </Alert>
 
             <div className="grid sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="dvr-ip">IP Address or Hostname</Label>
-                <Input id="dvr-ip" name="dvr-ip" placeholder="e.g., 192.168.1.64" required />
+                <Input
+                  id="dvr-ip"
+                  name="dvr-ip"
+                  placeholder="e.g., 192.168.1.64"
+                  required
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="dvr-port">RTSP Port</Label>
-                <Input id="dvr-port" name="dvr-port" type="number" placeholder="e.g., 554" required />
+                <Input
+                  id="dvr-port"
+                  name="dvr-port"
+                  type="number"
+                  placeholder="e.g., 554"
+                  required
+                />
               </div>
             </div>
 
             <div className="grid sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="dvr-user">Username</Label>
-                <Input id="dvr-user" name="dvr-user" placeholder="e.g., admin" defaultValue="admin" required />
+                <Input
+                  id="dvr-user"
+                  name="dvr-user"
+                  placeholder="e.g., admin"
+                  defaultValue="admin"
+                  required
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="dvr-pass">Password</Label>
@@ -517,7 +829,10 @@ export default function ConnectCameraPage() {
               </div>
             </div>
 
-            <p className="text-xs text-muted-foreground">We will attempt to auto-detect brand and stream path during testing.</p>
+            <p className="text-xs text-muted-foreground">
+              We will attempt to auto-detect brand and stream path during
+              testing.
+            </p>
           </div>
         );
 
@@ -528,18 +843,31 @@ export default function ConnectCameraPage() {
               <Info className="h-4 w-4" />
               <AlertTitle>Mobile Camera App Instructions</AlertTitle>
               <AlertDescription>
-                Use an IP camera app (IP Webcam, DroidCam, iVCam) and connect over Wi-Fi, then enter the IP/port.
+                Use an IP camera app (IP Webcam, DroidCam, iVCam) and connect
+                over Wi-Fi, then enter the IP/port.
               </AlertDescription>
             </Alert>
 
             <div className="grid sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="mobile-ip">Phone's IP Address</Label>
-                <Input id="mobile-ip" name="mobile-ip" placeholder="e.g., 192.168.1.10" required />
+                <Input
+                  id="mobile-ip"
+                  name="mobile-ip"
+                  placeholder="e.g., 192.168.1.10"
+                  required
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="mobile-port">Port</Label>
-                <Input id="mobile-port" name="mobile-port" type="number" placeholder="e.g., 8080" defaultValue="8080" required />
+                <Input
+                  id="mobile-port"
+                  name="mobile-port"
+                  type="number"
+                  placeholder="e.g., 8080"
+                  defaultValue="8080"
+                  required
+                />
               </div>
             </div>
 
@@ -555,7 +883,9 @@ export default function ConnectCameraPage() {
             <div className="flex flex-col items-center gap-2 text-center p-4 border rounded-lg bg-muted/50">
               <QrCode className="h-8 w-8 text-primary" />
               <h4 className="font-semibold">Easy Setup with QR Code</h4>
-              <p className="text-xs text-muted-foreground">Future update: scan QR from mobile app for instant setup.</p>
+              <p className="text-xs text-muted-foreground">
+                Future update: scan QR from mobile app for instant setup.
+              </p>
             </div>
           </div>
         );
@@ -566,7 +896,9 @@ export default function ConnectCameraPage() {
             <Alert>
               <Info className="h-4 w-4" />
               <AlertTitle>USB Webcam</AlertTitle>
-              <AlertDescription>Using your connected webcam. Connection auto-tests on selection.</AlertDescription>
+              <AlertDescription>
+                Using your connected webcam. Connection auto-tests on selection.
+              </AlertDescription>
             </Alert>
           </div>
         );
@@ -578,7 +910,8 @@ export default function ConnectCameraPage() {
               <Lock className="h-4 w-4" />
               <AlertTitle>Cloud Camera System (e.g. Ring, Wyze)</AlertTitle>
               <AlertDescription>
-                You’ll be securely redirected to the provider. <strong>We never see or store your password.</strong>
+                You’ll be securely redirected to the provider.{" "}
+                <strong>We never see or store your password.</strong>
               </AlertDescription>
             </Alert>
             <div className="space-y-2">
@@ -607,10 +940,17 @@ export default function ConnectCameraPage() {
     if (cameraType === "usb") {
       return (
         <div className="aspect-video bg-muted rounded-lg overflow-hidden flex items-center justify-center">
-          <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
+          <video
+            ref={videoRef}
+            className="w-full h-full object-cover"
+            autoPlay
+            muted
+            playsInline
+          />
           {hasWebcamPermission === null && (
             <div className="flex items-center text-muted-foreground">
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Requesting camera access...
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Requesting
+              camera access...
             </div>
           )}
           {hasWebcamPermission === false && (
@@ -624,22 +964,32 @@ export default function ConnectCameraPage() {
 
     if (previewRtspUrl) {
       const normalized = previewRtspUrl.toLowerCase();
-      const isRtsp = normalized.startsWith("rtsp://") || normalized.startsWith("rtsps://");
+      const isRtsp =
+        normalized.startsWith("rtsp://") || normalized.startsWith("rtsps://");
       if (!isRtsp) {
         return (
           <div className="aspect-video bg-black rounded-lg overflow-hidden flex items-center justify-center">
-            <img src={previewRtspUrl} alt="Camera MJPEG stream" className="w-full h-full object-cover" />
+            <img
+              src={previewRtspUrl}
+              alt="Camera MJPEG stream"
+              className="w-full h-full object-cover"
+            />
           </div>
         );
       }
 
       const tryNextCandidate = (errorMessage?: string) => {
-        if (previewCandidates && previewCandidates.length > candidateIndex + 1) {
+        if (
+          previewCandidates &&
+          previewCandidates.length > candidateIndex + 1
+        ) {
           const nextIndex = candidateIndex + 1;
           setCandidateIndex(nextIndex);
           setPreviewRtspUrl(previewCandidates[nextIndex]);
           const base = `Attempt ${nextIndex + 1} of ${previewCandidates.length}`;
-          const description = errorMessage ? `${errorMessage} Retrying... (${base})` : base;
+          const description = errorMessage
+            ? `${errorMessage} Retrying... (${base})`
+            : base;
           toast({ title: "Trying alternative stream path...", description });
         } else {
           setIsConnectionTested(false);
@@ -647,7 +997,12 @@ export default function ConnectCameraPage() {
           setCandidateIndex(0);
           setPreviewRtspUrl("");
           setShowMjpegFallback(true);
-          toast({ variant: "destructive", title: "Connection Failed", description: errorMessage || "Could not connect using common stream paths." });
+          toast({
+            variant: "destructive",
+            title: "Connection Failed",
+            description:
+              errorMessage || "Could not connect using common stream paths.",
+          });
         }
       };
 
@@ -660,11 +1015,16 @@ export default function ConnectCameraPage() {
             setShowMjpegFallback(false);
             setPreviewCandidates([]);
             setCandidateIndex(0);
-            toast({ title: "Connection Verified!", description: "Live stream is playing successfully." });
+            toast({
+              title: "Connection Verified!",
+              description: "Live stream is playing successfully.",
+            });
           }}
           onError={(message) => {
             setIsTesting(false);
-            tryNextCandidate(message || "Could not connect to the camera stream.");
+            tryNextCandidate(
+              message || "Could not connect to the camera stream.",
+            );
           }}
         />
       );
@@ -691,11 +1051,15 @@ export default function ConnectCameraPage() {
                 setPreviewRtspUrl(url);
                 setShowMjpegFallback(false);
                 setIsConnectionTested(true);
-                toast({ title: "MJPEG Stream Found", description: "Connected via HTTP fallback stream." });
+                toast({
+                  title: "MJPEG Stream Found",
+                  description: "Connected via HTTP fallback stream.",
+                });
               }}
             />
             <p className="text-xs text-muted-foreground">
-              Trying an MJPEG fallback stream. If the preview remains blank, check credentials and network access.
+              Trying an MJPEG fallback stream. If the preview remains blank,
+              check credentials and network access.
             </p>
           </div>
         );
@@ -708,7 +1072,9 @@ export default function ConnectCameraPage() {
           <div className="text-center p-4">
             <CheckCircle className="mx-auto h-12 w-12 text-green-500" />
             <p className="font-semibold mt-2">Cloud Connection Verified</p>
-            <p className="text-xs mt-1">Live preview is not available on this page for cloud cameras.</p>
+            <p className="text-xs mt-1">
+              Live preview is not available on this page for cloud cameras.
+            </p>
           </div>
         </div>
       );
@@ -736,8 +1102,14 @@ export default function ConnectCameraPage() {
       <NetworkScannerDialog
         open={scannerOpen}
         onClose={() => setScannerOpen(false)}
-        onSelect={async (ip: string, streamUrl?: string, verified?: boolean) => {
-          const el = document.getElementById("camera-ip") as HTMLInputElement | null;
+        onSelect={async (
+          ip: string,
+          streamUrl?: string,
+          verified?: boolean,
+        ) => {
+          const el = document.getElementById(
+            "camera-ip",
+          ) as HTMLInputElement | null;
           if (el) el.value = ip;
           setScannerOpen(false);
           setCredentialsError(null);
@@ -748,7 +1120,10 @@ export default function ConnectCameraPage() {
             setPreviewRtspUrl(streamUrl);
             if (verified) {
               setIsConnectionTested(true);
-              toast({ title: "Stream Found", description: "Automatically detected a working stream." });
+              toast({
+                title: "Stream Found",
+                description: "Automatically detected a working stream.",
+              });
             } else {
               setIsConnectionTested(false);
             }
@@ -760,27 +1135,48 @@ export default function ConnectCameraPage() {
         <Button variant="ghost" onClick={() => router.back()} className="mb-4">
           <ArrowLeft className="mr-2 h-4 w-4" /> Back to Cameras
         </Button>
-        <h1 className="text-3xl font-bold font-headline">Connect a New Camera</h1>
-        <p className="text-muted-foreground">Follow the steps to add and activate a new camera in your system.</p>
+        <h1 className="text-3xl font-bold font-headline">
+          Connect a New Camera
+        </h1>
+        <p className="text-muted-foreground">
+          Follow the steps to add and activate a new camera in your system.
+        </p>
       </div>
 
       <form ref={formRef} onSubmit={handleAddCamera}>
         <Card>
           <CardHeader>
             <CardTitle>Step 1: Enter Activation ID</CardTitle>
-            <CardDescription>Enter the Unique Activation ID from your approved purchase to begin.</CardDescription>
+            <CardDescription>
+              Enter the Unique Activation ID from your approved purchase to
+              begin.
+            </CardDescription>
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="activation-id">Activation ID</Label>
-              <Input id="activation-id" name="activationId" placeholder="e.g., DSGPRO-G4H7J2K9L" required />
+              <Input
+                id="activation-id"
+                name="activationId"
+                placeholder="e.g., DSGPRO-G4H7J2K9L"
+                required
+              />
               <p className="text-xs text-muted-foreground">
-                Find this on your <Link href="/dashboard/my-orders" className="underline">My Subscriptions</Link> page.
+                Find this on your{" "}
+                <Link href="/dashboard/my-orders" className="underline">
+                  My Subscriptions
+                </Link>{" "}
+                page.
               </p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="user-id">User ID</Label>
-              <Input id="user-id" name="userId" placeholder="Enter the user's unique ID" required />
+              <Input
+                id="user-id"
+                name="userId"
+                placeholder="Enter the user's unique ID"
+                required
+              />
             </div>
           </CardContent>
         </Card>
@@ -788,17 +1184,29 @@ export default function ConnectCameraPage() {
         <Card className="mt-6">
           <CardHeader>
             <CardTitle>Step 2: Camera Details</CardTitle>
-            <CardDescription>Give your camera a descriptive name and specify its location.</CardDescription>
+            <CardDescription>
+              Give your camera a descriptive name and specify its location.
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="camera-name">Camera Name</Label>
-                <Input id="camera-name" name="name" placeholder="e.g., Front Door Cam" required />
+                <Input
+                  id="camera-name"
+                  name="name"
+                  placeholder="e.g., Front Door Cam"
+                  required
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="camera-location">Location</Label>
-                <Input id="camera-location" name="location" placeholder="e.g., Entrance" required />
+                <Input
+                  id="camera-location"
+                  name="location"
+                  placeholder="e.g., Entrance"
+                  required
+                />
               </div>
             </div>
           </CardContent>
@@ -806,8 +1214,12 @@ export default function ConnectCameraPage() {
 
         <Card className="mt-6">
           <CardHeader>
-            <CardTitle>Step 3: What kind of camera are you connecting?</CardTitle>
-            <CardDescription>Select the option that best describes your camera.</CardDescription>
+            <CardTitle>
+              Step 3: What kind of camera are you connecting?
+            </CardTitle>
+            <CardDescription>
+              Select the option that best describes your camera.
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <input type="hidden" name="cameraType" value={cameraType} />
@@ -819,24 +1231,36 @@ export default function ConnectCameraPage() {
                   onClick={() => handleCameraTypeSelect(option.type)}
                   className={cn(
                     "p-4 rounded-lg border-2 text-left flex flex-col items-center justify-center text-center hover:border-primary hover:bg-accent transition-all space-y-2 h-full",
-                    cameraType === option.type ? "border-primary bg-accent shadow-md" : "bg-card"
+                    cameraType === option.type
+                      ? "border-primary bg-accent shadow-md"
+                      : "bg-card",
                   )}
                 >
                   {option.icon}
                   <h3 className="font-semibold">{option.title}</h3>
-                  <p className="text-xs text-muted-foreground">{option.description}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {option.description}
+                  </p>
                 </button>
               ))}
             </div>
-            {!cameraType && <p className="text-center text-sm text-muted-foreground mt-4">Please select a camera type to continue.</p>}
+            {!cameraType && (
+              <p className="text-center text-sm text-muted-foreground mt-4">
+                Please select a camera type to continue.
+              </p>
+            )}
           </CardContent>
         </Card>
 
         {cameraType && (
           <Card className="mt-6">
             <CardHeader>
-              <CardTitle>Step 4: Enter Connection Details &amp; Preview</CardTitle>
-              <CardDescription>Provide the necessary details and verify the live feed.</CardDescription>
+              <CardTitle>
+                Step 4: Enter Connection Details &amp; Preview
+              </CardTitle>
+              <CardDescription>
+                Provide the necessary details and verify the live feed.
+              </CardDescription>
             </CardHeader>
             <CardContent className="grid md:grid-cols-2 gap-8 items-start">
               <div className="space-y-4">{renderFormFields()}</div>
@@ -846,22 +1270,243 @@ export default function ConnectCameraPage() {
               </div>
             </CardContent>
 
-            {(cameraType === "ip" || cameraType === "dvr" || cameraType === "mobile") && (
-              <CardFooter className="flex-col items-start gap-4 border-t pt-6">
-                <h3 className="font-semibold">Step 5: Test Connection</h3>
-                <p className="text-sm text-muted-foreground -mt-2">
-                  Verify that BERRETO can connect to your camera before adding it.
-                </p>
-                <Button type="button" onClick={handleTestConnection} disabled={isTesting}>
-                  {isTesting ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Testing...
-                    </>
-                  ) : (
-                    "Test Connection"
-                  )}
-                </Button>
+            {cameraType && (
+              <CardFooter className="flex-col items-start gap-6 border-t pt-6">
+                {(cameraType === "ip" ||
+                  cameraType === "dvr" ||
+                  cameraType === "mobile") && (
+                  <div className="w-full space-y-2">
+                    <h3 className="font-semibold">Step 5: Test Connection</h3>
+                    <p className="text-sm text-muted-foreground -mt-1">
+                      Verify that BERRETO can connect to your camera before
+                      adding it.
+                    </p>
+                    <Button
+                      type="button"
+                      onClick={handleTestConnection}
+                      disabled={isTesting}
+                    >
+                      {isTesting ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Testing...
+                        </>
+                      ) : (
+                        "Test Connection"
+                      )}
+                    </Button>
+                  </div>
+                )}
+
+                {cameraType === "ip" && (
+                  <div className="w-full space-y-4">
+                    <div className="space-y-1">
+                      <h3 className="font-semibold">
+                        Step 6: Configure Windows Agent
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        Before you download the agent, please enter your camera
+                        details. We will generate a small .exe file configured
+                        only for your camera. Run it on a Windows PC on the same
+                        local network as your camera.
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        The agent runs silently in the background and
+                        automatically starts with Windows.
+                      </p>
+                    </div>
+
+                    {agentDownloadUrl ? (
+                      <div className="space-y-3 rounded-lg border border-primary/40 bg-primary/5 p-4">
+                        <div className="flex items-center gap-2 text-sm font-semibold">
+                          <CheckCircle className="h-4 w-4 text-green-600" />
+                          Windows agent ready to download
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          Download the file, run it once on a Windows PC that is
+                          on the same network as your camera. After that you can
+                          close everything – the agent will run as a background
+                          service automatically.
+                        </p>
+                        <div className="flex flex-wrap gap-3">
+                          <Button asChild size="lg">
+                            <a href={agentDownloadUrl} download>
+                              <Download className="mr-2 h-4 w-4" />
+                              Download Windows Agent (.exe)
+                            </a>
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => {
+                              setAgentError(null);
+                              setAgentDownloadUrl(null);
+                            }}
+                          >
+                            Generate again
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <div className="space-y-2">
+                            <Label htmlFor="agent-camera-name">
+                              Camera Name (optional)
+                            </Label>
+                            <Input
+                              id="agent-camera-name"
+                              name="agent-camera-name"
+                              placeholder="e.g., Front Door"
+                              value={agentForm.cameraName}
+                              onChange={(event) => {
+                                setAgentForm((prev) => ({
+                                  ...prev,
+                                  cameraName: event.target.value,
+                                }));
+                                setAgentError(null);
+                              }}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="agent-ip-address">
+                              Camera Local IP
+                            </Label>
+                            <Input
+                              id="agent-ip-address"
+                              name="agent-ip-address"
+                              placeholder="192.168.18.130"
+                              value={agentForm.ipAddress}
+                              onChange={(event) => {
+                                setAgentForm((prev) => ({
+                                  ...prev,
+                                  ipAddress: event.target.value,
+                                }));
+                                setAgentError(null);
+                              }}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <div className="space-y-2">
+                            <Label htmlFor="agent-username">
+                              Camera Username
+                            </Label>
+                            <Input
+                              id="agent-username"
+                              name="agent-username"
+                              placeholder="e.g., admin"
+                              value={agentForm.username}
+                              onChange={(event) => {
+                                setAgentForm((prev) => ({
+                                  ...prev,
+                                  username: event.target.value,
+                                }));
+                                setAgentError(null);
+                              }}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="agent-password">
+                              Camera Password
+                            </Label>
+                            <Input
+                              id="agent-password"
+                              name="agent-password"
+                              type="password"
+                              placeholder="Password"
+                              value={agentForm.password}
+                              onChange={(event) => {
+                                setAgentForm((prev) => ({
+                                  ...prev,
+                                  password: event.target.value,
+                                }));
+                                setAgentError(null);
+                              }}
+                            />
+                          </div>
+                        </div>
+
+                        <Accordion type="single" collapsible>
+                          <AccordionItem value="agent-advanced">
+                            <AccordionTrigger className="text-sm hover:no-underline">
+                              Advanced RTSP settings
+                            </AccordionTrigger>
+                            <AccordionContent>
+                              <div className="grid gap-4 pt-2 md:grid-cols-2">
+                                <div className="space-y-2">
+                                  <Label htmlFor="agent-rtsp-port">
+                                    RTSP Port
+                                  </Label>
+                                  <Input
+                                    id="agent-rtsp-port"
+                                    name="agent-rtsp-port"
+                                    type="number"
+                                    min={1}
+                                    max={65535}
+                                    value={agentForm.rtspPort}
+                                    onChange={(event) => {
+                                      setAgentForm((prev) => ({
+                                        ...prev,
+                                        rtspPort: event.target.value,
+                                      }));
+                                      setAgentError(null);
+                                    }}
+                                  />
+                                </div>
+                                <div className="space-y-2">
+                                  <Label htmlFor="agent-rtsp-path">
+                                    RTSP Path
+                                  </Label>
+                                  <Input
+                                    id="agent-rtsp-path"
+                                    name="agent-rtsp-path"
+                                    placeholder="/Streaming/Channels/101"
+                                    value={agentForm.rtspPath}
+                                    onChange={(event) => {
+                                      setAgentForm((prev) => ({
+                                        ...prev,
+                                        rtspPath: event.target.value,
+                                      }));
+                                      setAgentError(null);
+                                    }}
+                                  />
+                                </div>
+                              </div>
+                              <p className="pt-2 text-xs text-muted-foreground">
+                                Most cameras use port 554 and the path
+                                /Streaming/Channels/101 (Hikvision-style
+                                devices).
+                              </p>
+                            </AccordionContent>
+                          </AccordionItem>
+                        </Accordion>
+
+                        {agentError && (
+                          <p className="text-sm text-destructive">
+                            {agentError}
+                          </p>
+                        )}
+
+                        <Button
+                          type="button"
+                          onClick={handleGenerateWindowsAgent}
+                          disabled={isGeneratingAgent}
+                        >
+                          {isGeneratingAgent ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Generating...
+                            </>
+                          ) : (
+                            "Generate Windows Agent"
+                          )}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </CardFooter>
             )}
           </Card>
@@ -869,7 +1514,11 @@ export default function ConnectCameraPage() {
 
         {cameraType && (
           <div className="mt-6 flex justify-end">
-            <Button type="submit" size="lg" disabled={!isConnectionTested || isTesting || isAdding}>
+            <Button
+              type="submit"
+              size="lg"
+              disabled={!isConnectionTested || isTesting || isAdding}
+            >
               {isAdding && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               <CheckCircle className="mr-2 h-4 w-4" />
               {isAdding ? "Adding Camera..." : "Add Camera to System"}

@@ -27,10 +27,7 @@ const initialState: WizardState = {
   cameraType: "",
   connectionMode: "standard",
   localIp: "",
-  publicIp: "",
-  connectionHostType: "local",
   selectedIp: "",
-  selectedHostname: "",
   streamUrl: "",
   streamUser: "",
   streamPass: "",
@@ -38,6 +35,7 @@ const initialState: WizardState = {
   rtspPath: "/Streaming/Channels/101",
   isConnectionTested: false,
   detectedStreamUrl: "",
+  windowsAgentDownloadUrl: "",
 };
 
 function wizardReducer(state: WizardState, action: WizardAction): WizardState {
@@ -57,7 +55,12 @@ function wizardReducer(state: WizardState, action: WizardAction): WizardState {
     case "SET_CAMERA_DETAILS":
       return { ...state, ...action.payload };
     case "SET_CAMERA_TYPE":
-      return { ...state, cameraType: action.payload, isConnectionTested: action.payload === "usb" };
+      return {
+        ...state,
+        cameraType: action.payload,
+        isConnectionTested: action.payload === "usb",
+        windowsAgentDownloadUrl: "",
+      };
     case "SET_CONNECTION_DETAILS":
       return { ...state, ...action.payload };
     case "SET_CONNECTION_TESTED":

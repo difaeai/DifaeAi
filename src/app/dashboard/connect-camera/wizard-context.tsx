@@ -14,10 +14,7 @@ export interface WizardState {
   cameraType: CameraType;
   connectionMode: "standard" | "localRunner";
   localIp: string;
-  publicIp: string;
-  connectionHostType: "local" | "public";
   selectedIp: string;
-  selectedHostname: string;
   streamUrl: string;
   streamUser: string;
   streamPass: string;
@@ -25,6 +22,7 @@ export interface WizardState {
   rtspPath: string;
   isConnectionTested: boolean;
   detectedStreamUrl: string;
+  windowsAgentDownloadUrl: string;
 }
 
 export type WizardAction =
@@ -37,16 +35,14 @@ export type WizardAction =
       type: "SET_CONNECTION_DETAILS";
       payload: {
         selectedIp?: string;
-        selectedHostname?: string;
         connectionMode?: "standard" | "localRunner";
         localIp?: string;
-        publicIp?: string;
-        connectionHostType?: "local" | "public";
         streamUrl?: string;
         streamUser?: string;
         streamPass?: string;
         streamPort?: string;
         rtspPath?: string;
+        windowsAgentDownloadUrl?: string;
       };
     }
   | { type: "SET_CONNECTION_TESTED"; payload: { tested: boolean; streamUrl?: string } }
