@@ -59,6 +59,26 @@ export default function StepFourTest({ onComplete }: StepFourTestProps) {
   const isRtspCamera = state.cameraType === "ip" || state.cameraType === "dvr";
   const displayRtspUrl = useMemo(() => maskRtsp(state.streamUrl), [state.streamUrl]);
 
+  const triggerWindowsAgentDownload = useCallback(() => {
+    if (!state.windowsAgentDownloadUrl) return false;
+
+    try {
+      const anchor = document.createElement("a");
+      anchor.href = state.windowsAgentDownloadUrl;
+      anchor.download = "difae-bridge-agent.zip";
+      anchor.rel = "noopener";
+      anchor.style.display = "none";
+
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+      return true;
+    } catch (error) {
+      console.error("Agent download failed:", error);
+      return false;
+    }
+  }, [state.windowsAgentDownloadUrl]);
+
   // Handle USB Webcam
   useEffect(() => {
     if (state.cameraType === "usb") {
@@ -213,7 +233,25 @@ export default function StepFourTest({ onComplete }: StepFourTestProps) {
 
     setIsAdding(true);
     try {
+      const didStartDownload = state.cameraType === "ip" && triggerWindowsAgentDownload();
+
       await onComplete();
+
+      if (state.cameraType === "ip") {
+        if (didStartDownload) {
+          toast({
+            title: "Windows agent download started",
+            description:
+              "Save and run the downloaded agent on a Windows PC that shares the camera's network to keep the feed online.",
+          });
+        } else {
+          toast({
+            variant: "destructive",
+            title: "Unable to download Windows agent",
+            description: "We couldn't start the download automatically. Use the download link in Step 4 to get the file.",
+          });
+        }
+      }
     } catch (error) {
       console.error("Add camera error:", error);
     } finally {
