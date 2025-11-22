@@ -12,10 +12,12 @@ const DefaultConfigFilename = "agent-config.json"
 
 // AgentConfig holds runtime settings for the Windows agent.
 type AgentConfig struct {
-	BridgeID   string `json:"bridgeId"`
-	APIKey     string `json:"apiKey"`
-	RtspURL    string `json:"rtspUrl"`
-	BackendURL string `json:"backendUrl"`
+	BridgeID       string `json:"bridgeId"`
+	APIKey         string `json:"apiKey"`
+	RtspURL        string `json:"rtspUrl"`
+	BackendURL     string `json:"backendUrl"`
+	UploadBaseURL  string `json:"uploadBaseUrl,omitempty"`
+	PollIntervalMs int    `json:"pollIntervalMs,omitempty"`
 }
 
 // ResolvePath returns the expected config path based on the executable location.
@@ -45,11 +47,58 @@ func Load(path string) (AgentConfig, error) {
 		return AgentConfig{}, fmt.Errorf("failed to parse config: %w", err)
 	}
 
+	cfg = applyDefaults(cfg)
+
 	if err := validate(cfg); err != nil {
 		return AgentConfig{}, err
 	}
 
 	return cfg, nil
+}
+
+// Normalize applies defaults and validates a config received over the wire.
+func Normalize(cfg AgentConfig) (AgentConfig, error) {
+	cfg = applyDefaults(cfg)
+	if err := validate(cfg); err != nil {
+		return AgentConfig{}, err
+	}
+
+	return cfg, nil
+}
+
+// Save writes a config file to disk in a human-friendly format.
+func Save(path string, cfg AgentConfig) error {
+	data, err := json.MarshalIndent(cfg, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to encode config: %w", err)
+	}
+
+	if err := os.WriteFile(path, data, 0o644); err != nil {
+		return fmt.Errorf("failed to save config: %w", err)
+	}
+
+	return nil
+}
+
+// DefaultBackendURL returns the pairing base URL, preferring an environment override.
+func DefaultBackendURL() string {
+	if value := os.Getenv("DIFAE_BACKEND_URL"); value != "" {
+		return value
+	}
+
+	return "https://difae-backend--difae-ai.us-east4.hosted.app"
+}
+
+func applyDefaults(cfg AgentConfig) AgentConfig {
+	if cfg.UploadBaseURL == "" {
+		cfg.UploadBaseURL = cfg.BackendURL
+	}
+
+	if cfg.PollIntervalMs == 0 {
+		cfg.PollIntervalMs = 5000
+	}
+
+	return cfg
 }
 
 func validate(cfg AgentConfig) error {
@@ -64,6 +113,9 @@ func validate(cfg AgentConfig) error {
 	}
 	if cfg.BackendURL == "" {
 		return errors.New("backendUrl is required in agent-config.json")
+	}
+	if cfg.UploadBaseURL == "" {
+		return errors.New("uploadBaseUrl is required in agent-config.json")
 	}
 	return nil
 }

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { randomBytes } from "node:crypto";
+import { randomBytes, randomInt } from "node:crypto";
 import { z } from "zod";
 import { buildBridgeRecord, getBridgeStore } from "@/lib/bridge-store";
 import { initFirebaseAdmin } from "@/lib/firebase-admin";
@@ -26,6 +26,15 @@ function buildRtspUrl({
   const encodedUsername = encodeURIComponent(username);
   const encodedPassword = encodeURIComponent(password);
   return `rtsp://${encodedUsername}:${encodedPassword}@${host}:${port}${streamPath}`;
+}
+
+function generatePairCode(length = 6) {
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let code = "";
+  for (let i = 0; i < length; i += 1) {
+    code += alphabet[randomInt(0, alphabet.length)];
+  }
+  return code;
 }
 
 export async function POST(req: NextRequest) {
@@ -71,6 +80,7 @@ export async function POST(req: NextRequest) {
 
     const payload = parsedBody.data;
     const apiKey = randomBytes(32).toString("hex");
+    const pairCode = generatePairCode();
     const rtspUrl = buildRtspUrl(payload);
     const backendUrl =
       process.env.NEXT_PUBLIC_BRIDGE_BACKEND_URL ||
@@ -83,6 +93,8 @@ export async function POST(req: NextRequest) {
       rtspUrl,
       apiKey,
       backendUrl,
+      pairCode,
+      paired: false,
     });
 
     const store = await getBridgeStore();
@@ -100,22 +112,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const configUrl = `/api/bridges/${record.id}/config`;
-
     return NextResponse.json({
       bridgeId: createdRecord.id,
+      pairCode,
       apiKey,
       rtspUrl,
       backendUrl,
       agentDownloadUrl,
-      configDownloadUrl: configUrl,
-      configDownloadPath: configUrl,
-      config: {
-        bridgeId: createdRecord.id,
-        apiKey,
-        rtspUrl,
-        backendUrl,
-      },
     });
   } catch (error) {
     console.error("Unexpected bridge creation error", error);

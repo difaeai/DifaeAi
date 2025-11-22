@@ -18,8 +18,8 @@ type BridgeResponse = {
   apiKey: string;
   rtspUrl: string;
   agentDownloadUrl?: string;
-  configUrl: string;
   backendUrl?: string;
+  pairCode?: string;
 };
 
 export default function StepThreeConnection() {
@@ -184,7 +184,7 @@ export default function StepThreeConnection() {
     const password = state.streamPass?.trim();
 
     if (!username || !password) {
-      const description = "Enter the camera username and password so we can include them in your bridge config.";
+      const description = "Enter the camera username and password so we can include them in your bridge setup.";
       toast({
         variant: "destructive",
         title: "Credentials Required",
@@ -256,35 +256,39 @@ export default function StepThreeConnection() {
             ? data.error
             : "We couldn’t create the bridge. Please check your camera details and try again.";
 
-        if (!response.ok || !data || typeof data.bridgeId !== "string" || typeof data.apiKey !== "string") {
+        if (
+          !response.ok ||
+          !data ||
+          typeof data.bridgeId !== "string" ||
+          typeof data.apiKey !== "string" ||
+          typeof data.pairCode !== "string"
+        ) {
           throw new Error(errorMessage);
         }
 
-        const configUrl =
-          typeof data.configDownloadUrl === "string"
-            ? data.configDownloadUrl
-            : typeof data.configDownloadPath === "string"
-              ? data.configDownloadPath
-              : `/api/bridges/${data.bridgeId}/config`;
+        const agentDownloadUrl =
+          typeof data.agentDownloadUrl === "string" && data.agentDownloadUrl
+            ? data.agentDownloadUrl
+            : process.env.NEXT_PUBLIC_WINDOWS_AGENT_URL || "";
 
         setBridgeResult({
           bridgeId: data.bridgeId,
           apiKey: data.apiKey,
           rtspUrl: data.rtspUrl,
           backendUrl: data.backendUrl,
-          agentDownloadUrl: typeof data.agentDownloadUrl === "string" ? data.agentDownloadUrl : "",
-          configUrl,
+          agentDownloadUrl,
+          pairCode: data.pairCode,
         });
 
         dispatch({
           type: "SET_CONNECTION_DETAILS",
-          payload: { windowsAgentDownloadUrl: data.agentDownloadUrl || "" },
+          payload: { windowsAgentDownloadUrl: agentDownloadUrl },
         });
 
         toast({
           title: "Bridge created",
           description:
-            "Download the Windows agent and config file to start streaming to BERRETO.",
+            "Download the Windows agent, then run it and enter the pairing code to start streaming to BERRETO.",
         });
       } catch (error) {
         const message =
@@ -303,55 +307,6 @@ export default function StepThreeConnection() {
 
       setIsCreatingBridge(false);
     }
-  };
-
-  const handleDownloadConfig = (configUrl: string) => {
-    const runDownload = async () => {
-      if (!user) {
-        setBridgeError("Authentication is required to download the config file.");
-        toast({
-          variant: "destructive",
-          title: "Sign in required",
-          description: "Please sign in and try downloading the config again.",
-        });
-        return;
-      }
-
-      try {
-        const idToken = await user.getIdToken();
-        const response = await fetch(configUrl, {
-          headers: { Authorization: `Bearer ${idToken}` },
-        });
-
-        if (!response.ok) {
-          const payload = await response.json().catch(() => ({}));
-          const message =
-            (payload && typeof payload.error === "string" && payload.error) ||
-            "We couldn’t create the bridge config. Please try again later.";
-          throw new Error(message);
-        }
-
-        const blob = await response.blob();
-        const url = URL.createObjectURL(blob);
-        const anchor = document.createElement("a");
-        anchor.href = url;
-        anchor.download = "agent-config.json";
-        anchor.style.display = "none";
-        document.body.appendChild(anchor);
-        anchor.click();
-        document.body.removeChild(anchor);
-        URL.revokeObjectURL(url);
-      } catch (error) {
-        const message =
-          error instanceof Error
-            ? error.message
-            : "We couldn’t create the bridge config. Please try again later.";
-        setBridgeError(message);
-        toast({ variant: "destructive", title: "Download failed", description: message });
-      }
-    };
-
-    void runDownload();
   };
 
   if (state.cameraType === "cloud") {
@@ -424,7 +379,7 @@ export default function StepThreeConnection() {
           <Info className="h-4 w-4" />
           <AlertTitle>Use a direct RTSP stream</AlertTitle>
           <AlertDescription>
-            We'll help you build the correct RTSP address. Start with the camera's local IP, then supply the username, password, and port. We'll create a bridge record and give you a Windows agent plus a config file to forward the feed to BERRETO.
+            We'll help you build the correct RTSP address. Start with the camera's local IP, then supply the username, password, and port. We'll create a bridge record and give you a Windows agent plus a pairing code to forward the feed to BERRETO.
           </AlertDescription>
         </Alert>
 
@@ -442,7 +397,7 @@ export default function StepThreeConnection() {
                 <div className="space-y-3">
                   <h3 className="font-semibold text-base">RTSP Stream Address</h3>
                   <p className="text-sm text-muted-foreground">
-                    Enter the local IP and credentials exactly as they work on your LAN. We'll create a ready-to-run Windows bridge and config so it can forward the video to BERRETO continuously.
+                    Enter the local IP and credentials exactly as they work on your LAN. We'll create a ready-to-run Windows bridge and pairing code so it can forward the video to BERRETO continuously.
                   </p>
                   <div className="space-y-2">
                     <Label htmlFor="local-ip">Local IP Address *</Label>
@@ -556,7 +511,7 @@ export default function StepThreeConnection() {
                     </div>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    These credentials only live in the generated config file—nothing extra to configure once it runs on Windows.
+                    These credentials only live in the configuration the agent saves after pairing—nothing extra to configure once it runs on Windows.
                   </p>
                 </div>
               </div>
@@ -679,8 +634,8 @@ export default function StepThreeConnection() {
               </div>
               <div className="space-y-1 text-sm text-muted-foreground">
                 <p>Step 1: Download the DIFAE Windows bridge agent.</p>
-                <p>Step 2: Download agent-config.json and place it beside the .exe.</p>
-                <p>Step 3: Run the agent; it will connect and forward your camera to the cloud.</p>
+                <p>Step 2: Run the agent and enter the pairing code shown below.</p>
+                <p>Step 3: The agent will connect automatically and start streaming your camera.</p>
               </div>
               <div className="flex flex-wrap gap-3">
                 {bridgeResult.agentDownloadUrl ? (
@@ -702,25 +657,36 @@ export default function StepThreeConnection() {
                     </p>
                   </div>
                 )}
-                <Button
-                  type="button"
-                  size="lg"
-                  variant="outline"
-                  onClick={() => handleDownloadConfig(bridgeResult.configUrl)}
-                >
-                  <Download className="mr-2 h-4 w-4" />
-                  Download Agent Config
-                </Button>
               </div>
-              <div className="rounded-md border bg-white/80 p-3 text-sm shadow-sm">
-                <p className="font-semibold">Bridge details</p>
-                <p className="mt-2 text-xs text-muted-foreground">Bridge ID</p>
-                <p className="font-mono text-xs break-all">{bridgeResult.bridgeId}</p>
-                <p className="mt-3 text-xs text-muted-foreground">API Key</p>
-                <p className="font-mono text-xs break-all">{bridgeResult.apiKey}</p>
-                <p className="mt-3 text-xs text-muted-foreground">Generated RTSP URL</p>
-                <p className="font-mono text-xs break-all">{bridgeResult.rtspUrl}</p>
+              <div className="rounded-md border border-dashed bg-white/90 p-4 shadow-sm">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Pair code</p>
+                <p className="mt-2 font-mono text-3xl font-bold tracking-widest text-primary">
+                  {bridgeResult.pairCode ?? "------"}
+                </p>
               </div>
+              <details className="rounded-md border bg-white/80 p-3 text-sm shadow-sm" open>
+                <summary className="cursor-pointer font-semibold">Bridge details</summary>
+                <div className="mt-2 space-y-2">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Bridge ID</p>
+                    <p className="font-mono text-xs break-all">{bridgeResult.bridgeId}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">API Key</p>
+                    <p className="font-mono text-xs break-all">{bridgeResult.apiKey}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Generated RTSP URL</p>
+                    <p className="font-mono text-xs break-all">{bridgeResult.rtspUrl}</p>
+                  </div>
+                  {bridgeResult.backendUrl && (
+                    <div>
+                      <p className="text-xs text-muted-foreground">Backend URL</p>
+                      <p className="font-mono text-xs break-all">{bridgeResult.backendUrl}</p>
+                    </div>
+                  )}
+                </div>
+              </details>
             </div>
           )}
       </CardContent>
