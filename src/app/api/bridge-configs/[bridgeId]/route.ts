@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { initFirebaseAdmin } from "@/lib/firebase-admin";
+import { getBridgeStore } from "@/lib/bridge-store";
 import * as admin from "firebase-admin";
 
 async function authenticate(req: NextRequest) {
@@ -8,14 +8,20 @@ async function authenticate(req: NextRequest) {
     return { error: "Authentication is required.", status: 401 as const };
   }
 
-  try {
-    const token = authHeader.slice("Bearer ".length);
-    const decoded = await admin.auth().verifyIdToken(token);
-    return { uid: decoded.uid };
-  } catch (error) {
-    console.error("Failed to verify auth token", error);
-    return { error: "Invalid or expired session. Please sign in again.", status: 401 as const };
+  const token = authHeader.slice("Bearer ".length);
+
+  if (admin.apps.length > 0) {
+    try {
+      const decoded = await admin.auth().verifyIdToken(token);
+      return { uid: decoded.uid };
+    } catch (error) {
+      console.error("Failed to verify auth token", error);
+      return { error: "Invalid or expired session. Please sign in again.", status: 401 as const };
+    }
   }
+
+  // Development fallback – trust opaque token as uid
+  return { uid: token };
 }
 
 export async function GET(req: NextRequest, { params }: { params: { bridgeId?: string } }) {
@@ -29,38 +35,27 @@ export async function GET(req: NextRequest, { params }: { params: { bridgeId?: s
   }
 
   try {
-    await initFirebaseAdmin();
-  } catch (error) {
-    console.error("Failed to initialise Firebase Admin", error);
-    return NextResponse.json(
-      { error: "Backend services are unavailable right now. Try again later." },
-      { status: 503 },
-    );
-  }
+    const authResult = await authenticate(req);
+    if ("error" in authResult) {
+      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
+    }
 
-  const authResult = await authenticate(req);
-  if ("error" in authResult) {
-    return NextResponse.json({ error: authResult.error }, { status: authResult.status });
-  }
+    const store = await getBridgeStore();
+    const data = await store.get(bridgeId);
 
-  try {
-    const doc = await admin.firestore().collection("bridges").doc(bridgeId).get();
-
-    if (!doc.exists) {
+    if (!data) {
       return NextResponse.json(
         { error: "Bridge not found. Please create a new bridge and try again." },
         { status: 404 },
       );
     }
 
-    const data = doc.data();
-
-    if (!data?.userId || data.userId !== authResult.uid) {
+    if (!data.userId || data.userId !== authResult.uid) {
       return NextResponse.json({ error: "You do not have access to this bridge." }, { status: 403 });
     }
 
-    const rtspUrl = data.rtspUrl as string | undefined;
-    const apiKey = (data.apiKey as string | undefined) || (data.secret as string | undefined);
+    const rtspUrl = data.rtspUrl;
+    const apiKey = data.apiKey;
 
     if (!rtspUrl || !apiKey) {
       return NextResponse.json(
@@ -69,13 +64,15 @@ export async function GET(req: NextRequest, { params }: { params: { bridgeId?: s
       );
     }
 
-    const backendUrl = (data.backendUrl as string | undefined) || process.env.NEXT_PUBLIC_APP_URL || req.nextUrl.origin;
+    const backendUrl =
+      data.backendUrl || process.env.NEXT_PUBLIC_BRIDGE_BACKEND_URL || process.env.NEXT_PUBLIC_APP_URL || req.nextUrl.origin;
 
     const config = {
       bridgeId,
       apiKey,
       rtspUrl,
       backendUrl,
+      cameraId: data.cameraId,
     } satisfies Record<string, string>;
 
     return new NextResponse(JSON.stringify(config, null, 2), {

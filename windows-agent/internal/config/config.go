@@ -16,6 +16,7 @@ type AgentConfig struct {
 	APIKey     string `json:"apiKey"`
 	RtspURL    string `json:"rtspUrl"`
 	BackendURL string `json:"backendUrl"`
+	CameraID   string `json:"cameraId"`
 }
 
 // ResolvePath returns the absolute path to the config file relative to the executable location.
@@ -55,6 +56,9 @@ func validate(cfg AgentConfig) error {
 	}
 	if cfg.BackendURL == "" {
 		return errors.New("backendUrl is required in agent-config.json")
+	}
+	if cfg.CameraID == "" {
+		cfg.CameraID = "camera"
 	}
 	return nil
 }
