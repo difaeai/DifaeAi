@@ -59,9 +59,9 @@ import { CameraType, testCameraConnection } from "@/lib/camera-connect";
 import { useAuth } from "@/hooks/use-auth";
 type BridgeConfig = {
   bridgeId: string;
-  bridgeSecret: string;
+  apiKey: string;
   rtspUrl: string;
-  apiBaseUrl: string;
+  backendUrl: string;
   configUrl: string;
 };
 
@@ -573,9 +573,14 @@ export default function ConnectCameraPage() {
     setIsGeneratingAgent(true);
 
     try {
+      const idToken = await user.getIdToken();
+
       const response = await fetch("/api/bridges/create", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${idToken}`,
+        },
         body: JSON.stringify({
           host: trimmedIp,
           port: portNumber,
@@ -595,21 +600,27 @@ export default function ConnectCameraPage() {
         !response.ok ||
         !data ||
         typeof data.agentDownloadUrl !== "string" ||
-        typeof data.bridgeId !== "string"
+        typeof data.bridgeId !== "string" ||
+        typeof data.apiKey !== "string"
       ) {
         throw new Error(serverMessage);
       }
 
+      const configUrl =
+        typeof data.configDownloadUrl === "string"
+          ? data.configDownloadUrl
+          : `/bridge-configs/${data.bridgeId}`;
+
       setAgentDownloadUrl(data.agentDownloadUrl);
       setBridgeConfig({
         bridgeId: data.bridgeId,
-        bridgeSecret: data.bridgeSecret,
+        apiKey: data.apiKey,
         rtspUrl: data.rtspUrl,
-        apiBaseUrl:
-          (data.config && typeof data.config.apiBaseUrl === "string"
-            ? data.config.apiBaseUrl
+        backendUrl:
+          (data.config && typeof data.config.backendUrl === "string"
+            ? data.config.backendUrl
             : "") || "",
-        configUrl: `/api/bridges/${data.bridgeId}/config`,
+        configUrl,
       });
 
       toast({
@@ -635,17 +646,52 @@ export default function ConnectCameraPage() {
   const handleDownloadBridgeConfig = () => {
     if (!bridgeConfig) return;
 
-    try {
-      const anchor = document.createElement("a");
-      anchor.href = bridgeConfig.configUrl;
-      anchor.download = "bridge-config.json";
-      anchor.style.display = "none";
-      document.body.appendChild(anchor);
-      anchor.click();
-      document.body.removeChild(anchor);
-    } catch (error) {
-      console.warn("Failed to download bridge config", error);
-    }
+    const runDownload = async () => {
+      if (!user) {
+        setAgentError("Authentication is required to download the agent config.");
+        toast({
+          variant: "destructive",
+          title: "Sign in required",
+          description: "Sign in to download the bridge config.",
+        });
+        return;
+      }
+
+      try {
+        const idToken = await user.getIdToken();
+        const response = await fetch(bridgeConfig.configUrl, {
+          headers: { Authorization: `Bearer ${idToken}` },
+        });
+
+        if (!response.ok) {
+          const payload = await response.json().catch(() => ({}));
+          const message =
+            (payload && typeof payload.error === "string" && payload.error) ||
+            "We couldn’t create the bridge config. Please try again later.";
+          throw new Error(message);
+        }
+
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = "agent-config.json";
+        anchor.style.display = "none";
+        document.body.appendChild(anchor);
+        anchor.click();
+        document.body.removeChild(anchor);
+        URL.revokeObjectURL(url);
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : "We couldn’t create the bridge config. Please try again later.";
+        setAgentError(message);
+        toast({ variant: "destructive", title: "Download failed", description: message });
+      }
+    };
+
+    void runDownload();
   };
 
   const handleAddCamera = async (e: React.FormEvent) => {
@@ -1357,13 +1403,14 @@ export default function ConnectCameraPage() {
                           Windows bridge agent ready to download
                         </div>
                         <p className="text-sm text-muted-foreground">
-                          Step 1: Download the Windows agent. Step 2: Download
-                          the config file. Step 3: Run them together on a PC
-                          that shares the camera's network.
+                          Step 1: Download the DIFAE Windows agent. Step 2:
+                          Download agent-config.json and place it in the same
+                          folder. Step 3: Run the agent on a PC that shares the
+                          camera's network.
                         </p>
                         <div className="flex flex-wrap gap-3">
                           <Button asChild size="lg">
-                            <a href={agentDownloadUrl} download>
+                            <a href={agentDownloadUrl}>
                               <Download className="mr-2 h-4 w-4" />
                               Download Windows Agent
                             </a>
@@ -1376,7 +1423,7 @@ export default function ConnectCameraPage() {
                             onClick={handleDownloadBridgeConfig}
                           >
                             <Download className="mr-2 h-4 w-4" />
-                            Download Config
+                            Download Agent Config
                           </Button>
                           <Button
                             type="button"
@@ -1396,6 +1443,10 @@ export default function ConnectCameraPage() {
                             <p className="mt-2 text-xs text-muted-foreground">Bridge ID</p>
                             <p className="font-mono text-xs break-all">
                               {bridgeConfig.bridgeId}
+                            </p>
+                            <p className="mt-3 text-xs text-muted-foreground">API Key</p>
+                            <p className="font-mono text-xs break-all">
+                              {bridgeConfig.apiKey}
                             </p>
                             <p className="mt-3 text-xs text-muted-foreground">Generated RTSP URL</p>
                             <p className="font-mono text-xs break-all">

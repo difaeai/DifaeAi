@@ -49,15 +49,41 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const authHeader = req.headers.get("authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return NextResponse.json(
+        { error: "Authentication is required to create a bridge." },
+        { status: 401 },
+      );
+    }
+
+    let userId: string;
+    try {
+      const token = authHeader.slice("Bearer ".length);
+      const decoded = await admin.auth().verifyIdToken(token);
+      userId = decoded.uid;
+    } catch (error) {
+      console.error("Failed to verify auth token", error);
+      return NextResponse.json(
+        { error: "Invalid or expired session. Please sign in again." },
+        { status: 401 },
+      );
+    }
+
     const payload = parsedBody.data;
     const bridgeId = randomUUID();
-    const bridgeSecret = randomBytes(32).toString("hex");
+    const apiKey = randomBytes(32).toString("hex");
     const rtspUrl = buildRtspUrl(payload);
-    const apiBaseUrl = process.env.NEXT_PUBLIC_APP_URL || req.nextUrl.origin;
+    const backendUrl = process.env.NEXT_PUBLIC_APP_URL || req.nextUrl.origin;
+    const agentDownloadUrl =
+      process.env.NEXT_PUBLIC_WINDOWS_AGENT_URL ||
+      "https://myapp.com/downloads/difae-windows-agent.exe";
 
     try {
       await admin.firestore().collection("bridges").doc(bridgeId).set({
         id: bridgeId,
+        userId,
+        cameraId: null,
         rtspUrl,
         host: payload.host,
         port: payload.port,
@@ -65,7 +91,8 @@ export async function POST(req: NextRequest) {
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         status: "pending",
-        secret: bridgeSecret,
+        apiKey,
+        backendUrl,
       });
     } catch (error) {
       console.error("Failed to create bridge document", error);
@@ -77,16 +104,19 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const configUrl = `/bridge-configs/${bridgeId}`;
+
     return NextResponse.json({
       bridgeId,
-      bridgeSecret,
+      apiKey,
       rtspUrl,
-      agentDownloadUrl: "/agents/difae-bridge-windows.exe",
+      agentDownloadUrl,
+      configDownloadUrl: configUrl,
       config: {
         bridgeId,
-        bridgeSecret,
+        apiKey,
         rtspUrl,
-        apiBaseUrl,
+        backendUrl,
       },
     });
   } catch (error) {

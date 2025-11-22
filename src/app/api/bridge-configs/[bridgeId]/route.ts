@@ -2,10 +2,23 @@ import { NextRequest, NextResponse } from "next/server";
 import { initFirebaseAdmin } from "@/lib/firebase-admin";
 import * as admin from "firebase-admin";
 
-export async function GET(
-  req: NextRequest,
-  { params }: { params: { bridgeId?: string } },
-) {
+async function authenticate(req: NextRequest) {
+  const authHeader = req.headers.get("authorization");
+  if (!authHeader?.startsWith("Bearer ")) {
+    return { error: "Authentication is required.", status: 401 as const };
+  }
+
+  try {
+    const token = authHeader.slice("Bearer ".length);
+    const decoded = await admin.auth().verifyIdToken(token);
+    return { uid: decoded.uid };
+  } catch (error) {
+    console.error("Failed to verify auth token", error);
+    return { error: "Invalid or expired session. Please sign in again.", status: 401 as const };
+  }
+}
+
+export async function GET(req: NextRequest, { params }: { params: { bridgeId?: string } }) {
   const bridgeId = params.bridgeId;
 
   if (!bridgeId) {
@@ -25,6 +38,11 @@ export async function GET(
     );
   }
 
+  const authResult = await authenticate(req);
+  if ("error" in authResult) {
+    return NextResponse.json({ error: authResult.error }, { status: authResult.status });
+  }
+
   try {
     const doc = await admin.firestore().collection("bridges").doc(bridgeId).get();
 
@@ -37,27 +55,34 @@ export async function GET(
 
     const data = doc.data();
 
-    if (!data?.secret || !data?.rtspUrl) {
+    if (!data?.userId || data.userId !== authResult.uid) {
+      return NextResponse.json({ error: "You do not have access to this bridge." }, { status: 403 });
+    }
+
+    const rtspUrl = data.rtspUrl as string | undefined;
+    const apiKey = (data.apiKey as string | undefined) || (data.secret as string | undefined);
+
+    if (!rtspUrl || !apiKey) {
       return NextResponse.json(
         { error: "Bridge is missing configuration details." },
         { status: 422 },
       );
     }
 
-    const apiBaseUrl = process.env.NEXT_PUBLIC_APP_URL || req.nextUrl.origin;
+    const backendUrl = (data.backendUrl as string | undefined) || process.env.NEXT_PUBLIC_APP_URL || req.nextUrl.origin;
 
     const config = {
       bridgeId,
-      bridgeSecret: data.secret as string,
-      rtspUrl: data.rtspUrl as string,
-      apiBaseUrl,
+      apiKey,
+      rtspUrl,
+      backendUrl,
     } satisfies Record<string, string>;
 
     return new NextResponse(JSON.stringify(config, null, 2), {
       status: 200,
       headers: {
         "Content-Type": "application/json",
-        "Content-Disposition": "attachment; filename=\"bridge-config.json\"",
+        "Content-Disposition": "attachment; filename=\"agent-config.json\"",
       },
     });
   } catch (error) {

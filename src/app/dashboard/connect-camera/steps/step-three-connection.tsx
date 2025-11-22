@@ -15,7 +15,7 @@ import { useAuth } from "@/hooks/use-auth";
 
 type BridgeResponse = {
   bridgeId: string;
-  bridgeSecret: string;
+  apiKey: string;
   rtspUrl: string;
   agentDownloadUrl: string;
   configUrl: string;
@@ -232,9 +232,14 @@ export default function StepThreeConnection() {
 
       setIsCreatingBridge(true);
       try {
+        const idToken = await user.getIdToken();
+
         const response = await fetch("/api/bridges/create", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${idToken}`,
+          },
           body: JSON.stringify({
             host: trimmedHost,
             port: portNumber,
@@ -254,16 +259,20 @@ export default function StepThreeConnection() {
           !response.ok ||
           !data ||
           typeof data.bridgeId !== "string" ||
-          typeof data.agentDownloadUrl !== "string"
+          typeof data.agentDownloadUrl !== "string" ||
+          typeof data.apiKey !== "string"
         ) {
           throw new Error(errorMessage);
         }
 
-        const configUrl = `/api/bridges/${data.bridgeId}/config`;
+        const configUrl =
+          typeof data.configDownloadUrl === "string"
+            ? data.configDownloadUrl
+            : `/bridge-configs/${data.bridgeId}`;
 
         setBridgeResult({
           bridgeId: data.bridgeId,
-          bridgeSecret: data.bridgeSecret,
+          apiKey: data.apiKey,
           rtspUrl: data.rtspUrl,
           agentDownloadUrl: data.agentDownloadUrl,
           configUrl,
@@ -299,17 +308,52 @@ export default function StepThreeConnection() {
   };
 
   const handleDownloadConfig = (configUrl: string) => {
-    try {
-      const anchor = document.createElement("a");
-      anchor.href = configUrl;
-      anchor.download = "bridge-config.json";
-      anchor.style.display = "none";
-      document.body.appendChild(anchor);
-      anchor.click();
-      document.body.removeChild(anchor);
-    } catch (error) {
-      console.warn("Failed to trigger config download", error);
-    }
+    const runDownload = async () => {
+      if (!user) {
+        setBridgeError("Authentication is required to download the config file.");
+        toast({
+          variant: "destructive",
+          title: "Sign in required",
+          description: "Please sign in and try downloading the config again.",
+        });
+        return;
+      }
+
+      try {
+        const idToken = await user.getIdToken();
+        const response = await fetch(configUrl, {
+          headers: { Authorization: `Bearer ${idToken}` },
+        });
+
+        if (!response.ok) {
+          const payload = await response.json().catch(() => ({}));
+          const message =
+            (payload && typeof payload.error === "string" && payload.error) ||
+            "We couldn’t create the bridge config. Please try again later.";
+          throw new Error(message);
+        }
+
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = "agent-config.json";
+        anchor.style.display = "none";
+        document.body.appendChild(anchor);
+        anchor.click();
+        document.body.removeChild(anchor);
+        URL.revokeObjectURL(url);
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : "We couldn’t create the bridge config. Please try again later.";
+        setBridgeError(message);
+        toast({ variant: "destructive", title: "Download failed", description: message });
+      }
+    };
+
+    void runDownload();
   };
 
   if (state.cameraType === "cloud") {
@@ -630,42 +674,44 @@ export default function StepThreeConnection() {
         )}
 
         {bridgeResult && (
-          <div className="space-y-4 rounded-lg border border-primary/40 bg-primary/5 p-4">
-            <div className="flex items-center gap-2 text-sm font-semibold text-green-700">
-              <CheckCircle className="h-4 w-4" />
-              Bridge created successfully
-            </div>
-            <div className="space-y-1 text-sm text-muted-foreground">
-              <p>Step 1: Download the Windows bridge agent.</p>
-              <p>Step 2: Run it on the same PC/network as your camera.</p>
-              <p>Step 3: Keep it running; it will send your camera feed securely to BERRETO / DIFAE.</p>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              <Button asChild size="lg">
-                <a href={bridgeResult.agentDownloadUrl} download>
+            <div className="space-y-4 rounded-lg border border-primary/40 bg-primary/5 p-4">
+              <div className="flex items-center gap-2 text-sm font-semibold text-green-700">
+                <CheckCircle className="h-4 w-4" />
+                Bridge created successfully
+              </div>
+              <div className="space-y-1 text-sm text-muted-foreground">
+                <p>Step 1: Download the DIFAE Windows bridge agent.</p>
+                <p>Step 2: Download agent-config.json and place it beside the .exe.</p>
+                <p>Step 3: Run the agent; it will connect and forward your camera to the cloud.</p>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <Button asChild size="lg">
+                  <a href={bridgeResult.agentDownloadUrl}>
+                    <Download className="mr-2 h-4 w-4" />
+                    Download Windows Agent
+                  </a>
+                </Button>
+                <Button
+                  type="button"
+                  size="lg"
+                  variant="outline"
+                  onClick={() => handleDownloadConfig(bridgeResult.configUrl)}
+                >
                   <Download className="mr-2 h-4 w-4" />
-                  Download Agent
-                </a>
-              </Button>
-              <Button
-                type="button"
-                size="lg"
-                variant="outline"
-                onClick={() => handleDownloadConfig(bridgeResult.configUrl)}
-              >
-                <Download className="mr-2 h-4 w-4" />
-                Download Config
-              </Button>
+                  Download Agent Config
+                </Button>
+              </div>
+              <div className="rounded-md border bg-white/80 p-3 text-sm shadow-sm">
+                <p className="font-semibold">Bridge details</p>
+                <p className="mt-2 text-xs text-muted-foreground">Bridge ID</p>
+                <p className="font-mono text-xs break-all">{bridgeResult.bridgeId}</p>
+                <p className="mt-3 text-xs text-muted-foreground">API Key</p>
+                <p className="font-mono text-xs break-all">{bridgeResult.apiKey}</p>
+                <p className="mt-3 text-xs text-muted-foreground">Generated RTSP URL</p>
+                <p className="font-mono text-xs break-all">{bridgeResult.rtspUrl}</p>
+              </div>
             </div>
-            <div className="rounded-md border bg-white/80 p-3 text-sm shadow-sm">
-              <p className="font-semibold">Bridge details</p>
-              <p className="mt-2 text-xs text-muted-foreground">Bridge ID</p>
-              <p className="font-mono text-xs break-all">{bridgeResult.bridgeId}</p>
-              <p className="mt-3 text-xs text-muted-foreground">Generated RTSP URL</p>
-              <p className="font-mono text-xs break-all">{bridgeResult.rtspUrl}</p>
-            </div>
-          </div>
-        )}
+          )}
       </CardContent>
       <CardFooter className="flex justify-between">
         <Button variant="outline" onClick={() => dispatch({ type: "PREV_STEP" })}>
