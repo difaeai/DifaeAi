@@ -19,7 +19,10 @@ type BridgeResponse = {
   rtspUrl: string;
   agentDownloadUrl: string;
   configUrl: string;
+  backendUrl?: string;
 };
+
+const WINDOWS_AGENT_PLACEHOLDER = "https://difae.ai/downloads/difae-windows-agent.exe";
 
 export default function StepThreeConnection() {
   const { state, dispatch } = useWizard();
@@ -268,19 +271,20 @@ export default function StepThreeConnection() {
         const configUrl =
           typeof data.configDownloadUrl === "string"
             ? data.configDownloadUrl
-            : `/bridge-configs/${data.bridgeId}`;
+            : `/api/bridge-configs/${data.bridgeId}`;
 
         setBridgeResult({
           bridgeId: data.bridgeId,
           apiKey: data.apiKey,
           rtspUrl: data.rtspUrl,
-          agentDownloadUrl: data.agentDownloadUrl,
+          backendUrl: data.backendUrl,
+          agentDownloadUrl: data.agentDownloadUrl || WINDOWS_AGENT_PLACEHOLDER,
           configUrl,
         });
 
         dispatch({
           type: "SET_CONNECTION_DETAILS",
-          payload: { windowsAgentDownloadUrl: data.agentDownloadUrl },
+          payload: { windowsAgentDownloadUrl: data.agentDownloadUrl || WINDOWS_AGENT_PLACEHOLDER },
         });
 
         toast({

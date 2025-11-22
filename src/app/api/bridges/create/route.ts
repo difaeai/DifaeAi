@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { randomBytes } from "node:crypto";
 import { z } from "zod";
 import { buildBridgeRecord, getBridgeStore } from "@/lib/bridge-store";
+import { initFirebaseAdmin } from "@/lib/firebase-admin";
+import * as admin from "firebase-admin";
 
 const payloadSchema = z.object({
   host: z.string().min(1, "host is required"),
@@ -46,9 +48,26 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    let userId: string;
     const token = authHeader.slice("Bearer ".length);
-    userId = token; // token is trusted upstream by middleware / client SDK
+
+    try {
+      await initFirebaseAdmin();
+    } catch (error) {
+      console.warn("Firebase admin unavailable, falling back to opaque uid", error);
+    }
+
+    let userId: string;
+    if (admin.apps.length > 0) {
+      try {
+        const decoded = await admin.auth().verifyIdToken(token);
+        userId = decoded.uid;
+      } catch (error) {
+        console.error("Failed to verify auth token", error);
+        return NextResponse.json({ error: "Invalid or expired session." }, { status: 401 });
+      }
+    } else {
+      userId = token;
+    }
 
     const payload = parsedBody.data;
     const apiKey = randomBytes(32).toString("hex");
@@ -59,7 +78,7 @@ export async function POST(req: NextRequest) {
       req.nextUrl.origin;
     const agentDownloadUrl =
       process.env.NEXT_PUBLIC_WINDOWS_AGENT_URL ||
-      "https://myapp.com/downloads/difae-windows-agent.exe";
+      "https://difae.ai/downloads/difae-windows-agent.exe";
 
     const record = buildBridgeRecord({
       userId,
@@ -83,20 +102,21 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const configUrl = `/bridge-configs/${record.id}`;
+    const configUrl = `/api/bridge-configs/${record.id}`;
 
     return NextResponse.json({
       bridgeId: createdRecord.id,
       apiKey,
       rtspUrl,
+      backendUrl,
       agentDownloadUrl,
       configDownloadUrl: configUrl,
+      configDownloadPath: configUrl,
       config: {
         bridgeId: createdRecord.id,
         apiKey,
         rtspUrl,
         backendUrl,
-        cameraId: createdRecord.cameraId,
       },
     });
   } catch (error) {

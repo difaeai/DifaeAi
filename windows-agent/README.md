@@ -1,42 +1,44 @@
 # DIFAE Windows Agent
 
-A lightweight Windows bridge agent that reads a local `agent-config.json` file, connects to the DIFAE backend, opens the RTSP stream with `ffmpeg`, and pushes HLS playlists + TS segments to the bridge upload endpoints. Auto-reconnect/backoff is built in so the stream restarts if RTSP or network connectivity drops.
+A Windows helper that reads `agent-config.json`, opens your local RTSP stream with `ffmpeg`, converts it to HLS, and uploads the playlist + TS segments to the DIFAE backend. When the agent is running, you can view the stream from `/streams/<bridgeId>/index.m3u8`.
 
 ## Project layout
-- `cmd/agent/main.go` — entrypoint that loads configuration and coordinates the RTSP pipeline and uploader.
-- `internal/config` — config loader/validator for `agent-config.json`.
-- `internal/rtsp` — ffmpeg-based RTSP→HLS pipeline helper.
-- `internal/bridge` — uploader that mirrors the existing `bridge-api` protocol (`/api/bridge/upload` + `/api/bridge/upload-file`).
+- `cmd/agent/main.go` — program entrypoint that starts ffmpeg and coordinates uploads.
+- `internal/config` — loads and validates `agent-config.json` next to the executable.
+- `internal/logging` — simple logger setup.
+- `internal/uploader` — pushes the generated manifest and TS segments to the backend endpoints with retries.
 
 ## Configuration file
-Place `agent-config.json` next to the compiled `.exe` with the following shape:
+Place `agent-config.json` next to the compiled `.exe` with this structure:
+
 ```json
 {
   "bridgeId": "<bridge-id>",
-  "apiKey": "<api-key>",
+  "apiKey": "<bridge-api-key>",
   "rtspUrl": "rtsp://username:password@host:port/Streaming/Channels/101",
-  "backendUrl": "https://api.myapp.com",
-  "cameraId": "<camera-id>"
+  "backendUrl": "https://api.your-host.com"
 }
 ```
 
+The agent logs `Agent started for bridge <bridgeId>.` once the config loads successfully.
+
 ## Building the Windows executable
-1. Install Go (1.21+).
-2. From the `windows-agent` directory, run:
-   ```bash
-   GOOS=windows GOARCH=amd64 go build -o dist/difae-windows-agent.exe ./cmd/agent
-   ```
-3. Copy `agent-config.json` next to the generated `difae-windows-agent.exe` before running it.
-4. Ensure `ffmpeg` is on your `PATH` (the agent shell-executes it to produce HLS segments).
+Build on your own machine (the backend must not compile binaries at runtime):
 
-### Running the agent
+```bash
+GOOS=windows GOARCH=amd64 go build -o dist/difae-agent.exe ./cmd/agent
+```
 
-1. Place `difae-windows-agent.exe` and `agent-config.json` in the same folder.
-2. Double-click the executable or run it from a terminal. You should see logs similar to:
-   - `Agent started`
-   - `Loaded bridge <id>`
-   - `Streaming RTSP ... -> backend ...`
-   - `Uploaded playlist ... / Uploaded segment ...`
-3. The backend will expose the stream at `/api/bridge/stream/<bridgeId>/<cameraId>/playlist.m3u8`.
+Make sure `ffmpeg` is installed and on your `PATH` before running the agent.
 
-> **Important:** Do **not** commit compiled binaries to the repository. Build the `.exe` on your own machine following the steps above.
+## Running
+
+1. Copy `dist/difae-agent.exe` and `agent-config.json` into the same folder.
+2. Double-click the executable or run it from PowerShell/cmd.
+3. The agent will:
+   - Start ffmpeg with your RTSP URL.
+   - Write HLS output under your temp directory.
+   - Upload `index.m3u8` and each `.ts` file to `/api/bridge-upload/manifest` and `/api/bridge-upload/segment` with your `X-Bridge-Id` and `X-Bridge-Key` headers.
+4. Visit `/streams/<bridgeId>/index.m3u8` (or the React viewer at `/bridges/<bridgeId>/view`) to watch the live feed.
+
+> **Important:** Do **not** commit compiled binaries. Build on your Windows machine only.
