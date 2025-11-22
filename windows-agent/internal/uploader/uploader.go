@@ -16,19 +16,19 @@ import (
 
 // Uploader pushes manifest + HLS segments to the backend.
 type Uploader struct {
-	backendURL string
-	bridgeID   string
-	apiKey     string
-	client     *http.Client
-	logger     *log.Logger
+	uploadBaseURL string
+	bridgeID      string
+	apiKey        string
+	client        *http.Client
+	logger        *log.Logger
 }
 
-func New(backendURL, bridgeID, apiKey string, logger *log.Logger) *Uploader {
+func New(uploadBaseURL, bridgeID, apiKey string, logger *log.Logger) *Uploader {
 	return &Uploader{
-		backendURL: strings.TrimRight(backendURL, "/"),
-		bridgeID:   bridgeID,
-		apiKey:     apiKey,
-		logger:     logger,
+		uploadBaseURL: strings.TrimRight(uploadBaseURL, "/"),
+		bridgeID:      bridgeID,
+		apiKey:        apiKey,
+		logger:        logger,
 		client: &http.Client{
 			Timeout: 20 * time.Second,
 		},
@@ -117,7 +117,7 @@ func (u *Uploader) MonitorOutput(ctx context.Context, outputDir string) {
 }
 
 func (u *Uploader) UploadManifest(ctx context.Context, data []byte) error {
-	endpoint := fmt.Sprintf("%s/api/bridges/%s/upload-manifest", u.backendURL, u.bridgeID)
+	endpoint := fmt.Sprintf("%s/api/bridges/%s/upload-manifest", u.uploadBaseURL, u.bridgeID)
 	return u.doWithRetry(ctx, func() (*http.Request, error) {
 		req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(data))
 		if err != nil {
@@ -131,7 +131,7 @@ func (u *Uploader) UploadManifest(ctx context.Context, data []byte) error {
 }
 
 func (u *Uploader) UploadSegment(ctx context.Context, name string, data []byte) error {
-	endpoint := fmt.Sprintf("%s/api/bridges/%s/upload-segment", u.backendURL, u.bridgeID)
+	endpoint := fmt.Sprintf("%s/api/bridges/%s/upload-segment", u.uploadBaseURL, u.bridgeID)
 	return u.doWithRetry(ctx, func() (*http.Request, error) {
 		body := &bytes.Buffer{}
 		writer := multipart.NewWriter(body)

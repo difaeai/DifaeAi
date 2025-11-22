@@ -62,7 +62,7 @@ type BridgeConfig = {
   apiKey: string;
   rtspUrl: string;
   backendUrl: string;
-  configUrl: string;
+  pairCode: string;
 };
 
 const DEFAULT_WINDOWS_AGENT_FORM = {
@@ -596,32 +596,34 @@ export default function ConnectCameraPage() {
           ? data.error
           : "We couldn’t create the bridge. Please check your camera details and try again.";
 
-      if (!response.ok || !data || typeof data.bridgeId !== "string" || typeof data.apiKey !== "string") {
+      if (
+        !response.ok ||
+        !data ||
+        typeof data.bridgeId !== "string" ||
+        typeof data.apiKey !== "string" ||
+        typeof data.pairCode !== "string"
+      ) {
         throw new Error(serverMessage);
       }
 
-      const configUrl =
-        typeof data.configDownloadUrl === "string"
-          ? data.configDownloadUrl
-          : typeof data.configDownloadPath === "string"
-            ? data.configDownloadPath
-            : `/api/bridges/${data.bridgeId}/config`;
+      const agentDownload =
+        typeof data.agentDownloadUrl === "string" && data.agentDownloadUrl
+          ? data.agentDownloadUrl
+          : process.env.NEXT_PUBLIC_WINDOWS_AGENT_URL || "";
 
-      setAgentDownloadUrl(data.agentDownloadUrl || "");
+      setAgentDownloadUrl(agentDownload);
       setBridgeConfig({
         bridgeId: data.bridgeId,
         apiKey: data.apiKey,
         rtspUrl: data.rtspUrl,
         backendUrl:
-          (data.config && typeof data.config.backendUrl === "string"
-            ? data.config.backendUrl
-            : "") || "",
-        configUrl,
+          (typeof data.backendUrl === "string" ? data.backendUrl : "") || "",
+        pairCode: data.pairCode,
       });
 
       toast({
         title: "Windows Agent Ready",
-        description: "Download the bridge agent and config for this camera.",
+        description: "Download the bridge agent and use the pairing code to start streaming from this camera.",
       });
     } catch (error) {
       const message =
@@ -637,57 +639,6 @@ export default function ConnectCameraPage() {
     } finally {
       setIsGeneratingAgent(false);
     }
-  };
-
-  const handleDownloadBridgeConfig = () => {
-    if (!bridgeConfig) return;
-
-    const runDownload = async () => {
-      if (!user) {
-        setAgentError("Authentication is required to download the agent config.");
-        toast({
-          variant: "destructive",
-          title: "Sign in required",
-          description: "Sign in to download the bridge config.",
-        });
-        return;
-      }
-
-      try {
-        const idToken = await user.getIdToken();
-        const response = await fetch(bridgeConfig.configUrl, {
-          headers: { Authorization: `Bearer ${idToken}` },
-        });
-
-        if (!response.ok) {
-          const payload = await response.json().catch(() => ({}));
-          const message =
-            (payload && typeof payload.error === "string" && payload.error) ||
-            "We couldn’t create the bridge config. Please try again later.";
-          throw new Error(message);
-        }
-
-        const blob = await response.blob();
-        const url = URL.createObjectURL(blob);
-        const anchor = document.createElement("a");
-        anchor.href = url;
-        anchor.download = "agent-config.json";
-        anchor.style.display = "none";
-        document.body.appendChild(anchor);
-        anchor.click();
-        document.body.removeChild(anchor);
-        URL.revokeObjectURL(url);
-      } catch (error) {
-        const message =
-          error instanceof Error
-            ? error.message
-            : "We couldn’t create the bridge config. Please try again later.";
-        setAgentError(message);
-        toast({ variant: "destructive", title: "Download failed", description: message });
-      }
-    };
-
-    void runDownload();
   };
 
   const handleAddCamera = async (e: React.FormEvent) => {
@@ -1383,8 +1334,8 @@ export default function ConnectCameraPage() {
                       </h3>
                       <p className="text-sm text-muted-foreground">
                         Enter your camera details to create a bridge record. We
-                        will provide a pre-built Windows agent and a
-                        bridge-config.json file tailored to this camera.
+                        will provide a pre-built Windows agent and a pairing
+                        code tailored to this camera.
                       </p>
                       <p className="text-xs text-muted-foreground">
                         Run the agent on a Windows PC on the same network and
@@ -1399,10 +1350,10 @@ export default function ConnectCameraPage() {
                           Windows bridge agent ready to download
                         </div>
                         <p className="text-sm text-muted-foreground">
-                          Step 1: Download the DIFAE Windows agent. Step 2:
-                          Download agent-config.json and place it in the same
-                          folder. Step 3: Run the agent on a PC that shares the
-                          camera's network.
+                          Step 1: Download the DIFAE Windows agent. Step 2: Run
+                          the agent and enter the pairing code below. Step 3:
+                          The agent will connect and start streaming from this
+                          camera.
                         </p>
                         <div className="flex flex-wrap gap-3">
                           <Button asChild size="lg">
@@ -1410,16 +1361,6 @@ export default function ConnectCameraPage() {
                               <Download className="mr-2 h-4 w-4" />
                               Download Windows Agent
                             </a>
-                          </Button>
-                          <Button
-                            type="button"
-                            size="lg"
-                            variant="outline"
-                            disabled={!bridgeConfig}
-                            onClick={handleDownloadBridgeConfig}
-                          >
-                            <Download className="mr-2 h-4 w-4" />
-                            Download Agent Config
                           </Button>
                           <Button
                             type="button"
@@ -1434,20 +1375,30 @@ export default function ConnectCameraPage() {
                           </Button>
                         </div>
                         {bridgeConfig && (
-                          <div className="rounded-md bg-white/80 p-3 text-sm shadow-sm">
-                            <p className="font-semibold">Bridge details</p>
-                            <p className="mt-2 text-xs text-muted-foreground">Bridge ID</p>
-                            <p className="font-mono text-xs break-all">
-                              {bridgeConfig.bridgeId}
-                            </p>
-                            <p className="mt-3 text-xs text-muted-foreground">API Key</p>
-                            <p className="font-mono text-xs break-all">
-                              {bridgeConfig.apiKey}
-                            </p>
-                            <p className="mt-3 text-xs text-muted-foreground">Generated RTSP URL</p>
-                            <p className="font-mono text-xs break-all">
-                              {bridgeConfig.rtspUrl}
-                            </p>
+                          <div className="space-y-3">
+                            <div className="rounded-md border border-dashed bg-white/90 p-4 shadow-sm">
+                              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                Pair code
+                              </p>
+                              <p className="mt-2 font-mono text-3xl font-bold tracking-widest text-primary">
+                                {bridgeConfig.pairCode}
+                              </p>
+                            </div>
+                            <div className="rounded-md bg-white/80 p-3 text-sm shadow-sm">
+                              <p className="font-semibold">Bridge details</p>
+                              <p className="mt-2 text-xs text-muted-foreground">Bridge ID</p>
+                              <p className="font-mono text-xs break-all">
+                                {bridgeConfig.bridgeId}
+                              </p>
+                              <p className="mt-3 text-xs text-muted-foreground">API Key</p>
+                              <p className="font-mono text-xs break-all">
+                                {bridgeConfig.apiKey}
+                              </p>
+                              <p className="mt-3 text-xs text-muted-foreground">Generated RTSP URL</p>
+                              <p className="font-mono text-xs break-all">
+                                {bridgeConfig.rtspUrl}
+                              </p>
+                            </div>
                           </div>
                         )}
                       </div>
