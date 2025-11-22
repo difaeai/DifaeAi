@@ -224,9 +224,9 @@ export default function StepFourTest({ onComplete }: StepFourTestProps) {
     if (state.cameraType === "ip" && !state.windowsAgentDownloadUrl) {
       toast({
         variant: "destructive",
-        title: "Generate the Windows agent",
+        title: "Generate the Windows bridge download",
         description:
-          "Go back to Step 3 and generate the Windows background agent before finishing the setup.",
+          "Go back to Step 3 to create the bridge and download the Windows agent plus config before finishing the setup.",
       });
       return;
     }
@@ -240,15 +240,15 @@ export default function StepFourTest({ onComplete }: StepFourTestProps) {
       if (state.cameraType === "ip") {
         if (didStartDownload) {
           toast({
-            title: "Windows agent download started",
+            title: "Windows bridge agent download started",
             description:
-              "Save and run the downloaded agent on a Windows PC that shares the camera's network to keep the feed online.",
+              "Save the agent and config from Step 3, then run them on a Windows PC that shares the camera's network to keep the feed online.",
           });
         } else {
           toast({
             variant: "destructive",
-            title: "Unable to download Windows agent",
-            description: "We couldn't start the download automatically. Use the download link in Step 4 to get the file.",
+            title: "Unable to start Windows agent download",
+            description: "We couldn't start the download automatically. Use the download link in Step 3 to get the file.",
           });
         }
       }
@@ -271,10 +271,10 @@ export default function StepFourTest({ onComplete }: StepFourTestProps) {
         {state.cameraType === "ip" && (
           <Alert className="border-primary/40 bg-primary/5">
             <Download className="h-4 w-4 text-primary" />
-            <AlertTitle>Windows background agent</AlertTitle>
+            <AlertTitle>Windows bridge agent</AlertTitle>
             <AlertDescription>
-              Run the generated Windows service on a PC that shares the camera's network so the stream keeps relaying to
-              BERRETO.
+              Download the Windows agent and bridge-config.json from Step 3, then run them on a PC that shares the camera's
+              network so the stream keeps relaying to BERRETO.
             </AlertDescription>
             {state.windowsAgentDownloadUrl ? (
               <div className="mt-3 flex flex-wrap items-center gap-3">
@@ -285,12 +285,12 @@ export default function StepFourTest({ onComplete }: StepFourTestProps) {
                   </a>
                 </Button>
                 <p className="text-xs text-muted-foreground">
-                  You only need to run it once. It installs as a service and restarts automatically with Windows.
+                  Keep the agent next to bridge-config.json. Run it once and keep it running to relay the feed.
                 </p>
               </div>
             ) : (
               <p className="mt-3 text-xs text-primary">
-                Go back to Step 3 to generate and download your customized agent before finalizing setup.
+                Go back to Step 3 to create and download your bridge agent before finalizing setup.
               </p>
             )}
           </Alert>

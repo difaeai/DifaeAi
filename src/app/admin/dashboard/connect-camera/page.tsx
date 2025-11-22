@@ -57,8 +57,13 @@ import LivePreviewPlayer from "@/components/live-preview-player";
 import MjpegPreview from "@/components/mjpeg-preview";
 import { CameraType, testCameraConnection } from "@/lib/camera-connect";
 import { useAuth } from "@/hooks/use-auth";
-import { isWindowsAgentErrorCode } from "@/lib/windows-agent/errors";
-import { getWindowsAgentErrorMessage } from "@/lib/windows-agent/messages";
+type BridgeConfig = {
+  bridgeId: string;
+  bridgeSecret: string;
+  rtspUrl: string;
+  apiBaseUrl: string;
+  configUrl: string;
+};
 
 const DEFAULT_WINDOWS_AGENT_FORM = {
   cameraName: "",
@@ -115,6 +120,7 @@ export default function ConnectCameraPage() {
   const [isGeneratingAgent, setIsGeneratingAgent] = useState(false);
   const [agentDownloadUrl, setAgentDownloadUrl] = useState<string | null>(null);
   const [agentError, setAgentError] = useState<string | null>(null);
+  const [bridgeConfig, setBridgeConfig] = useState<BridgeConfig | null>(null);
 
   const [previewRtspUrl, setPreviewRtspUrl] = useState<string>("");
   const [previewCandidates, setPreviewCandidates] = useState<string[]>([]);
@@ -200,6 +206,7 @@ export default function ConnectCameraPage() {
     if (cameraType !== "ip") {
       setAgentForm({ ...DEFAULT_WINDOWS_AGENT_FORM });
       setAgentDownloadUrl(null);
+      setBridgeConfig(null);
       setAgentError(null);
       setIsGeneratingAgent(false);
     }
@@ -475,7 +482,7 @@ export default function ConnectCameraPage() {
     if (cameraType !== "ip") return;
 
     if (!user?.uid) {
-      const message = "You must be signed in to generate the Windows agent.";
+      const message = "You must be signed in to create the bridge.";
       setAgentError(message);
       toast({
         variant: "destructive",
@@ -562,53 +569,58 @@ export default function ConnectCameraPage() {
 
     setAgentError(null);
     setAgentDownloadUrl(null);
+    setBridgeConfig(null);
     setIsGeneratingAgent(true);
 
     try {
-      const payload: Record<string, unknown> = {
-        userId: user.uid,
-        ipAddress: trimmedIp,
-        username: trimmedUsername,
-        password: agentForm.password,
-        rtspPort: portNumber,
-        rtspPath: normalizedPath,
-      };
-
-      const trimmedCameraName = agentForm.cameraName.trim();
-      if (trimmedCameraName) {
-        payload.cameraName = trimmedCameraName;
-      }
-
-      const response = await fetch("/api/ip-camera/windows-agent", {
+      const response = await fetch("/api/bridges/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          host: trimmedIp,
+          port: portNumber,
+          username: trimmedUsername,
+          password: agentForm.password,
+          streamPath: normalizedPath,
+        }),
       });
 
       const data = await response.json().catch(() => null);
       const serverMessage =
-        data && typeof data.error === "string" ? data.error : undefined;
-      const serverCode =
-        data && isWindowsAgentErrorCode(data.code) ? data.code : undefined;
+        data && typeof data.error === "string"
+          ? data.error
+          : "We couldn’t create the bridge. Please check your camera details and try again.";
 
-      if (!response.ok || !data || typeof data.downloadUrl !== "string") {
-        const message = serverCode
-          ? getWindowsAgentErrorMessage(serverCode, serverMessage)
-          : serverMessage ||
-            "Failed to generate the Windows agent. Please try again.";
-        throw new Error(message);
+      if (
+        !response.ok ||
+        !data ||
+        typeof data.agentDownloadUrl !== "string" ||
+        typeof data.bridgeId !== "string"
+      ) {
+        throw new Error(serverMessage);
       }
 
-      setAgentDownloadUrl(data.downloadUrl);
+      setAgentDownloadUrl(data.agentDownloadUrl);
+      setBridgeConfig({
+        bridgeId: data.bridgeId,
+        bridgeSecret: data.bridgeSecret,
+        rtspUrl: data.rtspUrl,
+        apiBaseUrl:
+          (data.config && typeof data.config.apiBaseUrl === "string"
+            ? data.config.apiBaseUrl
+            : "") || "",
+        configUrl: `/api/bridges/${data.bridgeId}/config`,
+      });
+
       toast({
         title: "Windows Agent Ready",
-        description: "Download the customized agent for this camera.",
+        description: "Download the bridge agent and config for this camera.",
       });
     } catch (error) {
       const message =
         error instanceof Error
           ? error.message
-          : "Failed to generate the Windows agent. Please try again.";
+          : "We couldn’t create the bridge. Please check your camera details and try again.";
       setAgentError(message);
       toast({
         variant: "destructive",
@@ -617,6 +629,22 @@ export default function ConnectCameraPage() {
       });
     } finally {
       setIsGeneratingAgent(false);
+    }
+  };
+
+  const handleDownloadBridgeConfig = () => {
+    if (!bridgeConfig) return;
+
+    try {
+      const anchor = document.createElement("a");
+      anchor.href = bridgeConfig.configUrl;
+      anchor.download = "bridge-config.json";
+      anchor.style.display = "none";
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+    } catch (error) {
+      console.warn("Failed to download bridge config", error);
     }
   };
 
@@ -1309,18 +1337,16 @@ export default function ConnectCameraPage() {
                   <div className="w-full space-y-4">
                     <div className="space-y-1">
                       <h3 className="font-semibold">
-                        Step 6: Configure Windows Agent
+                        Step 6: Configure Windows Bridge Agent
                       </h3>
                       <p className="text-sm text-muted-foreground">
-                        Before you download the agent, please enter your camera
-                        details. We will generate a Windows 10/11 x64 zip
-                        package configured only for your camera. Extract it on a
-                        Windows PC on the same local network and run the
-                        included executable.
+                        Enter your camera details to create a bridge record. We
+                        will provide a pre-built Windows agent and a
+                        bridge-config.json file tailored to this camera.
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        The agent runs silently in the background and
-                        automatically starts with Windows.
+                        Run the agent on a Windows PC on the same network and
+                        keep it running to relay the feed securely.
                       </p>
                     </div>
 
@@ -1328,21 +1354,29 @@ export default function ConnectCameraPage() {
                       <div className="space-y-3 rounded-lg border border-primary/40 bg-primary/5 p-4">
                         <div className="flex items-center gap-2 text-sm font-semibold">
                           <CheckCircle className="h-4 w-4 text-green-600" />
-                          Windows agent ready to download
+                          Windows bridge agent ready to download
                         </div>
                         <p className="text-sm text-muted-foreground">
-                          Download the zip, extract it on a Windows PC that is
-                          on the same network as your camera, then run
-                          <code className="mx-1 font-mono">WindowsCameraBridge.exe</code>.
-                          After the first launch it registers itself to run in
-                          the background automatically.
+                          Step 1: Download the Windows agent. Step 2: Download
+                          the config file. Step 3: Run them together on a PC
+                          that shares the camera's network.
                         </p>
                         <div className="flex flex-wrap gap-3">
                           <Button asChild size="lg">
                             <a href={agentDownloadUrl} download>
                               <Download className="mr-2 h-4 w-4" />
-                              Download Windows Agent (zip)
+                              Download Windows Agent
                             </a>
+                          </Button>
+                          <Button
+                            type="button"
+                            size="lg"
+                            variant="outline"
+                            disabled={!bridgeConfig}
+                            onClick={handleDownloadBridgeConfig}
+                          >
+                            <Download className="mr-2 h-4 w-4" />
+                            Download Config
                           </Button>
                           <Button
                             type="button"
@@ -1350,11 +1384,25 @@ export default function ConnectCameraPage() {
                             onClick={() => {
                               setAgentError(null);
                               setAgentDownloadUrl(null);
+                              setBridgeConfig(null);
                             }}
                           >
                             Generate again
                           </Button>
                         </div>
+                        {bridgeConfig && (
+                          <div className="rounded-md bg-white/80 p-3 text-sm shadow-sm">
+                            <p className="font-semibold">Bridge details</p>
+                            <p className="mt-2 text-xs text-muted-foreground">Bridge ID</p>
+                            <p className="font-mono text-xs break-all">
+                              {bridgeConfig.bridgeId}
+                            </p>
+                            <p className="mt-3 text-xs text-muted-foreground">Generated RTSP URL</p>
+                            <p className="font-mono text-xs break-all">
+                              {bridgeConfig.rtspUrl}
+                            </p>
+                          </div>
+                        )}
                       </div>
                     ) : (
                       <div className="space-y-4">
@@ -1374,6 +1422,8 @@ export default function ConnectCameraPage() {
                                   cameraName: event.target.value,
                                 }));
                                 setAgentError(null);
+                                setAgentDownloadUrl(null);
+                                setBridgeConfig(null);
                               }}
                             />
                           </div>
@@ -1392,6 +1442,8 @@ export default function ConnectCameraPage() {
                                   ipAddress: event.target.value,
                                 }));
                                 setAgentError(null);
+                                setAgentDownloadUrl(null);
+                                setBridgeConfig(null);
                               }}
                             />
                           </div>
@@ -1413,6 +1465,8 @@ export default function ConnectCameraPage() {
                                   username: event.target.value,
                                 }));
                                 setAgentError(null);
+                                setAgentDownloadUrl(null);
+                                setBridgeConfig(null);
                               }}
                             />
                           </div>
@@ -1432,6 +1486,8 @@ export default function ConnectCameraPage() {
                                   password: event.target.value,
                                 }));
                                 setAgentError(null);
+                                setAgentDownloadUrl(null);
+                                setBridgeConfig(null);
                               }}
                             />
                           </div>
@@ -1461,6 +1517,8 @@ export default function ConnectCameraPage() {
                                         rtspPort: event.target.value,
                                       }));
                                       setAgentError(null);
+                                      setAgentDownloadUrl(null);
+                                      setBridgeConfig(null);
                                     }}
                                   />
                                 </div>
@@ -1479,6 +1537,8 @@ export default function ConnectCameraPage() {
                                         rtspPath: event.target.value,
                                       }));
                                       setAgentError(null);
+                                      setAgentDownloadUrl(null);
+                                      setBridgeConfig(null);
                                     }}
                                   />
                                 </div>

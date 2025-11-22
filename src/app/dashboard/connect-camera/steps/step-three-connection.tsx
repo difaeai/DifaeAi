@@ -7,20 +7,27 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Download, Info, KeyRound, Laptop, Loader2, Network } from "lucide-react";
+import { CheckCircle, Download, Info, KeyRound, Laptop, Loader2, Network } from "lucide-react";
 import { useWizard } from "../wizard-context";
 import { useToast } from "@/hooks/use-toast";
 import { isValidIPv4 } from "@/lib/network/ip";
 import { useAuth } from "@/hooks/use-auth";
-import { isWindowsAgentErrorCode } from "@/lib/windows-agent/errors";
-import { getWindowsAgentErrorMessage } from "@/lib/windows-agent/messages";
+
+type BridgeResponse = {
+  bridgeId: string;
+  bridgeSecret: string;
+  rtspUrl: string;
+  agentDownloadUrl: string;
+  configUrl: string;
+};
 
 export default function StepThreeConnection() {
   const { state, dispatch } = useWizard();
   const { toast } = useToast();
   const { user } = useAuth();
-  const [isGeneratingAgent, setIsGeneratingAgent] = useState(false);
-  const [agentError, setAgentError] = useState<string | null>(null);
+  const [isCreatingBridge, setIsCreatingBridge] = useState(false);
+  const [bridgeError, setBridgeError] = useState<string | null>(null);
+  const [bridgeResult, setBridgeResult] = useState<BridgeResponse | null>(null);
   const isLocalRunner = state.connectionMode === "localRunner";
 
   const handleNext = () => {
@@ -29,7 +36,8 @@ export default function StepThreeConnection() {
 
   const handleConnectionModeChange = (value: string) => {
     const mode = value === "localRunner" ? "localRunner" : "standard";
-    setAgentError(null);
+    setBridgeError(null);
+    setBridgeResult(null);
     dispatch({
       type: "SET_CONNECTION_DETAILS",
       payload: { connectionMode: mode, windowsAgentDownloadUrl: "" },
@@ -145,7 +153,8 @@ export default function StepThreeConnection() {
   ]);
 
   const handleAddConnection = async () => {
-    setAgentError(null);
+    setBridgeError(null);
+    setBridgeResult(null);
 
     const trimmedHost = rtspHost.trim();
     if (!trimmedHost) {
@@ -155,7 +164,7 @@ export default function StepThreeConnection() {
         title: "Local IP Required",
         description,
       });
-      setAgentError(description);
+      setBridgeError(description);
       return;
     }
 
@@ -166,7 +175,7 @@ export default function StepThreeConnection() {
         title: "Invalid IP",
         description,
       });
-      setAgentError(description);
+      setBridgeError(description);
       return;
     }
 
@@ -174,13 +183,13 @@ export default function StepThreeConnection() {
     const password = state.streamPass?.trim();
 
     if (!username || !password) {
-      const description = "Enter the camera username and password so we can embed them into the agent.";
+      const description = "Enter the camera username and password so we can include them in your bridge config.";
       toast({
         variant: "destructive",
         title: "Credentials Required",
         description,
       });
-      setAgentError(description);
+      setBridgeError(description);
       return;
     }
 
@@ -193,7 +202,7 @@ export default function StepThreeConnection() {
         title: "Invalid Port",
         description,
       });
-      setAgentError(description);
+      setBridgeError(description);
       return;
     }
 
@@ -211,90 +220,96 @@ export default function StepThreeConnection() {
 
     if (state.cameraType === "ip") {
       if (!user?.uid) {
-        const description = "Sign in before generating the Windows agent.";
+        const description = "Sign in before creating the bridge.";
         toast({
           variant: "destructive",
           title: "Authentication Required",
           description,
         });
-        setAgentError(description);
+        setBridgeError(description);
         return;
       }
 
-      setIsGeneratingAgent(true);
+      setIsCreatingBridge(true);
       try {
-        const payload: Record<string, unknown> = {
-          userId: user.uid,
-          cameraName: state.cameraName?.trim() || undefined,
-          ipAddress: trimmedHost,
-          username,
-          password,
-          rtspPort: portNumber,
-          rtspPath: finalPath,
-        };
-
-        const response = await fetch("/api/ip-camera/windows-agent", {
+        const response = await fetch("/api/bridges/create", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
+          body: JSON.stringify({
+            host: trimmedHost,
+            port: portNumber,
+            username,
+            password,
+            streamPath: finalPath,
+          }),
         });
 
         const data = await response.json().catch(() => null);
-        const serverMessage =
-          data && typeof data.error === "string" ? data.error : undefined;
-        const serverCode =
-          data && isWindowsAgentErrorCode(data.code) ? data.code : undefined;
+        const errorMessage =
+          data && typeof data.error === "string"
+            ? data.error
+            : "We couldn’t create the bridge. Please check your camera details and try again.";
 
-        if (!response.ok || !data || typeof data.downloadUrl !== "string") {
-          const message = serverCode
-            ? getWindowsAgentErrorMessage(serverCode, serverMessage)
-            : serverMessage ||
-              "Failed to generate the Windows agent. Please try again.";
-          throw new Error(message);
+        if (
+          !response.ok ||
+          !data ||
+          typeof data.bridgeId !== "string" ||
+          typeof data.agentDownloadUrl !== "string"
+        ) {
+          throw new Error(errorMessage);
         }
 
-        const downloadUrl = data.downloadUrl as string;
-        dispatch({
-          type: "SET_CONNECTION_DETAILS",
-          payload: { windowsAgentDownloadUrl: downloadUrl },
+        const configUrl = `/api/bridges/${data.bridgeId}/config`;
+
+        setBridgeResult({
+          bridgeId: data.bridgeId,
+          bridgeSecret: data.bridgeSecret,
+          rtspUrl: data.rtspUrl,
+          agentDownloadUrl: data.agentDownloadUrl,
+          configUrl,
         });
 
-        try {
-          const anchor = document.createElement("a");
-          anchor.href = downloadUrl;
-          anchor.download = "difae-bridge-agent.zip";
-          anchor.style.display = "none";
-          document.body.appendChild(anchor);
-          anchor.click();
-          document.body.removeChild(anchor);
-        } catch (error) {
-          console.warn("automatic download failed", error);
-        }
+        dispatch({
+          type: "SET_CONNECTION_DETAILS",
+          payload: { windowsAgentDownloadUrl: data.agentDownloadUrl },
+        });
 
         toast({
-          title: "Windows agent ready",
+          title: "Bridge created",
           description:
-            "Download started. Extract the zip and run WindowsCameraBridge.exe on a Windows PC that shares the camera's network.",
+            "Download the Windows agent and config file to start streaming to BERRETO.",
         });
       } catch (error) {
         const message =
           error instanceof Error
             ? error.message
-            : "Failed to generate the Windows agent. Please try again.";
-        setAgentError(message);
+            : "We couldn’t create the bridge. Please check your camera details and try again.";
+        setBridgeError(message);
         toast({
           variant: "destructive",
-          title: "Agent generation failed",
+          title: "Bridge setup failed",
           description: message,
         });
-        setIsGeneratingAgent(false);
+        setIsCreatingBridge(false);
         return;
       }
 
-      setIsGeneratingAgent(false);
+      setIsCreatingBridge(false);
     }
+  };
 
-    handleNext();
+  const handleDownloadConfig = (configUrl: string) => {
+    try {
+      const anchor = document.createElement("a");
+      anchor.href = configUrl;
+      anchor.download = "bridge-config.json";
+      anchor.style.display = "none";
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+    } catch (error) {
+      console.warn("Failed to trigger config download", error);
+    }
   };
 
   if (state.cameraType === "cloud") {
@@ -367,7 +382,7 @@ export default function StepThreeConnection() {
           <Info className="h-4 w-4" />
           <AlertTitle>Use a direct RTSP stream</AlertTitle>
           <AlertDescription>
-            We'll help you build the correct RTSP address. Start with the camera's local IP, then supply the username, password, and port. We'll embed these details into a Windows background agent so it can relay the video to BERRETO automatically.
+            We'll help you build the correct RTSP address. Start with the camera's local IP, then supply the username, password, and port. We'll create a bridge record and give you a Windows agent plus a config file to forward the feed to BERRETO.
           </AlertDescription>
         </Alert>
 
@@ -385,7 +400,7 @@ export default function StepThreeConnection() {
                 <div className="space-y-3">
                   <h3 className="font-semibold text-base">RTSP Stream Address</h3>
                   <p className="text-sm text-muted-foreground">
-                    Enter the local IP and credentials exactly as they work on your LAN. We'll package them into a Windows background service that forwards the video to BERRETO continuously.
+                    Enter the local IP and credentials exactly as they work on your LAN. We'll create a ready-to-run Windows bridge and config so it can forward the video to BERRETO continuously.
                   </p>
                   <div className="space-y-2">
                     <Label htmlFor="local-ip">Local IP Address *</Label>
@@ -395,7 +410,8 @@ export default function StepThreeConnection() {
                       placeholder="e.g., 192.168.1.88"
                       value={state.localIp}
                       onChange={(e) => {
-                        setAgentError(null);
+                        setBridgeError(null);
+                        setBridgeResult(null);
                         dispatch({
                           type: "SET_CONNECTION_DETAILS",
                           payload: {
@@ -421,7 +437,8 @@ export default function StepThreeConnection() {
                         placeholder="e.g., admin"
                         value={state.streamUser}
                         onChange={(e) => {
-                          setAgentError(null);
+                          setBridgeError(null);
+                          setBridgeResult(null);
                           dispatch({
                             type: "SET_CONNECTION_DETAILS",
                             payload: {
@@ -440,7 +457,8 @@ export default function StepThreeConnection() {
                         placeholder="••••••••"
                         value={state.streamPass}
                         onChange={(e) => {
-                          setAgentError(null);
+                          setBridgeError(null);
+                          setBridgeResult(null);
                           dispatch({
                             type: "SET_CONNECTION_DETAILS",
                             payload: {
@@ -459,7 +477,8 @@ export default function StepThreeConnection() {
                         placeholder="554"
                         value={state.streamPort}
                         onChange={(e) => {
-                          setAgentError(null);
+                          setBridgeError(null);
+                          setBridgeResult(null);
                           dispatch({
                             type: "SET_CONNECTION_DETAILS",
                             payload: {
@@ -478,7 +497,8 @@ export default function StepThreeConnection() {
                         placeholder="e.g., Streaming/Channels/101 or h264"
                         value={state.rtspPath}
                         onChange={(e) => {
-                          setAgentError(null);
+                          setBridgeError(null);
+                          setBridgeResult(null);
                           dispatch({
                             type: "SET_CONNECTION_DETAILS",
                             payload: {
@@ -494,7 +514,7 @@ export default function StepThreeConnection() {
                     </div>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    These credentials stay inside the generated agent—nothing extra to configure once it runs on Windows.
+                    These credentials only live in the generated config file—nothing extra to configure once it runs on Windows.
                   </p>
                 </div>
               </div>
@@ -520,7 +540,8 @@ export default function StepThreeConnection() {
                         placeholder="e.g., 192.168.18.130"
                         value={state.localIp}
                         onChange={(e) => {
-                          setAgentError(null);
+                          setBridgeError(null);
+                          setBridgeResult(null);
                           dispatch({
                             type: "SET_CONNECTION_DETAILS",
                             payload: {
@@ -544,7 +565,8 @@ export default function StepThreeConnection() {
                         placeholder="e.g., admin"
                         value={state.streamUser}
                         onChange={(e) => {
-                          setAgentError(null);
+                          setBridgeError(null);
+                          setBridgeResult(null);
                           dispatch({
                             type: "SET_CONNECTION_DETAILS",
                             payload: {
@@ -563,7 +585,8 @@ export default function StepThreeConnection() {
                         placeholder="••••••••"
                         value={state.streamPass}
                         onChange={(e) => {
-                          setAgentError(null);
+                          setBridgeError(null);
+                        setBridgeResult(null);
                           dispatch({
                             type: "SET_CONNECTION_DETAILS",
                             payload: {
@@ -606,24 +629,42 @@ export default function StepThreeConnection() {
           </div>
         )}
 
-        {state.windowsAgentDownloadUrl && (
-          <Alert className="border-primary/40 bg-primary/5">
-            <Download className="h-4 w-4" />
-            <AlertTitle>Windows agent generated</AlertTitle>
-            <AlertDescription>
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <span className="text-sm">
-                  Download the zip again if the automatic download didn’t start. Extract it on a Windows PC that can reach the
-                  camera, then run <code className="font-mono">WindowsCameraBridge.exe</code>.
-                </span>
-                <Button asChild size="sm" variant="secondary">
-                  <a href={state.windowsAgentDownloadUrl} download="difae-bridge-agent.zip">
-                    Download agent (zip)
-                  </a>
-                </Button>
-              </div>
-            </AlertDescription>
-          </Alert>
+        {bridgeResult && (
+          <div className="space-y-4 rounded-lg border border-primary/40 bg-primary/5 p-4">
+            <div className="flex items-center gap-2 text-sm font-semibold text-green-700">
+              <CheckCircle className="h-4 w-4" />
+              Bridge created successfully
+            </div>
+            <div className="space-y-1 text-sm text-muted-foreground">
+              <p>Step 1: Download the Windows bridge agent.</p>
+              <p>Step 2: Run it on the same PC/network as your camera.</p>
+              <p>Step 3: Keep it running; it will send your camera feed securely to BERRETO / DIFAE.</p>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <Button asChild size="lg">
+                <a href={bridgeResult.agentDownloadUrl} download>
+                  <Download className="mr-2 h-4 w-4" />
+                  Download Agent
+                </a>
+              </Button>
+              <Button
+                type="button"
+                size="lg"
+                variant="outline"
+                onClick={() => handleDownloadConfig(bridgeResult.configUrl)}
+              >
+                <Download className="mr-2 h-4 w-4" />
+                Download Config
+              </Button>
+            </div>
+            <div className="rounded-md border bg-white/80 p-3 text-sm shadow-sm">
+              <p className="font-semibold">Bridge details</p>
+              <p className="mt-2 text-xs text-muted-foreground">Bridge ID</p>
+              <p className="font-mono text-xs break-all">{bridgeResult.bridgeId}</p>
+              <p className="mt-3 text-xs text-muted-foreground">Generated RTSP URL</p>
+              <p className="font-mono text-xs break-all">{bridgeResult.rtspUrl}</p>
+            </div>
+          </div>
         )}
       </CardContent>
       <CardFooter className="flex justify-between">
@@ -631,14 +672,14 @@ export default function StepThreeConnection() {
           Back
         </Button>
         <div className="flex flex-col items-end gap-2">
-          {agentError && (
-            <p className="max-w-xs text-right text-sm text-destructive">{agentError}</p>
+          {bridgeError && (
+            <p className="max-w-xs text-right text-sm text-destructive">{bridgeError}</p>
           )}
-          <Button onClick={handleAddConnection} disabled={isGeneratingAgent}>
-            {isGeneratingAgent ? (
+          <Button onClick={handleAddConnection} disabled={isCreatingBridge}>
+            {isCreatingBridge ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Generating agent...
+                Creating bridge...
               </>
             ) : (
               "Add Connection"
