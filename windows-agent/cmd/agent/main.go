@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/difaeai/windows-agent/internal/config"
@@ -17,17 +18,22 @@ import (
 
 func main() {
 	logger := logging.New()
+	logger.Println("Agent started")
 	cfg, err := config.LoadFromExecutable()
 	if err != nil {
 		logger.Fatalf("failed to load agent-config.json: %v", err)
 	}
 
-	logger.Printf("Agent started for bridge %s.", cfg.BridgeID)
+	logger.Printf("Loaded config for bridge %s", cfg.BridgeID)
+	logger.Printf("Connecting to backend %s", cfg.BackendURL)
+	logger.Printf("Testing RTSP URL at %s", cfg.RtspURL)
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
 
-	workDir := filepath.Join(os.TempDir(), "difae-bridge", cfg.BridgeID)
+	exePath, _ := os.Executable()
+	baseDir := filepath.Dir(exePath)
+	workDir := filepath.Join(baseDir, "hls")
 	upl := uploader.New(cfg.BackendURL, cfg.BridgeID, cfg.APIKey, logger)
 
 	backoff := 5 * time.Second
@@ -52,24 +58,27 @@ func runPipeline(ctx context.Context, rtspURL, outputDir string, upl *uploader.U
 		return fmt.Errorf("failed to prepare output directory: %w", err)
 	}
 
+	manifestPath := filepath.Join(outputDir, "out.m3u8")
 	args := []string{
 		"-hide_banner",
 		"-rtsp_transport", "tcp",
 		"-i", rtspURL,
+		"-an",
 		"-c:v", "copy",
 		"-f", "hls",
 		"-hls_time", "2",
 		"-hls_list_size", "5",
 		"-hls_flags", "delete_segments",
 		"-y",
-		filepath.Join(outputDir, "index.m3u8"),
+		manifestPath,
 	}
 
 	cmd := exec.CommandContext(ctx, "ffmpeg", args...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stdout
 
-	logger.Printf("RTSP stream opened from %s", rtspURL)
+	logger.Printf("Starting ffmpeg: ffmpeg %s", strings.Join(args, " "))
+	logger.Printf("Attempting RTSP connection to %s", rtspURL)
 
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("failed to start ffmpeg: %w", err)
@@ -91,6 +100,7 @@ func runPipeline(ctx context.Context, rtspURL, outputDir string, upl *uploader.U
 	}
 
 	if err != nil {
+		logger.Printf("ffmpeg exited with error: %v", err)
 		return err
 	}
 

@@ -596,24 +596,18 @@ export default function ConnectCameraPage() {
           ? data.error
           : "We couldn’t create the bridge. Please check your camera details and try again.";
 
-      if (
-        !response.ok ||
-        !data ||
-        typeof data.agentDownloadUrl !== "string" ||
-        typeof data.bridgeId !== "string" ||
-        typeof data.apiKey !== "string"
-      ) {
+      if (!response.ok || !data || typeof data.bridgeId !== "string" || typeof data.apiKey !== "string") {
         throw new Error(serverMessage);
       }
 
       const configUrl =
         typeof data.configDownloadUrl === "string"
           ? data.configDownloadUrl
-          : `/api/bridge-configs/${data.bridgeId}`;
+          : typeof data.configDownloadPath === "string"
+            ? data.configDownloadPath
+            : `/api/bridges/${data.bridgeId}/config`;
 
-      setAgentDownloadUrl(
-        data.agentDownloadUrl || "https://difae.ai/downloads/difae-windows-agent.exe",
-      );
+      setAgentDownloadUrl(data.agentDownloadUrl || "");
       setBridgeConfig({
         bridgeId: data.bridgeId,
         apiKey: data.apiKey,

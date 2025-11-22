@@ -76,9 +76,7 @@ export async function POST(req: NextRequest) {
       process.env.NEXT_PUBLIC_BRIDGE_BACKEND_URL ||
       process.env.NEXT_PUBLIC_APP_URL ||
       req.nextUrl.origin;
-    const agentDownloadUrl =
-      process.env.NEXT_PUBLIC_WINDOWS_AGENT_URL ||
-      "https://difae.ai/downloads/difae-windows-agent.exe";
+    const agentDownloadUrl = process.env.NEXT_PUBLIC_WINDOWS_AGENT_URL || "";
 
     const record = buildBridgeRecord({
       userId,
@@ -102,7 +100,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const configUrl = `/api/bridge-configs/${record.id}`;
+    const configUrl = `/api/bridges/${record.id}/config`;
 
     return NextResponse.json({
       bridgeId: createdRecord.id,

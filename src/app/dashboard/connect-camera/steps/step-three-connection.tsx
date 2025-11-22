@@ -17,12 +17,10 @@ type BridgeResponse = {
   bridgeId: string;
   apiKey: string;
   rtspUrl: string;
-  agentDownloadUrl: string;
+  agentDownloadUrl?: string;
   configUrl: string;
   backendUrl?: string;
 };
-
-const WINDOWS_AGENT_PLACEHOLDER = "https://difae.ai/downloads/difae-windows-agent.exe";
 
 export default function StepThreeConnection() {
   const { state, dispatch } = useWizard();
@@ -258,33 +256,29 @@ export default function StepThreeConnection() {
             ? data.error
             : "We couldn’t create the bridge. Please check your camera details and try again.";
 
-        if (
-          !response.ok ||
-          !data ||
-          typeof data.bridgeId !== "string" ||
-          typeof data.agentDownloadUrl !== "string" ||
-          typeof data.apiKey !== "string"
-        ) {
+        if (!response.ok || !data || typeof data.bridgeId !== "string" || typeof data.apiKey !== "string") {
           throw new Error(errorMessage);
         }
 
         const configUrl =
           typeof data.configDownloadUrl === "string"
             ? data.configDownloadUrl
-            : `/api/bridge-configs/${data.bridgeId}`;
+            : typeof data.configDownloadPath === "string"
+              ? data.configDownloadPath
+              : `/api/bridges/${data.bridgeId}/config`;
 
         setBridgeResult({
           bridgeId: data.bridgeId,
           apiKey: data.apiKey,
           rtspUrl: data.rtspUrl,
           backendUrl: data.backendUrl,
-          agentDownloadUrl: data.agentDownloadUrl || WINDOWS_AGENT_PLACEHOLDER,
+          agentDownloadUrl: typeof data.agentDownloadUrl === "string" ? data.agentDownloadUrl : "",
           configUrl,
         });
 
         dispatch({
           type: "SET_CONNECTION_DETAILS",
-          payload: { windowsAgentDownloadUrl: data.agentDownloadUrl || WINDOWS_AGENT_PLACEHOLDER },
+          payload: { windowsAgentDownloadUrl: data.agentDownloadUrl || "" },
         });
 
         toast({
@@ -689,12 +683,25 @@ export default function StepThreeConnection() {
                 <p>Step 3: Run the agent; it will connect and forward your camera to the cloud.</p>
               </div>
               <div className="flex flex-wrap gap-3">
-                <Button asChild size="lg">
-                  <a href={bridgeResult.agentDownloadUrl}>
-                    <Download className="mr-2 h-4 w-4" />
-                    Download Windows Agent
-                  </a>
-                </Button>
+                {bridgeResult.agentDownloadUrl ? (
+                  <Button asChild size="lg">
+                    <a href={bridgeResult.agentDownloadUrl}>
+                      <Download className="mr-2 h-4 w-4" />
+                      Download Windows Agent
+                    </a>
+                  </Button>
+                ) : (
+                  <div className="flex flex-col gap-1">
+                    <Button size="lg" variant="secondary" disabled>
+                      <Download className="mr-2 h-4 w-4" />
+                      Windows Agent URL not set
+                    </Button>
+                    <p className="text-xs text-muted-foreground max-w-sm">
+                      Add <span className="font-mono">NEXT_PUBLIC_WINDOWS_AGENT_URL</span> to your environment so users can
+                      download the pre-built Windows agent.
+                    </p>
+                  </div>
+                )}
                 <Button
                   type="button"
                   size="lg"
