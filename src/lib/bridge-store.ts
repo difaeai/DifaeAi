@@ -11,6 +11,9 @@ export interface BridgeRecord {
   rtspUrl: string;
   apiKey: string;
   backendUrl: string;
+  pairCode: string | null;
+  paired: boolean;
+  pairCodeExpiresAt?: string | null;
   createdAt: string;
   updatedAt: string;
   status?: "pending" | "online" | "offline";
@@ -19,6 +22,7 @@ export interface BridgeRecord {
 interface BridgeStore {
   create(record: Omit<BridgeRecord, "createdAt" | "updatedAt">): Promise<BridgeRecord>;
   get(id: string): Promise<BridgeRecord | null>;
+  findByPairCode(pairCode: string): Promise<BridgeRecord | null>;
   update(id: string, data: Partial<BridgeRecord>): Promise<void>;
 }
 
@@ -43,6 +47,13 @@ class FileBridgeStore implements BridgeStore {
   async get(id: string): Promise<BridgeRecord | null> {
     const existing = await this.readAll();
     return existing[id] ?? null;
+  }
+
+  async findByPairCode(pairCode: string): Promise<BridgeRecord | null> {
+    const existing = await this.readAll();
+    return (
+      Object.values(existing).find((record) => record.pairCode === pairCode) ?? null
+    );
   }
 
   async update(id: string, data: Partial<BridgeRecord>): Promise<void> {
@@ -92,6 +103,13 @@ class FirestoreBridgeStore implements BridgeStore {
     return data as BridgeRecord;
   }
 
+  async findByPairCode(pairCode: string): Promise<BridgeRecord | null> {
+    const snapshot = await this.collection().where("pairCode", "==", pairCode).limit(1).get();
+    if (snapshot.empty) return null;
+    const doc = snapshot.docs[0];
+    return doc.data() as BridgeRecord;
+  }
+
   async update(id: string, data: Partial<BridgeRecord>): Promise<void> {
     await this.collection().doc(id).set(
       { ...data, updatedAt: admin.firestore.FieldValue.serverTimestamp() },
@@ -124,6 +142,9 @@ export function buildBridgeRecord(params: {
   backendUrl: string;
   cameraId?: string;
   bridgeId?: string;
+  pairCode?: string | null;
+  paired?: boolean;
+  pairCodeExpiresAt?: string | null;
 }): Omit<BridgeRecord, "createdAt" | "updatedAt"> {
   const id = params.bridgeId ?? randomUUID();
   const cameraId = params.cameraId ?? `${id}-camera`;
@@ -134,6 +155,9 @@ export function buildBridgeRecord(params: {
     rtspUrl: params.rtspUrl,
     apiKey: params.apiKey,
     backendUrl: params.backendUrl,
+    pairCode: params.pairCode ?? null,
+    paired: params.paired ?? false,
+    pairCodeExpiresAt: params.pairCodeExpiresAt,
     status: "pending",
   };
 }

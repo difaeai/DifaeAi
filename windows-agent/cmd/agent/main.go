@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bufio"
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -11,17 +13,25 @@ import (
 	"strings"
 	"time"
 
+	"github.com/difaeai/windows-agent/internal/api"
 	"github.com/difaeai/windows-agent/internal/config"
 	"github.com/difaeai/windows-agent/internal/logging"
 	"github.com/difaeai/windows-agent/internal/uploader"
 )
 
+const agentVersion = "1.0.0"
+
 func main() {
 	logger := logging.New()
 	logger.Println("Agent started")
+
 	cfg, err := config.LoadFromExecutable()
 	if err != nil {
-		logger.Fatalf("failed to load agent-config.json: %v", err)
+		logger.Printf("No valid agent-config.json found: %v", err)
+		cfg, err = pairAndPersist(logger)
+		if err != nil {
+			logger.Fatalf("pairing failed: %v", err)
+		}
 	}
 
 	logger.Printf("Loaded config for bridge %s", cfg.BridgeID)
@@ -34,7 +44,7 @@ func main() {
 	exePath, _ := os.Executable()
 	baseDir := filepath.Dir(exePath)
 	workDir := filepath.Join(baseDir, "hls")
-	upl := uploader.New(cfg.BackendURL, cfg.BridgeID, cfg.APIKey, logger)
+	upl := uploader.New(cfg.UploadBaseURL, cfg.BridgeID, cfg.APIKey, logger)
 
 	backoff := 5 * time.Second
 	for ctx.Err() == nil {
@@ -50,6 +60,54 @@ func main() {
 	}
 
 	logger.Println("Agent shutting down")
+}
+
+func pairAndPersist(logger *log.Logger) (config.AgentConfig, error) {
+	fmt.Println("DIFAE Bridge Agent")
+	fmt.Println("Enter pairing code from the web dashboard:")
+
+	reader := bufio.NewReader(os.Stdin)
+	backendURL := config.DefaultBackendURL()
+	fmt.Printf("Backend: %s\n", backendURL)
+	client := api.New(backendURL)
+	machineID, _ := os.Hostname()
+	attempts := 0
+
+	for {
+		fmt.Print("> ")
+		code, _ := reader.ReadString('\n')
+		code = strings.TrimSpace(code)
+		if code == "" {
+			continue
+		}
+
+		cfg, err := client.Pair(code, agentVersion, machineID)
+		if err == nil {
+			exePath, exeErr := os.Executable()
+			if exeErr == nil {
+				_ = config.Save(config.ResolvePath(exePath), cfg)
+			} else {
+				logger.Printf("Could not resolve executable path for saving config: %v", exeErr)
+			}
+
+			logger.Printf("Paired bridge %s", cfg.BridgeID)
+			return cfg, nil
+		}
+
+		if errors.Is(err, api.ErrInvalidPairCode) {
+			fmt.Println("Pairing code not recognized. Please try again.")
+			continue
+		}
+
+		attempts++
+		fmt.Printf("Network error: %v\n", err)
+		if attempts >= 3 {
+			return config.AgentConfig{}, err
+		}
+
+		fmt.Println("Retrying in 3 seconds...")
+		time.Sleep(3 * time.Second)
+	}
 }
 
 func runPipeline(ctx context.Context, rtspURL, outputDir string, upl *uploader.Uploader, logger *log.Logger) error {
