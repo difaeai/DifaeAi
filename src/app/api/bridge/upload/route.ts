@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import formidable from "formidable";
+import formidable, { Fields, Files } from "formidable";
 import fs from "fs/promises";
 import path from "path";
 import { Readable } from "node:stream";
@@ -34,15 +34,19 @@ export async function POST(req: NextRequest) {
     multiples: false,
   });
 
-  const nodeStream = req.body ? Readable.fromWeb(req.body as any) : null;
-  const [fields, files] = await new Promise<[formidable.Fields, formidable.Files]>((resolve, reject) => {
-    form.parse(nodeStream as any, (err, fields, files) => {
+  const nodeStream: Readable | null = req.body ? Readable.fromWeb(req.body as any) : null;
+  if (!nodeStream) {
+    return NextResponse.json({ error: "Invalid form payload" }, { status: 400 });
+  }
+
+  const [fields, files] = await new Promise<[Fields, Files]>((resolve, reject) => {
+    form.parse(nodeStream, (err: unknown, fields: Fields, files: Files) => {
       if (err) reject(err);
       else resolve([fields, files]);
     });
   }).catch((error) => {
     console.error("Failed to parse upload", error);
-    return [] as unknown as [formidable.Fields, formidable.Files];
+    return [] as unknown as [Fields, Files];
   });
 
   if (!fields || !files) {

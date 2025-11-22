@@ -70,12 +70,9 @@ export async function POST(req: NextRequest) {
 
     const store = await getBridgeStore();
 
+    let createdRecord = record;
     try {
-      await store.create({
-        ...record,
-        createdAt: record.createdAt,
-        updatedAt: record.updatedAt,
-      });
+      createdRecord = await store.create(record);
     } catch (error) {
       console.error("Failed to create bridge record", error);
       return NextResponse.json(
@@ -89,17 +86,17 @@ export async function POST(req: NextRequest) {
     const configUrl = `/bridge-configs/${record.id}`;
 
     return NextResponse.json({
-      bridgeId: record.id,
+      bridgeId: createdRecord.id,
       apiKey,
       rtspUrl,
       agentDownloadUrl,
       configDownloadUrl: configUrl,
       config: {
-        bridgeId: record.id,
+        bridgeId: createdRecord.id,
         apiKey,
         rtspUrl,
         backendUrl,
-        cameraId: record.cameraId,
+        cameraId: createdRecord.cameraId,
       },
     });
   } catch (error) {

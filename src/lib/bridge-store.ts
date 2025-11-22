@@ -124,10 +124,9 @@ export function buildBridgeRecord(params: {
   backendUrl: string;
   cameraId?: string;
   bridgeId?: string;
-}): BridgeRecord {
+}): Omit<BridgeRecord, "createdAt" | "updatedAt"> {
   const id = params.bridgeId ?? randomUUID();
   const cameraId = params.cameraId ?? `${id}-camera`;
-  const now = new Date().toISOString();
   return {
     id,
     userId: params.userId,
@@ -135,8 +134,6 @@ export function buildBridgeRecord(params: {
     rtspUrl: params.rtspUrl,
     apiKey: params.apiKey,
     backendUrl: params.backendUrl,
-    createdAt: now,
-    updatedAt: now,
     status: "pending",
   };
 }
