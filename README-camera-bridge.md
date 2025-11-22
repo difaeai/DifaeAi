@@ -28,3 +28,20 @@ Environment knobs (see `infra/.env.example`):
 - `JANUS_WS_URL` – Janus WebSocket endpoint (`ws://localhost:8188` for local compose).
 
 Refer to `docs/camera-bridge/setup.md` for more details and the P2P playbooks for vendor app capture workflows.
+
+## Operator checklist for the Windows bridge agent
+
+To deploy the DIFAE/BERRETO bridge end-to-end:
+
+1. Build the Windows agent on a Windows machine:
+   ```bash
+   cd windows-agent
+   GOOS=windows GOARCH=amd64 go build -o dist/difae-windows-agent.exe ./cmd/agent
+   ```
+2. Upload `dist/difae-windows-agent.exe` to your hosting provider (for example, Firebase Storage) and surface it at the URL set in `NEXT_PUBLIC_WINDOWS_AGENT_URL`.
+3. In production, users will:
+   - Create a bridge from the "Add Connection" flow.
+   - Download both `difae-windows-agent.exe` and `agent-config.json`.
+   - Place the files in the same folder (the agent creates/uses an `hls` folder alongside).
+   - Run the agent; it will stream RTSP → HLS and upload to the backend.
+   - Open `/dashboard/bridges/<bridgeId>/view` to confirm the live stream.

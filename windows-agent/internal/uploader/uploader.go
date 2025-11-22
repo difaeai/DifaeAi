@@ -30,7 +30,7 @@ func New(backendURL, bridgeID, apiKey string, logger *log.Logger) *Uploader {
 		apiKey:     apiKey,
 		logger:     logger,
 		client: &http.Client{
-			Timeout: 15 * time.Second,
+			Timeout: 20 * time.Second,
 		},
 	}
 }
@@ -85,7 +85,7 @@ func (u *Uploader) MonitorOutput(ctx context.Context, outputDir string) {
 					}
 
 					uploaded[name] = info.ModTime()
-					u.logger.Printf("Uploaded manifest %s", name)
+					u.logger.Printf("Manifest uploaded (%s)", name)
 					continue
 				}
 
@@ -110,15 +110,15 @@ func (u *Uploader) MonitorOutput(ctx context.Context, outputDir string) {
 				}
 
 				uploaded[name] = time.Now()
-				u.logger.Printf("Uploading segment %s", name)
+				u.logger.Printf("Segment uploaded (%s)", name)
 			}
 		}
 	}
 }
 
 func (u *Uploader) UploadManifest(ctx context.Context, data []byte) error {
-	endpoint := fmt.Sprintf("%s/api/bridge-upload/manifest", u.backendURL)
-	return u.doWithRetry(func() (*http.Request, error) {
+	endpoint := fmt.Sprintf("%s/api/bridges/%s/upload-manifest", u.backendURL, u.bridgeID)
+	return u.doWithRetry(ctx, func() (*http.Request, error) {
 		req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(data))
 		if err != nil {
 			return nil, err
@@ -131,8 +131,8 @@ func (u *Uploader) UploadManifest(ctx context.Context, data []byte) error {
 }
 
 func (u *Uploader) UploadSegment(ctx context.Context, name string, data []byte) error {
-	endpoint := fmt.Sprintf("%s/api/bridge-upload/segment", u.backendURL)
-	return u.doWithRetry(func() (*http.Request, error) {
+	endpoint := fmt.Sprintf("%s/api/bridges/%s/upload-segment", u.backendURL, u.bridgeID)
+	return u.doWithRetry(ctx, func() (*http.Request, error) {
 		body := &bytes.Buffer{}
 		writer := multipart.NewWriter(body)
 
@@ -154,14 +154,18 @@ func (u *Uploader) UploadSegment(ctx context.Context, name string, data []byte) 
 		}
 
 		req.Header.Set("Content-Type", writer.FormDataContentType())
+		req.Header.Set("X-Bridge-Segment", name)
 		u.addBridgeHeaders(req)
 		return req, nil
 	})
 }
 
-func (u *Uploader) doWithRetry(build func() (*http.Request, error)) error {
+func (u *Uploader) doWithRetry(ctx context.Context, build func() (*http.Request, error)) error {
 	backoff := 2 * time.Second
-	for attempts := 0; attempts < 5; attempts++ {
+	attempt := 0
+
+	for ctx.Err() == nil {
+		attempt++
 		req, err := build()
 		if err != nil {
 			return err
@@ -173,21 +177,27 @@ func (u *Uploader) doWithRetry(build func() (*http.Request, error)) error {
 			return nil
 		}
 
+		status := "no response"
 		if resp != nil {
+			status = resp.Status
 			_ = resp.Body.Close()
 		}
 
-		u.logger.Printf("Upload failed, retrying... (%d)", attempts+1)
-		time.Sleep(backoff)
+		u.logger.Printf("Upload attempt %d failed (%s). Retrying in %s", attempt, status, backoff)
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(backoff):
+		}
 		backoff = nextBackoff(backoff)
 	}
 
-	return fmt.Errorf("upload failed after retries")
+	return ctx.Err()
 }
 
 func (u *Uploader) addBridgeHeaders(req *http.Request) {
 	req.Header.Set("X-Bridge-Id", u.bridgeID)
-	req.Header.Set("X-Bridge-Key", u.apiKey)
+	req.Header.Set("X-Bridge-ApiKey", u.apiKey)
 }
 
 func nextBackoff(current time.Duration) time.Duration {

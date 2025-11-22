@@ -20,25 +20,29 @@ Place `agent-config.json` next to the compiled `.exe` with this structure:
 }
 ```
 
-The agent logs `Agent started for bridge <bridgeId>.` once the config loads successfully.
+The agent logs messages such as `Agent started`, `Loaded config for bridge <bridgeId>`, and `Connecting to backend <backendUrl>` once the config loads successfully.
 
-## Building the Windows executable
+## Building the Windows executable (manual step)
+
 Build on your own machine (the backend must not compile binaries at runtime):
 
 ```bash
-GOOS=windows GOARCH=amd64 go build -o dist/difae-agent.exe ./cmd/agent
+GOOS=windows GOARCH=amd64 go build -o dist/difae-windows-agent.exe ./cmd/agent
 ```
+
+Upload the resulting `difae-windows-agent.exe` to your hosting provider (for example, Firebase Storage) and expose it via the URL defined in `NEXT_PUBLIC_WINDOWS_AGENT_URL`.
 
 Make sure `ffmpeg` is installed and on your `PATH` before running the agent.
 
 ## Running
 
-1. Copy `dist/difae-agent.exe` and `agent-config.json` into the same folder.
-2. Double-click the executable or run it from PowerShell/cmd.
-3. The agent will:
-   - Start ffmpeg with your RTSP URL.
-   - Write HLS output under your temp directory.
-   - Upload `index.m3u8` and each `.ts` file to `/api/bridge-upload/manifest` and `/api/bridge-upload/segment` with your `X-Bridge-Id` and `X-Bridge-Key` headers.
-4. Visit `/streams/<bridgeId>/index.m3u8` (or the React viewer at `/bridges/<bridgeId>/view`) to watch the live feed.
+1. Copy `difae-windows-agent.exe` and `agent-config.json` into the same folder.
+2. Create an `hls` subfolder next to the executable or let the agent create it on first run.
+3. Double-click the executable or run it from PowerShell/cmd.
+4. The agent will:
+   - Start ffmpeg with your RTSP URL (`ffmpeg -rtsp_transport tcp -i "<rtspUrl>" -an -c:v copy -f hls -hls_time 2 -hls_list_size 5 -hls_flags delete_segments ./hls/out.m3u8`).
+   - Write HLS output under `./hls` next to the executable.
+   - Upload `out.m3u8` and each `.ts` file to `/api/bridges/<bridgeId>/upload-manifest` and `/api/bridges/<bridgeId>/upload-segment` with the `X-Bridge-ApiKey` header.
+5. Visit `/dashboard/bridges/<bridgeId>/view` to watch the live feed.
 
 > **Important:** Do **not** commit compiled binaries. Build on your Windows machine only.
