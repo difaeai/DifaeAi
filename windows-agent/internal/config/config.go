@@ -10,22 +10,30 @@ import (
 
 const DefaultConfigFilename = "agent-config.json"
 
-// AgentConfig represents the on-disk configuration consumed by the Windows agent.
+// AgentConfig holds runtime settings for the Windows agent.
 type AgentConfig struct {
 	BridgeID   string `json:"bridgeId"`
 	APIKey     string `json:"apiKey"`
 	RtspURL    string `json:"rtspUrl"`
 	BackendURL string `json:"backendUrl"`
-	CameraID   string `json:"cameraId"`
 }
 
-// ResolvePath returns the absolute path to the config file relative to the executable location.
-func ResolvePath(executablePath string) string {
-	dir := filepath.Dir(executablePath)
+// ResolvePath returns the expected config path based on the executable location.
+func ResolvePath(executable string) string {
+	dir := filepath.Dir(executable)
 	return filepath.Join(dir, DefaultConfigFilename)
 }
 
-// Load reads and validates the configuration from disk.
+// LoadFromExecutable loads the config that sits next to the executable binary.
+func LoadFromExecutable() (AgentConfig, error) {
+	exePath, err := os.Executable()
+	if err != nil {
+		return AgentConfig{}, fmt.Errorf("cannot locate executable: %w", err)
+	}
+	return Load(ResolvePath(exePath))
+}
+
+// Load reads and validates an agent config file.
 func Load(path string) (AgentConfig, error) {
 	raw, err := os.ReadFile(path)
 	if err != nil {
@@ -56,9 +64,6 @@ func validate(cfg AgentConfig) error {
 	}
 	if cfg.BackendURL == "" {
 		return errors.New("backendUrl is required in agent-config.json")
-	}
-	if cfg.CameraID == "" {
-		cfg.CameraID = "camera"
 	}
 	return nil
 }

@@ -609,9 +609,11 @@ export default function ConnectCameraPage() {
       const configUrl =
         typeof data.configDownloadUrl === "string"
           ? data.configDownloadUrl
-          : `/bridge-configs/${data.bridgeId}`;
+          : `/api/bridge-configs/${data.bridgeId}`;
 
-      setAgentDownloadUrl(data.agentDownloadUrl);
+      setAgentDownloadUrl(
+        data.agentDownloadUrl || "https://difae.ai/downloads/difae-windows-agent.exe",
+      );
       setBridgeConfig({
         bridgeId: data.bridgeId,
         apiKey: data.apiKey,

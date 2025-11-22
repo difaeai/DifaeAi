@@ -72,7 +72,6 @@ export async function GET(req: NextRequest, { params }: { params: { bridgeId?: s
       apiKey,
       rtspUrl,
       backendUrl,
-      cameraId: data.cameraId,
     } satisfies Record<string, string>;
 
     return new NextResponse(JSON.stringify(config, null, 2), {
