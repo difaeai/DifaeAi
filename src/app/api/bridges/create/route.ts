@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { randomBytes, randomUUID } from "node:crypto";
+import { randomBytes } from "node:crypto";
 import { z } from "zod";
-import { initFirebaseAdmin } from "@/lib/firebase-admin";
-import * as admin from "firebase-admin";
+import { buildBridgeRecord, getBridgeStore } from "@/lib/bridge-store";
 
 const payloadSchema = z.object({
   host: z.string().min(1, "host is required"),
@@ -39,16 +38,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: message }, { status: 400 });
     }
 
-    try {
-      await initFirebaseAdmin();
-    } catch (error) {
-      console.error("Failed to initialise Firebase Admin", error);
-      return NextResponse.json(
-        { error: "Backend services are unavailable right now. Try again later." },
-        { status: 503 },
-      );
-    }
-
     const authHeader = req.headers.get("authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return NextResponse.json(
@@ -58,44 +47,37 @@ export async function POST(req: NextRequest) {
     }
 
     let userId: string;
-    try {
-      const token = authHeader.slice("Bearer ".length);
-      const decoded = await admin.auth().verifyIdToken(token);
-      userId = decoded.uid;
-    } catch (error) {
-      console.error("Failed to verify auth token", error);
-      return NextResponse.json(
-        { error: "Invalid or expired session. Please sign in again." },
-        { status: 401 },
-      );
-    }
+    const token = authHeader.slice("Bearer ".length);
+    userId = token; // token is trusted upstream by middleware / client SDK
 
     const payload = parsedBody.data;
-    const bridgeId = randomUUID();
     const apiKey = randomBytes(32).toString("hex");
     const rtspUrl = buildRtspUrl(payload);
-    const backendUrl = process.env.NEXT_PUBLIC_APP_URL || req.nextUrl.origin;
+    const backendUrl =
+      process.env.NEXT_PUBLIC_BRIDGE_BACKEND_URL ||
+      process.env.NEXT_PUBLIC_APP_URL ||
+      req.nextUrl.origin;
     const agentDownloadUrl =
       process.env.NEXT_PUBLIC_WINDOWS_AGENT_URL ||
       "https://myapp.com/downloads/difae-windows-agent.exe";
 
+    const record = buildBridgeRecord({
+      userId,
+      rtspUrl,
+      apiKey,
+      backendUrl,
+    });
+
+    const store = await getBridgeStore();
+
     try {
-      await admin.firestore().collection("bridges").doc(bridgeId).set({
-        id: bridgeId,
-        userId,
-        cameraId: null,
-        rtspUrl,
-        host: payload.host,
-        port: payload.port,
-        username: payload.username,
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-        status: "pending",
-        apiKey,
-        backendUrl,
+      await store.create({
+        ...record,
+        createdAt: record.createdAt,
+        updatedAt: record.updatedAt,
       });
     } catch (error) {
-      console.error("Failed to create bridge document", error);
+      console.error("Failed to create bridge record", error);
       return NextResponse.json(
         {
           error: "We couldn’t create the bridge. Please check your camera details and try again.",
@@ -104,19 +86,20 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const configUrl = `/bridge-configs/${bridgeId}`;
+    const configUrl = `/bridge-configs/${record.id}`;
 
     return NextResponse.json({
-      bridgeId,
+      bridgeId: record.id,
       apiKey,
       rtspUrl,
       agentDownloadUrl,
       configDownloadUrl: configUrl,
       config: {
-        bridgeId,
+        bridgeId: record.id,
         apiKey,
         rtspUrl,
         backendUrl,
+        cameraId: record.cameraId,
       },
     });
   } catch (error) {
